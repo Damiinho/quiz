@@ -5,18 +5,94 @@ export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [screen, setScreen] = useState("main");
-  const [gameSetings, setGameSettings] = useState({
+  const [screen, setScreen] = useState("start");
+  const [gameSettings, setGameSettings] = useState({
     players: [],
-    listOfQuestions: {},
+    quiz: {},
   });
+
+  const quizList = [
+    {
+      name: "Testowy",
+      categories: [
+        {
+          name: "Polska",
+          list: [
+            {
+              no: 1,
+              question: "Jak się masz?",
+              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },
+          ],
+        },
+        {
+          name: "Niemcy",
+          list: [
+            {
+              no: 1,
+              question: "Jak das się masz?",
+              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },
+            {
+              no: 2,
+              question: "Jak das się masz hier?",
+              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Testowy2",
+      categories: [
+        {
+          name: "Polska",
+          list: [
+            {
+              no: 1,
+              question: "Jak się masz?",
+              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },
+          ],
+        },
+        {
+          name: "Niemcy",
+          list: [
+            {
+              no: 1,
+              question: "Jak das się masz?",
+              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },
+            {
+              no: 2,
+              question: "Jak das się masz hier?",
+              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },
+          ],
+        },
+      ],
+    },
+  ];
 
   const providerValue = {
     windowWidth,
     screen,
     setScreen,
-    gameSetings,
+    gameSettings,
     setGameSettings,
+    quizList,
   };
 
   useEffect(() => {

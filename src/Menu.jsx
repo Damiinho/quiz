@@ -1,47 +1,21 @@
-import { Button } from "@mui/material";
 import { useContext } from "react";
 import { AppContext } from "./contexts/AppContext";
+import Start from "./Menu/Start";
+import ChooseType from "./Menu/ChooseType";
+import ReadySet from "./Menu/ReadySet";
+import Players from "./Menu/Players";
+import Game from "./Menu/Game";
 
 const Menu = () => {
-  const { screen, setScreen } = useContext(AppContext);
+  const { screen } = useContext(AppContext);
   return (
     <>
       <div className="menu">
-        {screen === "main" && (
-          <>
-            <div className="menu-button">
-              <Button
-                variant="outlined"
-                onClick={() => setScreen("chooseType")}
-              >
-                Zagraj
-              </Button>
-            </div>
-            <div className="menu-button">
-              <Button variant="outlined" disabled>
-                Stwórz nowy
-              </Button>
-            </div>
-          </>
-        )}
-        {screen === "chooseType" && (
-          <>
-            <div className="menu-button">
-              <Button
-                variant="outlined"
-                onClick={() => setScreen("chooseType")}
-              >
-                Wybierz gotowy zestaw
-              </Button>
-            </div>
-            <div className="menu-button">
-              <Button variant="outlined">Skomponuj zestaw</Button>
-            </div>
-            <div className="menu-button">
-              <Button variant="outlined">Wcztaj z pliku</Button>
-            </div>
-          </>
-        )}
+        {screen === "start" && <Start />}
+        {screen === "chooseType" && <ChooseType />}
+        {screen === "readySet" && <ReadySet />}
+        {screen === "players" && <Players />}
+        {screen === "game" && <Game />}
       </div>
     </>
   );
