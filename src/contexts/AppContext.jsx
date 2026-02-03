@@ -30,7 +30,6 @@ export const AppProvider = ({ children }) => {
                 "W którym kraju znajduje się miejscowość o nazwie Poland, w której najszybciej na świecie wita się nowy rok?",
               answers: ["Kiribati", "Nauru", "Palau", "Vanuatu"],
               correctAnswer: ["Kiribati"],
-              done: false,
             },
             {
               no: 2,
@@ -38,7 +37,6 @@ export const AppProvider = ({ children }) => {
                 "W którym kraju znajduje się najstarszy na świecie działający uniwersytet?",
               answers: ["Polska", "Włochy", "Francja", "Wielka Brytania"],
               correctAnswer: ["Włochy"],
-              done: false,
             },
           ],
         },
@@ -51,7 +49,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://www.tekstowo.pl/piosenka,koleda,przybiezeli_do_betlejem.html",
               ],
-              done: false,
             },
             {
               no: 1,
@@ -59,7 +56,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://www.tekstowo.pl/piosenka,ich_troje,powiedz.html",
               ],
-              done: false,
             },
             {
               no: 3,
@@ -67,7 +63,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://www.tekstowo.pl/piosenka,golec_uorkiestra,sciernisco.html",
               ],
-              done: false,
             },
             {
               no: 4,
@@ -75,7 +70,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://www.tekstowo.pl/piosenka,brathanki,czerwone_korale.html",
               ],
-              done: false,
             },
             {
               no: 5,
@@ -83,7 +77,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://www.tekstowo.pl/piosenka,wilki,baska.html",
               ],
-              done: false,
             },
             {
               no: 6,
@@ -91,7 +84,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://www.tekstowo.pl/szukaj,Jeden+Osiem+L+-+Jak+zapomnieć.html",
               ],
-              done: false,
             },
             {
               no: 2,
@@ -99,7 +91,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "https://polska-poezja.pl/lista-wierszy/141-adam-mickiewicz-pan-tadeusz-inwokacja",
               ],
-              done: false,
             },
           ],
         },
@@ -117,7 +108,6 @@ export const AppProvider = ({ children }) => {
                 "Krzysztof Kononowicz",
               ],
               correctAnswer: ["Zbigniew Stonoga"],
-              done: false,
             },
             {
               no: 2,
@@ -130,7 +120,6 @@ export const AppProvider = ({ children }) => {
                 "Donald Tusk",
               ],
               correctAnswer: ["Adolf Hitler"],
-              done: false,
             },
           ],
         },
@@ -149,7 +138,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Na księżycu woda jest bezbarwna, ponieważ nie ma atmosfery i nie może odbijać kolorów",
               ],
-              done: false,
             },
             {
               no: 2,
@@ -163,7 +151,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Każdy delfin w grupie ma swój unikalny dźwięk, który pełni funkcję imienia",
               ],
-              done: false,
             },
 
             {
@@ -178,7 +165,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Nie, ludzie nie widzą w podczerwieni, ale mogą wykrywać ciepło ciał dzięki specjalnym komórkom w siatkówce",
               ],
-              done: false,
             },
             {
               no: 4,
@@ -193,7 +179,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Nie, nie istnieje żaden kraj, który by to uznawał.",
               ],
-              done: false,
             },
             {
               no: 5,
@@ -207,7 +192,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Nie, pingwiny nie potrafią latać, ale czasami używają skrzydeł do pływania w wodzie.",
               ],
-              done: false,
             },
           ],
         },
@@ -224,7 +208,6 @@ export const AppProvider = ({ children }) => {
                 "Kot wpuszczany do trumny",
               ],
               correctAnswer: ["Dzwonek połączony sznurkiem z trumną"],
-              done: false,
             },
             {
               no: 2,
@@ -236,7 +219,6 @@ export const AppProvider = ({ children }) => {
                 "Chronił przed UFO",
               ],
               correctAnswer: ["Był anteną do odbioru radia"],
-              done: false,
             },
 
             {
@@ -251,7 +233,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Metalową klamrą zakładaną na nos, by zmienić jego kształt",
               ],
-              done: false,
             },
             {
               no: 4,
@@ -266,7 +247,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Specjalny proszek do posypywania rąk, który je oczyszczał",
               ],
-              done: false,
             },
           ],
         },
@@ -280,14 +260,12 @@ export const AppProvider = ({ children }) => {
                 "Kazachstan jest jednym z największych światowych eksporterów...",
               answers: ["Uranu", "Żubrówki", "Siodeł do koni", "Matrioszek"],
               correctAnswer: ["Uranu"],
-              done: false,
             },
             {
               no: 1,
               question: "Które miasto jest stolicą Kazachstanu?",
               answers: ["Astana", "Ałmaty", "Karaganda", "Nur-Sułtan"],
               correctAnswer: ["Astana"],
-              done: false,
             },
             {
               no: 2,
@@ -300,7 +278,6 @@ export const AppProvider = ({ children }) => {
                 "Kazachinator",
               ],
               correctAnswer: ["Lider Narodu"],
-              done: false,
             },
             {
               no: 3,
@@ -308,7 +285,6 @@ export const AppProvider = ({ children }) => {
                 "Co w Kazachstanie jest tradycyjnym środkiem transportu na stepie?",
               answers: ["Łoś", "Wielbłąd", "Koń", "Segway"],
               correctAnswer: ["Koń"],
-              done: false,
             },
             {
               no: 4,
@@ -316,14 +292,12 @@ export const AppProvider = ({ children }) => {
                 "Kazachstan ma własną wersję Hollywood, jak się nazywa?",
               answers: ["Kazawood", "Stepwood", "Almatywood", "Boratwood"],
               correctAnswer: ["Kazawood"],
-              done: false,
             },
             {
               no: 5,
               question: "Z kim nie graniczy Kazachstan?",
               answers: ["Kiristan", "Turkmenistan", "Mongolia", "Uzbekistan"],
               correctAnswer: ["Mongolia"],
-              done: false,
             },
             {
               no: 6,
@@ -337,7 +311,6 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Ma najwięcej jezior na świecie, ale zalicza do nich również małe stawy i duże kałuże na stepach",
               ],
-              done: false,
             },
           ],
         },
@@ -349,14 +322,13 @@ export const AppProvider = ({ children }) => {
               question: "Co powstało pierwsze?",
               answers: ["Facebook", "YouTube", "Grono.net", "Kurnik.pl"],
               correctAnswer: ["Kurnik.pl"],
-              done: false,
+
             },
             {
               no: 2,
               question: "Co powstało pierwsze?",
               answers: ["iPhone", "Android", "WindowsPhone"],
               correctAnswer: ["iPhone"],
-              done: false,
             },
             {
               no: 3,
@@ -366,9 +338,9 @@ export const AppProvider = ({ children }) => {
                 "Rakieta balistyczna",
                 "Bomba atomowa",
                 "Samolot",
+                "Sanichód"
               ],
               correctAnswer: ["Samolot"],
-              done: false,
             },
 
             {
@@ -381,14 +353,12 @@ export const AppProvider = ({ children }) => {
                 "Statua Wolności w Nowym Jorku",
               ],
               correctAnswer: ["Piramidy w Egipcie"],
-              done: false,
             },
             {
               no: 5,
               question: "Co powstało pierwsze?",
               answers: ["Mikroskop", "Teleskop", "Żyroskop", "Oscloskop"],
               correctAnswer: ["Teleskop"],
-              done: false,
             },
             {
               no: 6,
@@ -400,14 +370,12 @@ export const AppProvider = ({ children }) => {
                 "Koloseum w Rzymie",
               ],
               correctAnswer: ["Stonehenge"],
-              done: false,
             },
             {
               no: 7,
               question: "Co powstało pierwsze?",
               answers: ["Mikrofon", "Gramofon", "Domofon", "Kulfon"],
               correctAnswer: ["Gramofon"],
-              done: false,
             },
           ],
         },
@@ -420,7 +388,6 @@ export const AppProvider = ({ children }) => {
                 "Gdzie odbyły się pierwsze starożytne igrzyska olimpijskie?",
               answers: ["Ateny", "Rzym", "Korynt", "Sparta"],
               correctAnswer: ["Ateny"],
-              done: false,
             },
             {
               no: 2,
@@ -428,14 +395,12 @@ export const AppProvider = ({ children }) => {
                 "Gdzie odbyły się pierwsze nowożytne igrzyska olimpijskie?",
               answers: ["Ateny", "Rzym", "Korynt", "Sparta"],
               correctAnswer: ["Ateny"],
-              done: false,
             },
             {
               no: 3,
               question: "Gdzie zbudowano Wielki Mur Chiński?",
               answers: ["Indie", "Chiny", "Wietnam", "Korea Północna"],
               correctAnswer: ["Chiny"],
-              done: false,
             },
           ],
         },
@@ -445,22 +410,18 @@ export const AppProvider = ({ children }) => {
             {
               no: 2,
               correctAnswer: ["Janusz Tracz"],
-              done: false,
             },
             {
               no: 1,
               correctAnswer: ["Paweł Kozioł (wójt)"],
-              done: false,
             },
             {
               no: 3,
               correctAnswer: ["Jan Paweł II"],
-              done: false,
             },
             {
               no: 4,
               correctAnswer: ["Lord Voldemort"],
-              done: false,
             },
           ],
         },
@@ -477,35 +438,359 @@ export const AppProvider = ({ children }) => {
               no: 1,
               question: "Czyje to czoło?",
               image: "images/adam.png",
-              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
-              correctAnswer: ["Bywało lepiej"],
-              done: false,
+              correctAnswer: ["Adam Borejko"],
+              correctAnswerImage: "images/adamanswer.jpg",
             },            {
-              no: 1,
+              no: 2,
               question: "Czyje to czoło?",
-              image: "images/adam.png",
-              correctAnswer: ["Bywało lepiej"],
-              done: false,
+              image: "images/karol.png",
+              correctAnswer: ["Karol Nawrocki"],
+              correctAnswerImage: "images/karolanswer.jpg",
+            },
+                   {
+              no: 3,
+              question: "Czyje to czoło?",
+              image: "images/całka.png",
+              correctAnswer: ["Całka"],
+              correctAnswerImage: "images/całkaanswer.jpg",
             },
           ],
         },
         {
-          name: "Niemcy",
+          name: "Pomoc drogowa",
+          type: "standard",
           list: [
             {
               no: 1,
-              question: "Jak das się masz?",
-              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
-              correctAnswer: ["Bywało lepiej"],
-              done: false,
+              question: "Jaki rejon obsługuje Roman Zagroda",
+                            answers: ["Wola/Bemowo", "Wilanów/Ursynów", "Śródmieście/Mokotów", "Praga Północ/Południe"],
+              correctAnswer: ["Śródmieście/Mokotów"],
+            },
+
+            {
+              no: 2,
+              question: "Jaki rejon obsługuje Auto Pawela",
+                            answers: ["Poznań", "Gorzów", "Gorzów Wielkopolski", "Wołów"],
+              correctAnswer: ["Poznań"],
+            },
+            {
+              no: 3,
+              question: "Jaki rejon obsługuje auto z rejestracją D0BOJU?",
+                            answers: ["Wołów", "Bielsko-Biała", "Szczecin", "Słubice"],
+              correctAnswer: ["Wpołów"],
+            },
+
+          ],
+        },
+        {
+          name: "Czółko",
+          type: "forehead",
+          list: [
+            {
+              no: 1,
+              question: "Michał Nowowiejski",
             },
             {
               no: 2,
-              question: "Jak das się masz hier?",
-              answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
-              correctAnswer: ["Bywało lepiej"],
-              done: false,
+              question: "Michał Wiśniewski",
             },
+            {
+              no: 3,
+              question: "Karol \"Friz\" Wiśniewski",
+            },
+            {
+              no: 4,
+              question: "Mrozu",
+            },
+
+          ],
+        },
+        {
+          name: "OWU",
+          type: "standard",
+          list: [
+            {
+              no: 1,
+              question: "2013/15 - co to było?",
+              answers: ["Indie", "Chiny", "Wietnam", "Korea Północna"],
+              correctAnswer: ["Chiny"],
+            },
+
+          ],
+        },
+
+                {
+          name: "Nie pytaj",
+          type: "standard",
+          list: [
+            {
+              no: 1,
+              question: <div>Uzupełnij lukę:<br/> <i>Weź nie pytaj, weź się przytul, (...) weź tu bądź</i> </div>,
+              answers: ["weź bądź ze mną", "weź tu ze mną", "kiedy ciemno", "weź chodź ze mną"],
+              correctAnswer: ["weź tu ze mną"],
+            },
+            {
+              no: 2,
+              question: <div>Uzupełnij lukę:<br/> <i>Weź nie pytaj, weź się przytul, weź tu ze mną, weź tu bądź, (...) weź się starzej</i> </div>,
+              answers: ["weź mów głośniej", "weź zrób godnie", "nie samotnie", "to okropnie", "weź nie młodniej"],
+              correctAnswer: ["weź nie młodniej"],
+            },
+            {
+              no: 3,
+              question: <div>Uzupełnij lukę:<br/> <i>Weź nie pytaj, weź się przytul, weź tu ze mną, weź tu bądź, weź nie młodniej, weź się starzej razem ze mną idź (...)</i> </div>,
+              answers: ["rok w rok", "pod prąd", "krok w krok", "no chodź"],
+              correctAnswer: ["rok w rok"],
+            },
+            {
+              no: 4,
+              question: "W którym roku powstała piosenka „Weź nie pytaj”?",
+              answers: ["2016", "2017", "2018", "2019"],
+              correctAnswer: ["2018"],
+            },
+
+          ],
+        }, 
+                       {
+          name: "Recytacja",
+          type: "standard",
+          list: [
+            {
+              no: 1,
+              question: "Ich Troje – Powiedz",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,ich_troje,powiedz.html",
+              ],
+            },
+            {
+              no: 2,
+              question: "Golec uOrkiestra – Ściernisco",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,golec_uorkiestra,sciernisco.html",
+              ],
+            },
+            {
+              no: 3,
+              question: "Brathanki – Czerwone korale",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,brathanki,czerwone_korale.html",
+              ],
+            },
+            {
+              no: 4,
+              question: "Baśka – Wilki",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,wilki,baska.html",
+              ],
+            },
+            {
+              no: 5,
+              question: "Jeden Osiem L – Jak zapomnieć",
+              correctAnswer: [
+                "https://www.tekstowo.pl/szukaj,Jeden+Osiem+L+-+Jak+zapomnieć.html",
+              ],
+            },
+            {
+              no: 6,
+              question: "Pan Tadeusz – Inwokacja",
+              correctAnswer: [
+                "https://polska-poezja.pl/lista-wierszy/141-adam-mickiewicz-pan-tadeusz-inwokacja",
+              ],
+            },
+
+          ],
+        },
+                       {
+          name: "Licytacja",
+          type: "auction",
+          list: [
+            {
+              no: 1,
+              question: "Pomoce drogowe współpracujące z PZU",
+            },
+            {
+              no: 2,
+              question: "Ludzie pracujący na nockach (tak max do 2023, jak co najmniej 2 osoby znają to ok)",
+            },
+            {
+              no: 3,
+              question: "Koordynatorzy assistance + nocki (jak co najmniej 2 osoby znają to ok)",
+            },
+
+          ],
+        },
+                       {
+          name: "Wiedza losowa",
+          list: [
+   {
+              no: 1,
+              question:
+                "W XIX wieku znaleziono sposób na ludzi, którzy bali się, że zostaną pochowani żywcem. Co to było?",
+              answers: [
+                "Dzwonek połączony sznurkiem z trumną",
+                "Nóż wyskakujący z trumny po zamknięciu wieka",
+                "Kot wpuszczany do trumny",
+              ],
+              correctAnswer: ["Dzwonek połączony sznurkiem z trumną"],
+            },
+          {
+              no: 2,
+              question: "Czy ludzie mogą widzieć w podczerwieni?",
+              answers: [
+                "Tak, człowiek może widzieć w podczerwieni, ale tylko w przypadku ekstremalnego nasłonecznienia",
+                "Nie, ludzie nie widzą w podczerwieni, ale mogą wykrywać ciepło ciał dzięki specjalnym komórkom w siatkówce",
+                "Tak, dzieci w wieku do 3 lat mogą widzieć w podczerwieni do pewnego stopnia",
+                "Nie, jednak ludzie potrafią widzieć „na granicy” podczerwieni, jeśli mają odpowiednie okulary",
+              ],
+              correctAnswer: [
+                "Nie, ludzie nie widzą w podczerwieni, ale mogą wykrywać ciepło ciał dzięki specjalnym komórkom w siatkówce",
+              ],
+            },
+            {
+              no: 3,
+              question:
+                "Czy istnieje kraj, który oficjalnie uznaje płynność granic?",
+              answers: [
+                "Tak, w Szwajcarii granice zmieniają się każdego roku w zależności od decyzji mieszkańców.",
+                "Tak, w Niemczech istnieje region, w którym granice między krajami nie są ustalone na stałe, zmieniają się zgodnie z porozumieniem.",
+                "Nie, nie istnieje żaden kraj, który by to uznawał.",
+                "Tak, w USA istnieją tzw. 'graniczne kameleony', które są płynne.",
+              ],
+              correctAnswer: [
+                "Nie, nie istnieje żaden kraj, który by to uznawał.",
+              ],
+            },            {
+              no: 4,
+              question: "Z kim nie graniczy Kazachstan?",
+              answers: ["Kiristan", "Turkmenistan", "Mongolia", "Uzbekistan"],
+              correctAnswer: ["Mongolia"],
+            },   
+
+          ],
+        },
+                       {
+          name: "Pierwsze",
+          list: [
+                    {
+              no: 1,
+              question: "Co powstało pierwsze?",
+              answers: ["Mikrofon", "Gramofon", "Domofon", "Kulfon"],
+              correctAnswer: ["Gramofon"],
+            },            {
+              no: 2,
+              question: "Co powstało pierwsze?",
+              answers: ["Mikroskop", "Teleskop", "Żyroskop", "Oscloskop"],
+              correctAnswer: ["Teleskop"],
+            },            {
+              no: 3,
+              question: "Co powstało pierwsze?",
+              answers: [
+                "Czołg",
+                "Rakieta balistyczna",
+                "Bomba atomowa",
+                "Samolot",
+                "Sanichód"
+              ],
+              correctAnswer: ["Samolot"],
+            },
+
+            {
+              no: 4,
+              question: "Co powstało pierwsze?",
+              answers: [
+                "Wielki mur chiński",
+                "Piramidy w Egipcie",
+                "Koloseum w Rzymie",
+                "Statua Wolności w Nowym Jorku",
+              ],
+              correctAnswer: ["Piramidy w Egipcie"],
+            }, 
+
+          ],
+        },
+                       {
+          name: "Pojedynek",
+          list: [
+            {
+              no: 1,
+              question: "Liderzy Assistance / Link4 z Warszawy",
+            },
+
+          ],
+        },
+                       {
+          name: "Gdzie jest Całka",
+          list: [
+            {
+              no: 1,
+              question: "Pomoce drogowe współpracujące z PZU",
+            },
+
+          ],
+        },
+                       {
+          name: "Co to za ptak?",
+          list: [
+            {
+              no: 1,
+              question: "Posłuchaj",
+              answers: [
+                "Słowik",
+                "Kos",
+              "Drozd", "Mewa"],
+              correctAnswer: ["Kos"],
+              sound: "birds/kos.mp3",
+            }, 
+            {
+              no: 2,
+              question: "Posłuchaj",
+              answers: [
+                "Puchacz",
+                "Słowik",
+              "Drozd", "Mewa"],
+              correctAnswer: ["mewa"],
+              sound: "birds/mewa pospolita.mp3",
+            }, 
+            {
+              no: 3,
+              question: "Posłuchaj",
+              answers: [
+                "Puchacz",
+                "Kruk",
+              "Rudzik", "Bocian"],
+              correctAnswer: ["Rudzik"],
+              sound: "birds/rudzik.mp3",
+            }, 
+            {
+              no: 4,
+              question: "Posłuchaj",
+              answers: [
+                "Bocian",
+                "Czapla",
+              "Baźant", "Kruk"],
+              correctAnswer: ["Bocian"],
+              sound: "birds/bocian.mp3",
+            }, 
+            {
+              no: 5,
+              question: "Posłuchaj",
+              answers: [
+                "Wróbel",
+                "Gołąb",
+              "Kukułka", "Sójka"],
+              correctAnswer: ["Kukułka"],
+              sound: "birds/kukułka.mp3",
+            }, 
+            {
+              no: 6,
+              question: "Posłuchaj",
+              answers: [
+                "Wrona",
+                "Kruk",
+              "Gawron", "Politruk"],
+              correctAnswer: ["Kruk"],
+              sound: "birds/kruk.mp3",
+            }, 
+
           ],
         },
       ],
