@@ -6,13 +6,19 @@ export const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [screen, setScreen] = useState("start");
+  const [isQuestionActive, setIsQuestionActive] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [gameSettings, setGameSettings] = useState({
     players: [],
     quiz: {},
   });
 
   const quizList = [
+    // dodać piłkarz, tynkarz, polityk czy sportowiec
+    // dodać licytację
+    // dodać
     {
+      type: "standard",
       name: "Testowy",
       categories: [
         {
@@ -36,7 +42,68 @@ export const AppProvider = ({ children }) => {
             },
           ],
         },
-        {
+        {type: "standard",
+          name: "Recyacja",
+          list: [
+            {
+              no: 7,
+              question: "Przbieżeli do Betlejem",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,koleda,przybiezeli_do_betlejem.html",
+              ],
+              done: false,
+            },
+            {
+              no: 1,
+              question: "Powiedz - Ich Troje",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,ich_troje,powiedz.html",
+              ],
+              done: false,
+            },
+            {
+              no: 3,
+              question: "Golec uOrkiestra - Ściernisco",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,golec_uorkiestra,sciernisco.html",
+              ],
+              done: false,
+            },
+            {
+              no: 4,
+              question: "Brathanki - Czerwone korale",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,brathanki,czerwone_korale.html",
+              ],
+              done: false,
+            },
+            {
+              no: 5,
+              question: "Baśka - Wilki",
+              correctAnswer: [
+                "https://www.tekstowo.pl/piosenka,wilki,baska.html",
+              ],
+              done: false,
+            },
+            {
+              no: 6,
+              question: "Jeden Osiem L - Jak zapomnieć",
+              correctAnswer: [
+                "https://www.tekstowo.pl/szukaj,Jeden+Osiem+L+-+Jak+zapomnieć.html",
+              ],
+              done: false,
+            },
+            {
+              no: 2,
+              question: "Pan Tadeusz - Inwokacja",
+              correctAnswer: [
+                "https://polska-poezja.pl/lista-wierszy/141-adam-mickiewicz-pan-tadeusz-inwokacja",
+              ],
+              done: false,
+            },
+          ],
+        },
+        {type: "standard",
           name: "Kto to powiedział",
           list: [
             {
@@ -67,7 +134,7 @@ export const AppProvider = ({ children }) => {
             },
           ],
         },
-        {
+        {type: "standard",
           name: "Ekspert",
           list: [
             {
@@ -93,7 +160,9 @@ export const AppProvider = ({ children }) => {
                 "Tylko te, które żyją w oceanach południowych",
                 "Delfiny używają imion tylko w celach towarzyskich, nie do identyfikacj",
               ],
-              correctAnswer: ["Włochy"],
+              correctAnswer: [
+                "Każdy delfin w grupie ma swój unikalny dźwięk, który pełni funkcję imienia",
+              ],
               done: false,
             },
 
@@ -142,7 +211,7 @@ export const AppProvider = ({ children }) => {
             },
           ],
         },
-        {
+        {type: "standard",
           name: "Wynalazek",
           list: [
             {
@@ -202,7 +271,7 @@ export const AppProvider = ({ children }) => {
           ],
         },
 
-        {
+        {type: "standard",
           name: "Kluczowa wiedza o Kazachsanie",
           list: [
             {
@@ -272,7 +341,7 @@ export const AppProvider = ({ children }) => {
             },
           ],
         },
-        {
+        {type: "standard",
           name: "Pierwsze",
           list: [
             {
@@ -342,7 +411,7 @@ export const AppProvider = ({ children }) => {
             },
           ],
         },
-        {
+        {type: "standard",
           name: "Gdzie to się wydarzyło?",
           list: [
             {
@@ -370,27 +439,27 @@ export const AppProvider = ({ children }) => {
             },
           ],
         },
-        {
+        {type: "forehead",
           name: "Czółko",
           list: [
             {
-              no: 1,
+              no: 2,
               correctAnswer: ["Janusz Tracz"],
               done: false,
             },
             {
-              no: 2,
-              question:
-                "Gdzie odbyły się pierwsze nowożytne igrzyska olimpijskie?",
-              answers: ["Ateny", "Rzym", "Korynt", "Sparta"],
-              correctAnswer: ["Ateny"],
+              no: 1,
+              correctAnswer: ["Paweł Kozioł (wójt)"],
               done: false,
             },
             {
               no: 3,
-              question: "Gdzie zbudowano Wielki Mur Chiński?",
-              answers: ["Indie", "Chiny", "Wietnam", "Korea Północna"],
-              correctAnswer: ["Chiny"],
+              correctAnswer: ["Jan Paweł II"],
+              done: false,
+            },
+            {
+              no: 4,
+              correctAnswer: ["Lord Voldemort"],
               done: false,
             },
           ],
@@ -398,15 +467,23 @@ export const AppProvider = ({ children }) => {
       ],
     },
     {
-      name: "Testowy2",
+      name: "Urodziny",
       categories: [
         {
-          name: "Polska",
+          type: "illustrated",
+          name: "Czoło",
           list: [
             {
               no: 1,
-              question: "Jak się masz?",
+              question: "Czyje to czoło?",
+              image: "images/adam.png",
               answers: ["Dobrze", "Źle", "Jako-tako", "Bywało lepiej"],
+              correctAnswer: ["Bywało lepiej"],
+              done: false,
+            },            {
+              no: 1,
+              question: "Czyje to czoło?",
+              image: "images/adam.png",
               correctAnswer: ["Bywało lepiej"],
               done: false,
             },
@@ -442,6 +519,10 @@ export const AppProvider = ({ children }) => {
     gameSettings,
     setGameSettings,
     quizList,
+    isQuestionActive,
+    setIsQuestionActive,
+    selectedCategory,
+    setSelectedCategory,
   };
 
   useEffect(() => {

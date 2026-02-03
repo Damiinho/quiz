@@ -1,19 +1,27 @@
-import { useState, useContext } from "react";
-import { Button, Typography, Paper } from "@mui/material";
+import { useContext } from "react";
+import { Button } from "@mui/material";
 import { AppContext } from "../contexts/AppContext";
 import Question from "./Game/Question";
 import Results from "./Game/Results"; // Importujemy nasz nowy komponent
 
 const Game = () => {
-  const { gameSettings } = useContext(AppContext);
-  const [isQuestionActive, setIsQuestionActive] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const {
+    gameSettings,
+    isQuestionActive,
+    setIsQuestionActive,
+    selectedCategory,
+    setSelectedCategory,
+  } = useContext(AppContext);
 
   const getUnusedQuestionsCount = (category) => {
-    return category.list.filter((question) => !question.done).length;
+    return (
+      category.list?.filter((question) => question && !question.done).length ||
+      0
+    );
   };
 
   const handleCategorySelect = (category) => {
+    if (!category.list || category.list.length === 0) return;
     setSelectedCategory(category);
     setIsQuestionActive(true); // Przełączamy na widok pytania
   };
@@ -33,25 +41,33 @@ const Game = () => {
         <Question category={selectedCategory} handleGoBack={handleGoBack} />
       ) : (
         <>
-          <Typography variant="h5" gutterBottom>
-            Wybierz kategorię
-          </Typography>
-          {gameSettings.quiz?.categories?.map((category, index) => {
-            const unusedQuestionsCount = getUnusedQuestionsCount(category);
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "16px",
+              justifyContent: "center",
+            }}
+          >
+            {gameSettings.quiz?.categories?.map((category, index) => {
+              const unusedQuestionsCount = getUnusedQuestionsCount(category);
 
-            return (
-              <Paper key={index} sx={{ marginBottom: "16px", padding: "10px" }}>
+              return (
                 <Button
+                  key={index}
                   variant="contained"
-                  fullWidth
                   disabled={unusedQuestionsCount === 0}
                   onClick={() => handleCategorySelect(category)}
+                  style={{
+                    flex: "1 1 calc(33.333% - 16px)",
+                    minWidth: "200px",
+                  }}
                 >
                   {category.name} ({unusedQuestionsCount})
                 </Button>
-              </Paper>
-            );
-          })}
+              );
+            })}
+          </div>
         </>
       )}
     </div>

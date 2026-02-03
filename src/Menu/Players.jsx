@@ -17,11 +17,12 @@ const Players = () => {
   const [playerName, setPlayerName] = useState("");
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedName, setEditedName] = useState("");
+  const [startingScore, setStartingScore] = useState(10);
 
   const handleAddPlayer = () => {
     if (playerName.trim() === "") return;
 
-    const newPlayer = { name: playerName, points: 10 };
+    const newPlayer = { name: playerName, points: startingScore };
 
     setGameSettings((prevSettings) => ({
       ...prevSettings,
@@ -29,6 +30,16 @@ const Players = () => {
     }));
 
     setPlayerName("");
+  };
+
+  const changeStartingScore = (newScore) => {
+    const normalized = Math.max(0, Math.floor(newScore));
+    setStartingScore(normalized);
+
+    setGameSettings((prevSettings) => ({
+      ...prevSettings,
+      players: prevSettings.players.map((p) => ({ ...p, points: normalized })),
+    }));
   };
 
   const handleDeletePlayer = (index) => {
@@ -81,6 +92,17 @@ const Players = () => {
       >
         Dodaj gracza
       </Button>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+        <div style={{ flex: 1 }}>
+          <Typography variant="subtitle1">Punktacja początkowa</Typography>
+          <Typography variant="h6">{startingScore}</Typography>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button size="small" variant="outlined" onClick={() => changeStartingScore(startingScore - 1)}>-</Button>
+          <Button size="small" variant="outlined" onClick={() => changeStartingScore(startingScore + 1)}>+</Button>
+        </div>
+      </div>
 
       {gameSettings.players.length > 0 && (
         <Paper elevation={3} sx={{ mt: 2, p: 2 }}>
