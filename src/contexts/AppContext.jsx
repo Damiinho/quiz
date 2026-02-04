@@ -488,19 +488,19 @@ export const AppProvider = ({ children }) => {
           list: [
             {
               no: 1,
-              question: "Michał Nowowiejski",
+              correctAnswer: ["Michał Nowowiejski"],
             },
             {
               no: 2,
-              question: "Michał Wiśniewski",
+              correctAnswer: ["Michał Wiśniewski"],
             },
             {
               no: 3,
-              question: "Karol \"Friz\" Wiśniewski",
+              correctAnswer: ["Karol \"Friz\" Wiśniewski"],
             },
             {
               no: 4,
-              question: "Mrozu",
+              correctAnswer: ["Mrozu"],
             },
 
           ],

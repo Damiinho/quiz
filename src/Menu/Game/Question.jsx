@@ -16,19 +16,15 @@ const Question = ({ category, handleGoBack }) => {
     if (!category?.list) return null;
     const unansweredQuestions = category.list.filter((q) => !q.done);
     if (unansweredQuestions.length === 0) return null;
-
-    if (category?.type === "forehead") {
-      return unansweredQuestions[
-        Math.floor(Math.random() * unansweredQuestions.length)
-      ];
+    // Jeśli są pytania z polem `no`, zwróć to o najmniejszym `no` (kolejność rosnąca)
+    const questionsWithNo = unansweredQuestions.filter((q) => q.no != null);
+    if (questionsWithNo.length > 0) {
+      questionsWithNo.sort((a, b) => a.no - b.no);
+      return questionsWithNo[0];
     }
 
-    const questionWithNo = unansweredQuestions.filter((q) => q.no != null);
-    if (questionWithNo.length > 0) {
-      return questionWithNo.reduce((prev, curr) => (prev.no < curr.no ? prev : curr));
-    }
-
-    return unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)];
+    // W przeciwnym razie zwróć pierwsze nieodpowiedziane pytanie (zachowując oryginalną kolejność)
+    return unansweredQuestions[0];
   }, [category]);
 
   useEffect(() => {
@@ -157,11 +153,26 @@ const Question = ({ category, handleGoBack }) => {
         </div>
       )}
       {isForehead && (
-        <Paper sx={{ marginBottom: "16px", padding: "10px" }}>
-          <Typography variant="h6" gutterBottom>
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
+            <Typography
+              variant="h1"
+              gutterBottom
+              style={{
+                fontSize: "min(18vw, 120px)",
+                lineHeight: 1,
+                textAlign: "center",
+                width: "100%",
+                wordBreak: "break-word",
+              }}
+            >
+              {selectedQuestion.question}
+            </Typography>
+          </div>
+          <Typography variant="subtitle1" gutterBottom>
             Zakryj oczy lub odwróć się
           </Typography>
-        </Paper>
+        </div>
       )}
 
       {!isForehead && !isAlbum && selectedQuestion.question && (
@@ -287,7 +298,7 @@ const Question = ({ category, handleGoBack }) => {
       )}
 
       {isForehead && showAnswer && selectedQuestion.correctAnswer?.[0] && (
-        <>
+        <div style={{ marginBottom: "16px" }}>
           {selectedQuestion.correctAnswerImage && (
             <div style={{ marginBottom: 16 }}>
               <img
@@ -298,10 +309,23 @@ const Question = ({ category, handleGoBack }) => {
               />
             </div>
           )}
-          <Typography variant="h6" gutterBottom>
-            {selectedQuestion.correctAnswer[0]}
-          </Typography>
-        </>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
+            <Typography
+              variant="h1"
+              gutterBottom
+              style={{
+                fontSize: "min(20vw, 120px)",
+                lineHeight: 1,
+                textAlign: "center",
+                width: "100%",
+                wordBreak: "break-word",
+              }}
+            >
+              {selectedQuestion.correctAnswer[0]}
+            </Typography>
+          </div>
+        </div>
       )}
 
       {isAuction ? (
