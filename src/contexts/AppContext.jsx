@@ -718,11 +718,91 @@ export const AppProvider = ({ children }) => {
           ],
         },
                        {
-          name: "Gdzie jest Całka",
+          type: "album",
+          name: "Znajdź kota",
           list: [
             {
               no: 1,
-              question: "Pomoce drogowe współpracujące z PZU",
+              images: [
+                "images/find/1.jpg",
+                "images/find/1a.jpg",]
+            },
+            {
+              no: 2,
+              images: [
+                "images/find/2.jpg",
+                "images/find/2a.jpg",]
+            },
+            {
+              no: 3,
+              images: [
+                "images/find/3.jpg",
+                "images/find/3a.jpg",]
+            },
+            {
+              no: 4,
+              images: [
+                "images/find/4.jpg",
+                "images/find/4a.jpg",]
+            },
+            {
+              no: 5,
+              images: [
+                "images/find/5.jpg",
+                "images/find/5a.jpg",]
+            },
+            {
+              no: 6,
+              images: [
+                "images/find/6.jpg",
+                "images/find/6a.jpg",]
+            },
+            {
+              no: 7,
+              images: [
+                "images/find/7.jpg",
+                "images/find/7a.jpg",
+                "images/find/7a1.jpg",]
+            },
+            {
+              no: 8,
+              images: [
+                "images/find/8.jpg",
+                "images/find/8a.jpg",]
+            },
+            {
+              no: 9,
+              images: [
+                "images/find/9.jpg"]
+            },
+            {
+              no: 10,
+              images: [
+                "images/find/10.jpg"]
+            },
+            {
+              no: 11,
+              images: [
+                "images/find/11.png",]
+            },
+            {
+              no: 12,
+              images: [
+                "images/find/12.jpg",
+                "images/find/12a.jpg",]
+            },
+            {
+              no: 13,
+              images: [
+                "images/find/13.jpg",
+                "images/find/13a.jpg",]
+            },
+            {
+              no: 14,
+              images: [
+                "images/find/14.jpg",
+                "images/find/14a.jpg",
+                "images/find/14a1.jpg",]
             },
 
           ],

@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Button, Typography, Paper } from "@mui/material";
+import { Button, Typography, Paper, Modal } from "@mui/material";
 import PropTypes from "prop-types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const Question = ({ category, handleGoBack }) => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [enlargedImage, setEnlargedImage] = useState(null);
   const audioRef = useRef(null);
 
   const getNextQuestion = useCallback(() => {
@@ -65,11 +69,20 @@ const Question = ({ category, handleGoBack }) => {
   useEffect(() => {
     setTimer(30);
     setIsTimerRunning(false);
+    setCurrentImageIndex(0);
+    setEnlargedImage(null);
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
   }, [selectedQuestion]);
+
+  // auto-enlarge first image for album type
+  useEffect(() => {
+    if (category?.type === "album" && selectedQuestion?.images && selectedQuestion.images.length > 0) {
+      setEnlargedImage(`/${selectedQuestion.images[0]}`);
+    }
+  }, [selectedQuestion, category?.type]);
 
   const handleGoBackAndUpdate = () => {
     if (!selectedQuestion) return;
@@ -101,10 +114,48 @@ const Question = ({ category, handleGoBack }) => {
   const isForehead = category?.type === "forehead";
   const isSongs = category?.type === "songs" || category?.name?.toLowerCase() === "piosenki";
   const isIllustrated = category?.type === "illustrated";
+  const isAlbum = category?.type === "album";
   const hasAnswers = Array.isArray(selectedQuestion.answers) && selectedQuestion.answers.length > 0;
+  const albumImages = selectedQuestion?.images || [];
+  const hasMultipleImages = albumImages.length > 1;
 
   return (
     <div style={{ padding: "20px", textAlign: "center", width: "100%" }}>
+      {isAlbum && (
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", marginBottom: "16px" }}>
+            <Button
+              variant="contained"
+              disabled={!hasMultipleImages}
+              onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? albumImages.length - 1 : prev - 1))}
+              style={{ opacity: !hasMultipleImages ? 0.5 : 1 }}
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <div style={{ flex: 1, maxWidth: "600px" }}>
+              {albumImages[currentImageIndex] && (
+                <img
+                  src={`/${albumImages[currentImageIndex]}`}
+                  alt={`Obraz ${currentImageIndex + 1}`}
+                  onClick={() => setEnlargedImage(`/${albumImages[currentImageIndex]}`)}  
+                  style={{ width: "100%", maxHeight: 500, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
+                />
+              )}
+            </div>
+            <Button
+              variant="contained"
+              disabled={!hasMultipleImages}
+              onClick={() => setCurrentImageIndex((prev) => (prev === albumImages.length - 1 ? 0 : prev + 1))}
+              style={{ opacity: !hasMultipleImages ? 0.5 : 1 }}
+            >
+              <ChevronRightIcon />
+            </Button>
+          </div>
+          <Typography variant="body2" style={{ fontSize: "16px" }}>
+            {currentImageIndex + 1} / {albumImages.length}
+          </Typography>
+        </div>
+      )}
       {isForehead && (
         <Paper sx={{ marginBottom: "16px", padding: "10px" }}>
           <Typography variant="h6" gutterBottom>
@@ -113,7 +164,7 @@ const Question = ({ category, handleGoBack }) => {
         </Paper>
       )}
 
-      {!isForehead && selectedQuestion.question && (
+      {!isForehead && !isAlbum && selectedQuestion.question && (
         <Typography variant="h4" gutterBottom style={{ fontSize: "40px" }}>
           {selectedQuestion.question}
         </Typography>
@@ -140,7 +191,8 @@ const Question = ({ category, handleGoBack }) => {
               <img
                 src={`/${selectedQuestion.image}`}
                 alt={selectedQuestion.question || "obraz"}
-                style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8 }}
+                onClick={() => setEnlargedImage(`/${selectedQuestion.image}`)}
+                style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
               />
             </div>
           )}
@@ -150,7 +202,8 @@ const Question = ({ category, handleGoBack }) => {
               <img
                 src={`/${selectedQuestion.image}`}
                 alt={selectedQuestion.question || "obraz"}
-                style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8 }}
+                onClick={() => setEnlargedImage(`/${selectedQuestion.image}`)}
+                style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
               />
             </div>
           )}
@@ -180,7 +233,8 @@ const Question = ({ category, handleGoBack }) => {
                     <img
                       src={`/${selectedQuestion.correctAnswerImage}`}
                       alt="odpowiedź"
-                      style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8 }}
+                      onClick={() => setEnlargedImage(`/${selectedQuestion.correctAnswerImage}`)}
+                      style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
                     />
                   </div>
                 )}
@@ -193,7 +247,7 @@ const Question = ({ category, handleGoBack }) => {
         </>
       )}
 
-      {!isIllustrated && !isForehead && (
+      {!isIllustrated && !isForehead && !isAlbum && (
         hasAnswers ? (
           <Paper sx={{ marginBottom: "16px", padding: "10px", width: "100%" }}>
             {selectedQuestion.answers?.map((answer, index) => (
@@ -219,7 +273,8 @@ const Question = ({ category, handleGoBack }) => {
                   <img
                     src={`/${selectedQuestion.correctAnswerImage}`}
                     alt="odpowiedź"
-                    style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8 }}
+                    onClick={() => setEnlargedImage(`/${selectedQuestion.correctAnswerImage}`)}
+                    style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
                   />
                 </div>
               )}
@@ -238,7 +293,8 @@ const Question = ({ category, handleGoBack }) => {
               <img
                 src={`/${selectedQuestion.correctAnswerImage}`}
                 alt="odpowiedź"
-                style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8 }}
+                onClick={() => setEnlargedImage(`/${selectedQuestion.correctAnswerImage}`)}
+                style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
               />
             </div>
           )}
@@ -269,7 +325,7 @@ const Question = ({ category, handleGoBack }) => {
             Start
           </Button>
         </div>
-      ) : (
+      ) : !isAlbum ? (
         <Button
           variant="contained"
           onClick={() => setShowAnswer((s) => !s)}
@@ -278,7 +334,7 @@ const Question = ({ category, handleGoBack }) => {
         >
           {showAnswer ? "Ukryj odpowiedź" : "Pokaż odpowiedź"}
         </Button>
-      )}
+      ) : null}
 
       <Button variant="contained" onClick={handleGoBackAndUpdate} fullWidth style={{ fontSize: "20px" }}>
         Wróć
@@ -291,6 +347,45 @@ const Question = ({ category, handleGoBack }) => {
           </a>
         </Typography>
       )}
+
+      <Modal
+        open={!!enlargedImage}
+        onClose={() => setEnlargedImage(null)}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", width: "100%", height: "100%" }}>
+          {isAlbum && albumImages.length > 1 && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                const newIndex = currentImageIndex === 0 ? albumImages.length - 1 : currentImageIndex - 1;
+                setCurrentImageIndex(newIndex);
+                setEnlargedImage(`/${albumImages[newIndex]}`);
+              }}
+            >
+              <ChevronLeftIcon />
+            </Button>
+          )}
+          <img
+            src={enlargedImage}
+            alt="powiększony obraz"
+            onClick={() => setEnlargedImage(null)}
+            style={{ maxWidth: "95vw", maxHeight: "95vh", objectFit: "contain", cursor: "pointer" }}
+          />
+          {isAlbum && albumImages.length > 1 && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                const newIndex = currentImageIndex === albumImages.length - 1 ? 0 : currentImageIndex + 1;
+                setCurrentImageIndex(newIndex);
+                setEnlargedImage(`/${albumImages[newIndex]}`);
+              }}
+            >
+              <ChevronRightIcon />
+            </Button>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
