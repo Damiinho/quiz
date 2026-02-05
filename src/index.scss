@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap&subset=latin-ext");
 
 // stałe
 
@@ -54,21 +54,34 @@ body {
   align-items: center;
   flex-direction: row;
   flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
   background-color: lighten($random-color, 10%);
   font-family: "Cabin", sans-serif;
   font-weight: 700;
   font-size: 30px;
 
   &-button {
+    display: flex;
     button {
-      width: 300px;
-      height: 100px;
-      font-size: 20px;
-
+      padding: 30px 50px;
+      font-size: 48px;
+      font-family: "Comic Neue", serif;
+      font-weight: 300;
+      white-space: nowrap;
       background-color: lighten($random-color, 10%);
+      color: inherit;
+      border: 2px solid currentColor;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
     }
-    button:hover {
+    button:hover:not(:disabled) {
       background-color: lighten($random-color, 20%);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 }

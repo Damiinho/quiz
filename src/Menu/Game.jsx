@@ -1,5 +1,4 @@
 import { useContext } from "react";
-import { Button } from "@mui/material";
 import { AppContext } from "../contexts/AppContext";
 import Question from "./Game/Question";
 import Results from "./Game/Results"; // Importujemy nasz nowy komponent
@@ -40,35 +39,22 @@ const Game = () => {
       {isQuestionActive && selectedCategory ? (
         <Question category={selectedCategory} handleGoBack={handleGoBack} />
       ) : (
-        <>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "16px",
-              justifyContent: "center",
-            }}
-          >
-            {gameSettings.quiz?.categories?.map((category, index) => {
-              const unusedQuestionsCount = getUnusedQuestionsCount(category);
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", justifyContent: "center" }}>
+          {gameSettings.quiz?.categories?.map((category, index) => {
+            const unusedQuestionsCount = getUnusedQuestionsCount(category);
 
-              return (
-                <Button
-                  key={index}
-                  variant="contained"
+            return (
+              <div key={index} className="menu-button">
+                <button
                   disabled={unusedQuestionsCount === 0}
                   onClick={() => handleCategorySelect(category)}
-                  style={{
-                    flex: "1 1 calc(33.333% - 16px)",
-                    minWidth: "200px",
-                  }}
                 >
                   {category.name} ({unusedQuestionsCount})
-                </Button>
-              );
-            })}
-          </div>
-        </>
+                </button>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

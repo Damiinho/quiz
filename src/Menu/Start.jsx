@@ -1,4 +1,3 @@
-import { Button } from "@mui/material";
 import { useContext } from "react";
 import { AppContext } from "../contexts/AppContext";
 
@@ -7,14 +6,14 @@ const Start = () => {
   return (
     <>
       <div className="menu-button">
-        <Button variant="outlined" onClick={() => setScreen("chooseType")}>
+        <button onClick={() => setScreen("chooseType")}>
           Zagraj
-        </Button>
+        </button>
       </div>
       <div className="menu-button">
-        <Button variant="outlined" disabled>
+        <button disabled>
           Stwórz nowy
-        </Button>
+        </button>
       </div>
     </>
   );

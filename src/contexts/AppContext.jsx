@@ -454,6 +454,20 @@ export const AppProvider = ({ children }) => {
               correctAnswer: ["Całka"],
               correctAnswerImage: "images/całkaanswer.jpg",
             },
+                   {
+              no: 4,
+              question: "Czyje to czoło?",
+              image: "images/chleb.png",
+              correctAnswer: ["Chleb"],
+              correctAnswerImage: "images/chlebanswer.jpg",
+            },
+                   {
+              no: 5,
+              question: "Czyje to czoło?",
+              image: "images/papiez.png",
+              correctAnswer: ["Papież"],
+              correctAnswerImage: "images/papiezanswer.jpg",
+            },
           ],
         },
         {
@@ -476,8 +490,8 @@ export const AppProvider = ({ children }) => {
             {
               no: 3,
               question: "Jaki rejon obsługuje auto z rejestracją D0BOJU?",
-                            answers: ["Wołów", "Bielsko-Biała", "Szczecin", "Słubice"],
-              correctAnswer: ["Wpołów"],
+                            answers: ["Wołów", "Bielsko-Biała", "Szczecin", "Olsztyn"],
+              correctAnswer: ["Wołów"],
             },
 
           ],
@@ -502,6 +516,22 @@ export const AppProvider = ({ children }) => {
               no: 4,
               correctAnswer: ["Mrozu"],
             },
+            {
+              no: 5,
+              correctAnswer: ["Sebastian Szczechura"],
+            },
+            {
+              no: 6,
+              correctAnswer: ["Sabastian Fabijański"],
+            },
+            {
+              no: 7,
+              correctAnswer: ["Natalia Fabijanek"],
+            },
+            {
+              no: 8,
+              correctAnswer: ["Fabian Duda (Ranczo)"],
+            },
 
           ],
         },
@@ -511,9 +541,49 @@ export const AppProvider = ({ children }) => {
           list: [
             {
               no: 1,
-              question: "2013/15 - co to było?",
-              answers: ["Indie", "Chiny", "Wietnam", "Korea Północna"],
-              correctAnswer: ["Chiny"],
+              question: <div><div>2013/2015 SUPER PL+EU, zwiększenie odległości holowania</div><div>Wypadek w Grecji, Renault Master, 2 osoby. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie BL, PZ na 7 dób klasa C, transport osób do miejsca z polisy",
+                 "Holowanie 1000km + BL, hotel 1 db, PZ 7 dób klasa B", 
+                 "Holowanie 1000km, PZ 7 dób klasa C, transport osób do miejsca z polisy", 
+                 "Holowanie 1200 km, PZ klasa C do zwrotu w Polsce", 
+                 "Żadne z powyższych",],
+              correctAnswer: ["Holowanie 1000km + BL, hotel 1 db, PZ 7 dób klasa B"],
+            },
+            {
+              no: 2,
+              question: <div><div>2016 SUPER PL, zwiększenie odległości holowania</div><div>Awaria w Czechach, VW Passat, 5 osób. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie 500 km, PZ na 10 dób klasa C, transport osób do miejsca z polisy",
+                 "Holowanie 1000km + BL, hotel 1 db w oczekiwaniu na pomoc drogową, PZ 7 dób klasa B", 
+                 "Holowanie 500km, PZ 5 dób klasa D, transport osób do miejsca z polisy", 
+                 "Holowanie 150 km, PZ klasa C do zwrotu w Polsce", 
+                 "Żadne z powyższych",],              correctAnswer: ["Żadne z powyższych"],
+            },
+            {
+              no: 3,
+              question: <div><div>2015 SUPER PL+EU, zwiększenie odległości holowania</div><div>Wypadek w Niemczech, Renault Master, 1 osoba. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie 1000km, transport osoby do miejsca z polisy",
+                 "Holowanie 1000km + BL, PZ 7 dób klasa B", 
+                 "Holowanie 1000km + BL, hotel 1 db, PZ 10 dób klasa B", 
+                 "Holowanie 500 km, PZ klasa C do zwrotu w Polsce", 
+                 "Żadne z powyższych",],              correctAnswer: ["Holowanie 1000km, transport osoby do miejsca z polisy"],
+            },
+            {
+              no: 4,
+              question: <div><div>2017 SUPER PL+EU</div><div>Wypadek na Węgrzech, Renault Master, 7 osób przewożonych nieodpłatnie. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie 1200 km, PZ na 10 dób klasa D, transport osób do miejsca z polisy",
+                 "Holowanie 150 km, hotel 1 db, PZ 7 dób klasa B", 
+                 "Holowanie 1200km, PZ 10 dób klasa C",
+                 "Holowanie 1000 km, PZ klasa C do transportu osób do Polski + transport osób do miejsca z polisy", 
+                 "Żadne z powyższych",],              correctAnswer: ["Holowanie 1000km + BL, hotel 1 db, PZ 7 dób klasa B"],
+            },
+            {
+              no: 4,
+              question: <div><div>2017 SUPER PL+EU, zwiększenie odległości holowania</div><div>Wypadek na Francji, Peugeot 307, 4 osoby. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie 1200 km, PZ na 10 dób klasa C, transport osób do miejsca z polisy",
+                 "Holowanie 150 km, hotel 1 db, PZ 5 dób klasa B", 
+                 "Holowanie 1200km, hotel 3 db, PZ 10 dób klasa C",
+                 "Holowanie 1000 km, PZ klasa C, transport osób do miejsca z polisy", 
+                 "Żadne z powyższych",],              correctAnswer: ["Holowanie 1200km, hotel 3 db, PZ 10 dób klasa C"],
             },
 
           ],
@@ -609,11 +679,23 @@ export const AppProvider = ({ children }) => {
             },
             {
               no: 2,
-              question: "Ludzie pracujący na nockach (tak max do 2023, jak co najmniej 2 osoby znają to ok)",
+              question: "Państwa",
             },
             {
               no: 3,
+              question: "Ludzie pracujący na nockach (tak max do 2023 może, jak co najmniej 2 osoby znają to ok)",
+            },
+            {
+              no: 4,
+              question: "Litery w polskim alfabecie",
+            },
+            {
+              no: 5,
               question: "Koordynatorzy assistance + nocki (jak co najmniej 2 osoby znają to ok)",
+            },
+            {
+              no: 6,
+              question: "Ssaki",
             },
 
           ],
@@ -658,11 +740,42 @@ export const AppProvider = ({ children }) => {
               correctAnswer: [
                 "Nie, nie istnieje żaden kraj, który by to uznawał.",
               ],
-            },            {
+            },          
+              {
               no: 4,
               question: "Z kim nie graniczy Kazachstan?",
               answers: ["Kiristan", "Turkmenistan", "Mongolia", "Uzbekistan"],
               correctAnswer: ["Mongolia"],
+            },   
+              {
+              no: 5,
+              question: "Kiedy człowiek po raz pierwszy stanął na księżycu",
+              answers: ["1969", "1972", "1961", "1977"],
+              correctAnswer: ["1969"],
+            },   
+              {
+              no: 6,
+              question: "Jak nazywa się największe jezioro w Polsce?",
+              answers: [ "Jezioro Gopło", "Jezioro Śniardwy", "Jezioro Kłodzko", "Jezioro Błędów"],
+              correctAnswer: ["Jezioro Śniardwy"],
+            },   
+              {
+              no:   7,
+              question: "Jakie województwo jest najmniejsze?",
+              answers: ["Województwo małopolskie", "Województwo warmińsko-mazurskie", "Województwo lubelskie", "Województwo podlaskie"],
+              correctAnswer: ["Województwo podlaskie"],
+            },   
+              {
+              no: 8,
+              question: "Jaki symbol chemiczny na krzem?",
+              answers: ["K", "Cr", "C", "Si"],
+              correctAnswer: ["Si"],
+            },   
+              {
+              no: 9,
+              question: "O jakiej porze roku rosną gruszki?",
+              answers: ["Wiosną", "Latem", "Jesienią", "Zimą"],
+              correctAnswer: ["Jesienią"],
             },   
 
           ],
@@ -688,7 +801,7 @@ export const AppProvider = ({ children }) => {
                 "Rakieta balistyczna",
                 "Bomba atomowa",
                 "Samolot",
-                "Sanichód"
+                "Sakmochód"
               ],
               correctAnswer: ["Samolot"],
             },
@@ -704,6 +817,39 @@ export const AppProvider = ({ children }) => {
               ],
               correctAnswer: ["Piramidy w Egipcie"],
             }, 
+            {
+              no: 5,
+              question: "Co powstało pierwsze?",
+              answers: [
+                "Telefon",
+                "Żarówka",
+                "Samolot",
+                "Empire State Building",
+              ],
+              correctAnswer: ["Telefon"],
+            }, 
+            {
+              no: 6,
+              question: "Co powstało pierwsze?",
+              answers: [
+                "Pismo",
+                "Kolej",
+                "Koło",
+                "Język starocerkiewnosłowiański",
+              ],
+              correctAnswer: ["Koło"],
+            }, 
+            {
+              no: 7,
+              question: "Co powstało pierwsze?",
+              answers: [
+                "Dinozaury",
+                "Ssaki",
+                "Gady",
+                "Płazy",
+              ],
+              correctAnswer: ["Gady"],
+            }, 
 
           ],
         },
@@ -716,7 +862,15 @@ export const AppProvider = ({ children }) => {
             },
             {
               no: 2,
+              question: "Państwa w Europie",
+            },
+            {
+              no: 3,
               question: "Wyzwiska/określenia na linii Mateusz Stachura – Dominika Koterba",
+            },
+            {
+              no: 4,
+              question: "Województwa",
             },
 
           ],

@@ -1,4 +1,3 @@
-import { Button } from "@mui/material";
 import { useContext } from "react";
 import { AppContext } from "../contexts/AppContext";
 
@@ -7,19 +6,19 @@ const ChooseType = () => {
   return (
     <>
       <div className="menu-button">
-        <Button variant="outlined" onClick={() => setScreen("readySet")}>
+        <button onClick={() => setScreen("readySet")}>
           Wybierz gotowy zestaw
-        </Button>
+        </button>
       </div>
       <div className="menu-button">
-        <Button variant="outlined" disabled>
+        <button disabled>
           Skomponuj zestaw
-        </Button>
+        </button>
       </div>
       <div className="menu-button">
-        <Button variant="outlined" disabled>
+        <button disabled>
           Wcztaj z pliku
-        </Button>
+        </button>
       </div>
     </>
   );

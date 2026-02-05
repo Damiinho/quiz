@@ -1,4 +1,3 @@
-import { Button } from "@mui/material";
 import { useContext } from "react";
 import { AppContext } from "../contexts/AppContext";
 
@@ -16,15 +15,14 @@ const ReadySet = () => {
     <>
       {quizList.map((quiz, index) => (
         <div key={index} className="menu-button">
-          <Button
-            variant="contained"
+          <button
             onClick={() => {
               handleSelectQuiz(quiz);
               setScreen("players");
             }}
           >
             {quiz.name}
-          </Button>
+          </button>
         </div>
       ))}
     </>
