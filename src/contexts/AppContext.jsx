@@ -714,6 +714,10 @@ export const AppProvider = ({ children }) => {
               no: 1,
               question: "Liderzy Assistance / Link4 z Warszawy",
             },
+            {
+              no: 2,
+              question: "Wyzwiska/określenia na linii Mateusz Stachura – Dominika Koterba",
+            },
 
           ],
         },
