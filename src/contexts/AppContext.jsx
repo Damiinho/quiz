@@ -493,6 +493,24 @@ export const AppProvider = ({ children }) => {
                             answers: ["Wołów", "Bielsko-Biała", "Szczecin", "Olsztyn"],
               correctAnswer: ["Wołów"],
             },
+            {
+              no: 4,
+              question: "Jaki rejon obsługuje Auto-Jet Kruczek?",
+                            answers: ["Białystok", "Bielsko-Biała", "Zachodniopomorskie", "Lublin"],
+              correctAnswer: ["Bielsko-Biała"],
+            },
+            {
+              no: 5,
+              question: "Jaki rejon obsługuje AM Service Cybal?",
+                            answers: ["Białystok", "Wielkopolska", "Lubuskie", "Gdańsk"],
+              correctAnswer: ["Wielkopolska"],
+            },
+            {
+              no: 6,
+              question: "Jaki rejon obsługuje Adcar?",
+                            answers: ["Białystok", "Gorzów", "Gorzów Wielkopolski", "Gdańsk"],
+              correctAnswer: ["Gorzów Wielkopolski"],
+            },
 
           ],
         },
