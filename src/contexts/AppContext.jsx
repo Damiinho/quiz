@@ -502,7 +502,7 @@ export const AppProvider = ({ children }) => {
             {
               no: 5,
               question: "Jaki rejon obsługuje AM Service Cybal?",
-                            answers: ["Białystok", "Wielkopolska", "Lubuskie", "Gdańsk"],
+                            answers: ["Białystok", "Lubelskie", "Wielkopolska", "Gdańsk"],
               correctAnswer: ["Wielkopolska"],
             },
             {
@@ -562,10 +562,10 @@ export const AppProvider = ({ children }) => {
               question: <div><div>2013/2015 SUPER PL+EU, zwiększenie odległości holowania</div><div>Wypadek w Grecji, Renault Master, 2 osoby. Które z usług możemy zorganizować?</div></div>,
               answers: ["Holowanie BL, PZ na 7 dób klasa C, transport osób do miejsca z polisy",
                  "Holowanie 1000km + BL, hotel 1 db, PZ 7 dób klasa B", 
-                 "Holowanie 1000km, PZ 7 dób klasa C, transport osób do miejsca z polisy", 
-                 "Holowanie 1200 km, PZ klasa C do zwrotu w Polsce", 
+                 "Holowanie 1000km, hotel 3 db, transport osób do miejsca z polisy", 
+                 "Holowanie 1000km + BL, PZ klasa C 7 dób, hotel 3db", 
                  "Żadne z powyższych",],
-              correctAnswer: ["Holowanie 1000km + BL, hotel 1 db, PZ 7 dób klasa B"],
+              correctAnswer: ["Holowanie 1000km + BL, PZ klasa C 7 dób, hotel 3db"],
             },
             {
               no: 2,
@@ -588,20 +588,38 @@ export const AppProvider = ({ children }) => {
             {
               no: 4,
               question: <div><div>2017 SUPER PL+EU</div><div>Wypadek na Węgrzech, Renault Master, 7 osób przewożonych nieodpłatnie. Które z usług możemy zorganizować?</div></div>,
-              answers: ["Holowanie 1200 km, PZ na 10 dób klasa D, transport osób do miejsca z polisy",
-                 "Holowanie 150 km, hotel 1 db, PZ 7 dób klasa B", 
+              answers: ["Holowanie 1200km, PZ na 10 dób klasa D, transport osób do miejsca z polisy",
+                 "Holowanie 150km, hotel 1 db, PZ 7 dób klasa B", 
                  "Holowanie 1200km, PZ 10 dób klasa C",
-                 "Holowanie 1000 km, PZ klasa C do transportu osób do Polski + transport osób do miejsca z polisy", 
-                 "Żadne z powyższych",],              correctAnswer: ["Holowanie 1000km + BL, hotel 1 db, PZ 7 dób klasa B"],
+                 "Holowanie 1000km, PZ klasa C do transportu osób do Polski + transport osób do miejsca z polisy", 
+                 "Żadne z powyższych",],              correctAnswer: ["Holowanie 150km, hotel 1 db, PZ 7 dób klasa B"],
             },
             {
-              no: 4,
-              question: <div><div>2017 SUPER PL+EU, zwiększenie odległości holowania</div><div>Wypadek na Francji, Peugeot 307, 4 osoby. Które z usług możemy zorganizować?</div></div>,
-              answers: ["Holowanie 1200 km, PZ na 10 dób klasa C, transport osób do miejsca z polisy",
-                 "Holowanie 150 km, hotel 1 db, PZ 5 dób klasa B", 
+              no: 5,
+              question: <div><div>2017 SUPER PL+EU, zwiększenie odległości holowania</div><div>Wypadek we Francji, Peugeot 307, 4 osoby. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie 1200km, PZ na 10 dób klasa C, transport osób do miejsca z polisy",
+                 "Holowanie 150km, hotel 1 db, PZ 5 dób klasa B", 
                  "Holowanie 1200km, hotel 3 db, PZ 10 dób klasa C",
-                 "Holowanie 1000 km, PZ klasa C, transport osób do miejsca z polisy", 
+                 "Holowanie 1000km, PZ klasa C 10 dbg, transport osób do miejsca z polisy", 
                  "Żadne z powyższych",],              correctAnswer: ["Holowanie 1200km, hotel 3 db, PZ 10 dób klasa C"],
+            },
+            {
+              no: 6,
+              question: <div><div>2015 SUPER PL+EU</div><div>Awaria na Litwie, 5 osób, BMW E klasa. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie do najlbiższego warsztatu, nocleg 3 db, PZ 7 dób klasa C,",
+                 "Holowanie 1000km + BL, PZ 7 dób klasa C", 
+                 "Holowanie do najbliższego warsztatu, transport osób do warsztatu, nocleg 3 db",
+                 "Holowanie 1000km + BL, hotel 1 db, transport osób do miejsca z polisy", 
+                 "Żadne z powyższych",],              correctAnswer: ["Holowanie do najbliższego warsztatu, transport osób do warsztatu, nocleg 3 db"],
+            },
+            {
+              no: 7,
+              question: <div><div>2017 SUPER PL+EU, zwiększenie odległości holowania</div><div>Awaria Norwegia, Peugeot Boxer, 3 osoby. Które z usług możemy zorganizować?</div></div>,
+              answers: ["Holowanie 1200km, PZ na 5 dób klasa C, transport osób do miejsca z polisy",
+                 "Holowanie 150km, hotel 1 db, PZ 7 dób klasa B", 
+                 "Holowanie 1200km, PZ 5 dób klasa C, hotel 3 db",
+                 "Holowanie 1200km, PZ 5 dób klasa C, transport osób do miejsca z polisy", 
+                 "Żadne z powyższych",],              correctAnswer: ["Holowanie 150km, hotel 1 db, PZ 7 dób klasa B"],
             },
 
           ],
@@ -658,9 +676,9 @@ export const AppProvider = ({ children }) => {
             },
             {
               no: 3,
-              question: "Brathanki – Czerwone korale",
+              question: "Pan Tadeusz – Inwokacja",
               correctAnswer: [
-                "https://www.tekstowo.pl/piosenka,brathanki,czerwone_korale.html",
+                "https://polska-poezja.pl/lista-wierszy/141-adam-mickiewicz-pan-tadeusz-inwokacja",
               ],
             },
             {
@@ -679,9 +697,9 @@ export const AppProvider = ({ children }) => {
             },
             {
               no: 6,
-              question: "Pan Tadeusz – Inwokacja",
+              question: "Cicha noc",
               correctAnswer: [
-                "https://polska-poezja.pl/lista-wierszy/141-adam-mickiewicz-pan-tadeusz-inwokacja",
+                "https://www.tekstowo.pl/piosenka,koleda,cicha_noc.html",
               ],
             },
 
@@ -1003,7 +1021,7 @@ export const AppProvider = ({ children }) => {
                 "Puchacz",
                 "Słowik",
               "Drozd", "Mewa"],
-              correctAnswer: ["mewa"],
+              correctAnswer: ["Mewa"],
               sound: "birds/mewa pospolita.mp3",
             }, 
             {
