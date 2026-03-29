@@ -11,7 +11,7 @@ const Start = () => {
         </button>
       </div>
       <div className="menu-button">
-        <button disabled>
+        <button onClick={() => setScreen("createNew")}>
           Stwórz nowy
         </button>
       </div>

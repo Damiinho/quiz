@@ -25,14 +25,13 @@ const Question = ({ category, handleGoBack }) => {
 
     // W przeciwnym razie zwróć pierwsze nieodpowiedziane pytanie (zachowując oryginalną kolejność)
     return unansweredQuestions[0];
-  }, [category]);
+  }, [category]); // funkcja do pobierania następnego pytania, najpierw szuka pytań z polem `no`, a jeśli ich nie ma, zwraca pierwsze nieodpowiedziane pytanie
 
   useEffect(() => {
     setSelectedQuestion(getNextQuestion());
     setShowAnswer(false);
-  }, [category, getNextQuestion]);
+  }, [category, getNextQuestion]); // ustawianie pytania przy zmianie kategorii
 
-  const isAuction = category?.type === "auction";
   const [timer, setTimer] = useState(30);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const timerRef = useRef(null);
@@ -51,7 +50,7 @@ const Question = ({ category, handleGoBack }) => {
           return t - 1;
         });
       }, 1000);
-    }
+    } 
 
     return () => {
       if (timerRef.current) {
@@ -59,9 +58,8 @@ const Question = ({ category, handleGoBack }) => {
         timerRef.current = null;
       }
     };
-  }, [isTimerRunning]);
+  }, [isTimerRunning]); // efekt timera dla kategorii Licytacja
 
-  // reset timer and stop when question changes
   useEffect(() => {
     setTimer(30);
     setIsTimerRunning(false);
@@ -71,14 +69,13 @@ const Question = ({ category, handleGoBack }) => {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  }, [selectedQuestion]);
+  }, [selectedQuestion]); // reset timera przy zmianie pytania
 
-  // auto-enlarge first image for album type
   useEffect(() => {
     if (category?.type === "album" && selectedQuestion?.images && selectedQuestion.images.length > 0) {
       setEnlargedImage(`/${selectedQuestion.images[0]}`);
     }
-  }, [selectedQuestion, category?.type]);
+  }, [selectedQuestion, category?.type]); // automatyczne ustawianie pierwszego obrazu jako powiększonego dla kategorii Album
 
   const handleGoBackAndUpdate = () => {
     if (!selectedQuestion) return;
@@ -107,17 +104,58 @@ const Question = ({ category, handleGoBack }) => {
     }
   };
 
-  const isForehead = category?.type === "forehead";
-  const isSongs = category?.type === "songs" || category?.name?.toLowerCase() === "piosenki";
-  const isIllustrated = category?.type === "illustrated";
-  const isAlbum = category?.type === "album";
   const hasAnswers = Array.isArray(selectedQuestion.answers) && selectedQuestion.answers.length > 0;
+  const hasCorrectAnswer = Array.isArray(selectedQuestion.correctAnswer) && selectedQuestion.correctAnswer.length > 0;
   const albumImages = selectedQuestion?.images || [];
   const hasMultipleImages = albumImages.length > 1;
 
   return (
     <div style={{ padding: "20px", textAlign: "center", width: "100%" }}>
-      {isAlbum && (
+
+{
+          /* WYŚWIETLANIE ODPOWIEDZI */
+}
+
+      {category?.type === "album" && albumImages.length > 1 && <Modal
+        open={!!enlargedImage}
+        onClose={() => setEnlargedImage(null)}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", width: "100%", height: "100%" }}>
+          
+            <Button
+              variant="contained"
+              onClick={() => {
+                const newIndex = currentImageIndex === 0 ? albumImages.length - 1 : currentImageIndex - 1;
+                setCurrentImageIndex(newIndex);
+                setEnlargedImage(`/${albumImages[newIndex]}`);
+              }}
+            >
+              <ChevronLeftIcon />
+            </Button>
+          
+          <img
+            src={enlargedImage}
+            alt="powiększony obraz"
+            onClick={() => setEnlargedImage(null)}
+            style={{ maxWidth: "95vw", maxHeight: "95vh", objectFit: "contain", cursor: "pointer" }}
+          />
+          {category?.type === "album" && albumImages.length > 1 && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                const newIndex = currentImageIndex === albumImages.length - 1 ? 0 : currentImageIndex + 1;
+                setCurrentImageIndex(newIndex);
+                setEnlargedImage(`/${albumImages[newIndex]}`);
+              }}
+            >
+              <ChevronRightIcon />
+            </Button>
+          )}
+        </div>
+      </Modal>} {/* Modal do powiększania obrazów w kategorii Album */}
+      
+      {category?.type === "album" && (
         <div style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", marginBottom: "16px" }}>
             <Button
@@ -151,8 +189,9 @@ const Question = ({ category, handleGoBack }) => {
             {currentImageIndex + 1} / {albumImages.length}
           </Typography>
         </div>
-      )}
-      {isForehead && (
+      )} {/* Wyświetlanie odpowiedzi dla kategorii Album */}
+
+      {category?.type === "forehead" && (
         <div style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
             <Typography
@@ -169,17 +208,14 @@ const Question = ({ category, handleGoBack }) => {
               {selectedQuestion.question}
             </Typography>
           </div>
-          <Typography variant="subtitle1" gutterBottom>
-            Zakryj oczy lub odwróć się
-          </Typography>
         </div>
-      )}
+      )} {/* Wyświetlanie odpowiedzi dla kategorii Czółko */}
 
-      {!isForehead && !isAlbum && selectedQuestion.question && (
-        <Typography variant="h4" gutterBottom style={{ fontSize: "40px" }}>
+      {!(category?.type === "forehead") && !(category?.type === "album") && selectedQuestion.question && (
+        <Typography variant="h4" gutterBottom style={{ fontSize: "70px", margin: "0 20px 20px" }}>
           {selectedQuestion.question}
         </Typography>
-      )}
+      )} {/* Wyświetlanie odpowiedzi dla kategorii innych niż Album i Czółko (i zawiera jakieś pytanie) */}
 
       {selectedQuestion.sound && (
         <div style={{ marginBottom: "16px" }}>
@@ -193,9 +229,9 @@ const Question = ({ category, handleGoBack }) => {
             Odtwórz dźwięk
           </Button>
         </div>
-      )}
+      )} {/* Przycisk jeśli kategoria ma dźwięk */}
 
-      {isIllustrated && (
+      {category?.type === "illustrated" && (
         <>
           {selectedQuestion.image && !selectedQuestion.correctAnswerImage && (
             <div style={{ marginBottom: 16 }}>
@@ -219,7 +255,7 @@ const Question = ({ category, handleGoBack }) => {
             </div>
           )}
 
-          {hasAnswers ? (
+          {hasAnswers && (
             <Paper sx={{ marginBottom: "16px", padding: "10px", width: "100%" }}>
               {selectedQuestion.answers.map((answer, index) => (
                 <Typography
@@ -236,30 +272,12 @@ const Question = ({ category, handleGoBack }) => {
                 </Typography>
               ))}
             </Paper>
-          ) : (
-            showAnswer && selectedQuestion.correctAnswer?.[0] && (
-              <>
-                {selectedQuestion.correctAnswerImage && (
-                  <div style={{ marginBottom: 16 }}>
-                    <img
-                      src={`/${selectedQuestion.correctAnswerImage}`}
-                      alt="odpowiedź"
-                      onClick={() => setEnlargedImage(`/${selectedQuestion.correctAnswerImage}`)}
-                      style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8, cursor: "pointer" }}
-                    />
-                  </div>
-                )}
-                <Typography variant="h6" gutterBottom>
-                  {selectedQuestion.correctAnswer[0]}
-                </Typography>
-              </>
-            )
-          )}
+          )
+          }
         </>
-      )}
+      )} {/* Pokazuje obraz jeśli kategoria jest Ilustrowana */}
 
-      {!isIllustrated && !isForehead && !isAlbum && (
-        hasAnswers ? (
+      { hasAnswers ? (
           <Paper sx={{ marginBottom: "16px", padding: "10px", width: "100%" }}>
             {selectedQuestion.answers?.map((answer, index) => (
               <Typography
@@ -277,7 +295,7 @@ const Question = ({ category, handleGoBack }) => {
             ))}
           </Paper>
         ) : (
-          showAnswer && selectedQuestion.correctAnswer?.[0] && (
+          showAnswer && selectedQuestion.correctAnswer?.[0] && !(category?.type === "forehead") && (
             <>
               {selectedQuestion.correctAnswerImage && (
                 <div style={{ marginBottom: 16 }}>
@@ -294,10 +312,14 @@ const Question = ({ category, handleGoBack }) => {
               </Typography>
             </>
           )
-        )
       )}
 
-      {isForehead && showAnswer && selectedQuestion.correctAnswer?.[0] && (
+
+{/* 
+          POKAZYWANIE POPRAWNYCH ODPOWIEDZI 
+*/}
+
+      {category?.type === "forehead" && (
         <div style={{ marginBottom: "16px" }}>
           {selectedQuestion.correctAnswerImage && (
             <div style={{ marginBottom: 16 }}>
@@ -322,13 +344,13 @@ const Question = ({ category, handleGoBack }) => {
                 wordBreak: "break-word",
               }}
             >
-              {selectedQuestion.correctAnswer[0]}
+              {showAnswer ? selectedQuestion.correctAnswer[0] : "Zakryj oczy lub odwróć się"}
             </Typography>
           </div>
         </div>
-      )}
+      )} {/* pokazuje odpowiedź dla Czółka: operuje przyciskiem pokaż/ukryj odpowiedź */}
 
-      {isAuction ? (
+      {category?.type === "auction" && (
         <div style={{ marginBottom: "10px" }}>
           <Typography variant="h3" gutterBottom style={{ fontSize: "48px" }}>
             {timer}s
@@ -349,7 +371,8 @@ const Question = ({ category, handleGoBack }) => {
             Start
           </Button>
         </div>
-      ) : !isAlbum ? (
+      )} {/* operuje przyciskiem Start przy Licytacji */}
+      {hasCorrectAnswer && (
         <Button
           variant="contained"
           onClick={() => setShowAnswer((s) => !s)}
@@ -358,58 +381,13 @@ const Question = ({ category, handleGoBack }) => {
         >
           {showAnswer ? "Ukryj odpowiedź" : "Pokaż odpowiedź"}
         </Button>
-      ) : null}
+      )} {/* operuje przyciskiem pokaż odpowiedź/ukryj odpowiedź, jeśli istnieje poprawna odpowiedź */}
 
       <Button variant="contained" onClick={handleGoBackAndUpdate} fullWidth style={{ fontSize: "20px" }}>
         Wróć
       </Button>
 
-      {showAnswer && isSongs && (
-        <Typography variant="h6" gutterBottom>
-          <a href={selectedQuestion.correctAnswer?.[0]} target="_blank" rel="noopener noreferrer">
-            {selectedQuestion.correctAnswer?.[0]}
-          </a>
-        </Typography>
-      )}
 
-      <Modal
-        open={!!enlargedImage}
-        onClose={() => setEnlargedImage(null)}
-        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", width: "100%", height: "100%" }}>
-          {isAlbum && albumImages.length > 1 && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                const newIndex = currentImageIndex === 0 ? albumImages.length - 1 : currentImageIndex - 1;
-                setCurrentImageIndex(newIndex);
-                setEnlargedImage(`/${albumImages[newIndex]}`);
-              }}
-            >
-              <ChevronLeftIcon />
-            </Button>
-          )}
-          <img
-            src={enlargedImage}
-            alt="powiększony obraz"
-            onClick={() => setEnlargedImage(null)}
-            style={{ maxWidth: "95vw", maxHeight: "95vh", objectFit: "contain", cursor: "pointer" }}
-          />
-          {isAlbum && albumImages.length > 1 && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                const newIndex = currentImageIndex === albumImages.length - 1 ? 0 : currentImageIndex + 1;
-                setCurrentImageIndex(newIndex);
-                setEnlargedImage(`/${albumImages[newIndex]}`);
-              }}
-            >
-              <ChevronRightIcon />
-            </Button>
-          )}
-        </div>
-      </Modal>
     </div>
   );
 };

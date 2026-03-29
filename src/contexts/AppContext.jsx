@@ -13,6 +13,9 @@ export const AppProvider = ({ children }) => {
     quiz: {},
   });
 
+
+  // typy kategorii: standard, illustrated, forehead, auction, album
+
   const quizList = [
     // dodać piłkarz, tynkarz, polityk czy sportowiec
     // dodać licytację
