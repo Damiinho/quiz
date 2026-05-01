@@ -1,7 +1,8 @@
 import { useContext } from "react";
+import { Button } from "@mui/material";
 import { AppContext } from "../contexts/AppContext";
 import Question from "./Game/Question";
-import Results from "./Game/Results"; // Importujemy nasz nowy komponent
+import Results from "./Game/Results";
 
 const Game = () => {
   const stringToHslColor = (str, s = 70, l = 60) => {
@@ -15,69 +16,69 @@ const Game = () => {
 
   const stringToFontSize = (str, min = 30, max = 60, minLen = 5, maxLen = 15) => {
     const length = Math.max(0, (str || "").length);
-    if (length <= minLen) return max; // short names -> largest font
-    if (length >= maxLen) return min; // long names -> smallest font
-    const ratio = (length - minLen) / (maxLen - minLen); // 0..1
-    const size = Math.round(max - ratio * (max - min)); // decrease from max to min
-    return size;
+    if (length <= minLen) return max;
+    if (length >= maxLen) return min;
+    const ratio = (length - minLen) / (maxLen - minLen);
+    return Math.round(max - ratio * (max - min));
   };
 
   const {
     gameSettings,
     isQuestionActive,
     setIsQuestionActive,
+    setScreen,
     selectedCategory,
     setSelectedCategory,
   } = useContext(AppContext);
 
-  const getUnusedQuestionsCount = (category) => {
-    return (
-      category.list?.filter((question) => question && !question.done).length ||
-      0
-    );
-  };
+  const getUnusedQuestionsCount = (category) =>
+    category.list?.filter((question) => question && !question.done).length || 0;
 
   const handleCategorySelect = (category) => {
     if (!category.list || category.list.length === 0) return;
     setSelectedCategory(category);
-    setIsQuestionActive(true); // Przełączamy na widok pytania
+    setIsQuestionActive(true);
   };
 
   const handleGoBack = () => {
-    setIsQuestionActive(false); // Wracamy do listy kategorii
+    setIsQuestionActive(false);
     setSelectedCategory(null);
   };
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-      {/* Wyświetlamy wyniki zawsze, bez względu na to, czy wyświetlamy pytanie czy kategorię */}
       <Results />
 
-      {/* Jeśli pytanie aktywne, wyświetlamy komponent Question */}
       {isQuestionActive && selectedCategory ? (
         <Question category={selectedCategory} handleGoBack={handleGoBack} />
       ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", justifyContent: "center" }}>
-          {gameSettings.quiz?.categories?.map((category, index) => {
-            const unusedQuestionsCount = getUnusedQuestionsCount(category);
+        <>
+          <div style={{ marginBottom: 20 }}>
+            <Button variant="contained" color="success" onClick={() => setScreen("ranking")}>
+              Pokaż ranking końcowy
+            </Button>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", justifyContent: "center" }}>
+            {gameSettings.quiz?.categories?.map((category, index) => {
+              const unusedQuestionsCount = getUnusedQuestionsCount(category);
+              const bg = stringToHslColor(category.name || String(index), 70, 55);
+              const fontSize = stringToFontSize(category.name || String(index), 30, 60);
 
-            const bg = stringToHslColor(category.name || String(index), 70, 55);
-            const fontSize = stringToFontSize(category.name || String(index), 30, 60);
-
-            return (
-              <div key={index} className="menu-button">
-                <button
-                  disabled={unusedQuestionsCount === 0}
-                  onClick={() => handleCategorySelect(category)}
-                  className="category"
-                  style={{ backgroundColor: bg, color: "#fff", border: "none", fontSize }}
-                >
-                  {category.name} ({unusedQuestionsCount})
-                </button>
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <div key={index} className="menu-button">
+                  <button
+                    disabled={unusedQuestionsCount === 0}
+                    onClick={() => handleCategorySelect(category)}
+                    className="category"
+                    style={{ backgroundColor: bg, color: "#fff", border: "none", fontSize }}
+                  >
+                    {category.name} ({unusedQuestionsCount})
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

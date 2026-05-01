@@ -6,6 +6,8 @@ import ReadySet from "./Menu/ReadySet";
 import Players from "./Menu/Players";
 import Game from "./Menu/Game";
 import CreateNew from "./Menu/CreateNew";
+import ComposeSet from "./Menu/ComposeSet";
+import Ranking from "./Menu/Ranking";
 
 const Menu = () => {
   const { screen } = useContext(AppContext);
@@ -18,6 +20,8 @@ const Menu = () => {
         {screen === "players" && <Players />}
         {screen === "game" && <Game />}
         {screen === "createNew" && <CreateNew />}
+        {screen === "composeSet" && <ComposeSet />}
+        {screen === "ranking" && <Ranking />}
       </div>
     </>
   );

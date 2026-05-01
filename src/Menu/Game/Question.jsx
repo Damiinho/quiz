@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useContext, useRef } from "react";
 import { Button, Typography, Paper, Modal } from "@mui/material";
 import PropTypes from "prop-types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { AppContext } from "../../contexts/AppContext";
 
 const Question = ({ category, handleGoBack }) => {
+  const { setGameSettings } = useContext(AppContext);
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -61,7 +63,7 @@ const Question = ({ category, handleGoBack }) => {
   }, [isTimerRunning]); // efekt timera dla kategorii Licytacja
 
   useEffect(() => {
-    setTimer(30);
+    setTimer(category?.timerSeconds || 30);
     setIsTimerRunning(false);
     setCurrentImageIndex(0);
     setEnlargedImage(null);
@@ -69,7 +71,7 @@ const Question = ({ category, handleGoBack }) => {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  }, [selectedQuestion]); // reset timera przy zmianie pytania
+  }, [selectedQuestion, category?.timerSeconds]); // reset timera przy zmianie pytania
 
   useEffect(() => {
     if (category?.type === "album" && selectedQuestion?.images && selectedQuestion.images.length > 0) {
@@ -79,15 +81,24 @@ const Question = ({ category, handleGoBack }) => {
 
   const handleGoBackAndUpdate = () => {
     if (!selectedQuestion) return;
-    // mark question as done
-    if (Array.isArray(category.list)) {
-      for (let i = 0; i < category.list.length; i++) {
-        if (category.list[i] === selectedQuestion) {
-          category.list[i] = { ...category.list[i], done: true };
-          break;
-        }
-      }
-    }
+
+    setGameSettings((prevSettings) => ({
+      ...prevSettings,
+      quiz: {
+        ...prevSettings.quiz,
+        categories: prevSettings.quiz?.categories?.map((currentCategory) => {
+          if (currentCategory !== category) return currentCategory;
+
+          return {
+            ...currentCategory,
+            list: currentCategory.list?.map((question) =>
+              question === selectedQuestion ? { ...question, done: true } : question
+            ),
+          };
+        }),
+      },
+    }));
+
     setSelectedQuestion(getNextQuestion());
     setShowAnswer(false);
     handleGoBack();
@@ -108,6 +119,8 @@ const Question = ({ category, handleGoBack }) => {
   const hasCorrectAnswer = Array.isArray(selectedQuestion.correctAnswer) && selectedQuestion.correctAnswer.length > 0;
   const albumImages = selectedQuestion?.images || [];
   const hasMultipleImages = albumImages.length > 1;
+  const shouldShowGenericAnswers = hasAnswers && category?.type !== "illustrated";
+  const shouldShowAnswerButton = hasCorrectAnswer && category?.type !== "duel";
 
   return (
     <div style={{ padding: "20px", textAlign: "center", width: "100%" }}>
@@ -277,7 +290,7 @@ const Question = ({ category, handleGoBack }) => {
         </>
       )} {/* Pokazuje obraz jeśli kategoria jest Ilustrowana */}
 
-      { hasAnswers ? (
+      { shouldShowGenericAnswers ? (
           <Paper sx={{ marginBottom: "16px", padding: "10px", width: "100%" }}>
             {selectedQuestion.answers?.map((answer, index) => (
               <Typography
@@ -359,7 +372,7 @@ const Question = ({ category, handleGoBack }) => {
             variant="contained"
             onClick={() => {
               if (!isTimerRunning) {
-                setTimer(30);
+                setTimer(category?.timerSeconds || 30);
                 setShowAnswer(false);
                 setIsTimerRunning(true);
               }
@@ -372,7 +385,7 @@ const Question = ({ category, handleGoBack }) => {
           </Button>
         </div>
       )} {/* operuje przyciskiem Start przy Licytacji */}
-      {hasCorrectAnswer && (
+      {shouldShowAnswerButton && (
         <Button
           variant="contained"
           onClick={() => setShowAnswer((s) => !s)}
