@@ -30,7 +30,7 @@ export const defaultQuizzes = [
           list: [
             {
               no: 7,
-              question: "Przbieżeli do Betlejem",
+              question: "Przybieżeli do Betlejem",
               correctAnswer: [
                 "https://www.tekstowo.pl/piosenka,koleda,przybiezeli_do_betlejem.html",
               ],
@@ -323,7 +323,7 @@ export const defaultQuizzes = [
                 "Rakieta balistyczna",
                 "Bomba atomowa",
                 "Samolot",
-                "Sanichód"
+                "Samochód"
               ],
               correctAnswer: ["Samolot"],
             },
@@ -342,7 +342,7 @@ export const defaultQuizzes = [
             {
               no: 5,
               question: "Co powstało pierwsze?",
-              answers: ["Mikroskop", "Teleskop", "Żyroskop", "Oscloskop"],
+              answers: ["Mikroskop", "Teleskop", "Żyroskop", "Oscyloskop"],
               correctAnswer: ["Teleskop"],
             },
             {
@@ -812,7 +812,7 @@ export const defaultQuizzes = [
             },            {
               no: 2,
               question: "Co powstało pierwsze?",
-              answers: ["Mikroskop", "Teleskop", "Żyroskop", "Oscloskop"],
+              answers: ["Mikroskop", "Teleskop", "Żyroskop", "Oscyloskop"],
               correctAnswer: ["Teleskop"],
             },            {
               no: 3,

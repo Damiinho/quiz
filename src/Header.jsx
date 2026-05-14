@@ -1,24 +1,29 @@
 import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppContext } from "./contexts/AppContext";
 
 const Header = () => {
-  const { screen, setScreen, isQuestionActive, setIsQuestionActive } =
+  const navigate = useNavigate();
+  const { isQuestionActive, setIsQuestionActive } =
     useContext(AppContext);
 
   const handleHeaderClick = () => {
-    if (screen === "game") {
-      if (isQuestionActive) {
-        setIsQuestionActive(false); // Cofnij do listy kategorii
-      }
-      // Jeśli wyświetla się lista kategorii, nie rób nic
-    } else {
-      setScreen("start");
+    if (isQuestionActive) {
+      setIsQuestionActive(false);
     }
+    navigate("/");
   };
 
   return (
-    <div className="header" onClick={handleHeaderClick}>
-      super zgadywanka
+    <div className="header">
+      <div className="header__logo" onClick={handleHeaderClick}>
+        super zgadywanka
+      </div>
+      <div className="header__nav">
+        <span onClick={() => navigate("/kategorie")}>Moje quizy</span>
+        <span onClick={() => navigate("/stworz")}>Stwórz quiz</span>
+        <span onClick={() => {}}>Ustawienia</span>
+      </div>
     </div>
   );
 };

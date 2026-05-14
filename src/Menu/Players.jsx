@@ -1,23 +1,16 @@
 import { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppContext } from "../contexts/AppContext";
-import {
-  Button,
-  TextField,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
-  Paper,
-  Typography,
-} from "@mui/material";
-import { Delete, Edit, Save } from "@mui/icons-material";
+import { IconButton } from "@mui/material";
+import { Delete, Edit, Save, Person, Add, Remove } from "@mui/icons-material";
 
 const Players = () => {
-  const { gameSettings, setGameSettings, setScreen } = useContext(AppContext);
+  const navigate = useNavigate();
+  const { gameSettings, setGameSettings } = useContext(AppContext);
   const [playerName, setPlayerName] = useState("");
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedName, setEditedName] = useState("");
-  const [startingScore, setStartingScore] = useState(10);
+  const [startingScore, setStartingScore] = useState(0);
 
   const handleAddPlayer = () => {
     if (playerName.trim() === "") return;
@@ -35,11 +28,17 @@ const Players = () => {
   const changeStartingScore = (newScore) => {
     const normalized = Math.max(0, Math.floor(newScore));
     setStartingScore(normalized);
+  };
 
-    setGameSettings((prevSettings) => ({
-      ...prevSettings,
-      players: prevSettings.players.map((p) => ({ ...p, points: normalized })),
-    }));
+  const adjustPlayerScore = (index, delta) => {
+    setGameSettings((prevSettings) => {
+      const updatedPlayers = [...prevSettings.players];
+      updatedPlayers[index] = {
+        ...updatedPlayers[index],
+        points: Math.max(0, updatedPlayers[index].points + delta),
+      };
+      return { ...prevSettings, players: updatedPlayers };
+    });
   };
 
   const handleDeletePlayer = (index) => {
@@ -67,94 +66,94 @@ const Players = () => {
   };
 
   const handleFinish = () => {
-    // Możesz dodać logikę, np. przejście do kolejnego ekranu
-    setScreen("game"); // Załóżmy, że "game" to kolejny ekran
+    navigate("/gra");
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "auto", padding: "16px" }}>
-      <Typography variant="h6" gutterBottom>
-        Zarządzaj graczami
-      </Typography>
+    <div className="players-view">
+      <div className="players-view__header">
+        <h2>Zarządzaj graczami</h2>
+      </div>
 
-      <TextField
-        label="Nazwa gracza"
-        value={playerName}
-        onChange={(e) => setPlayerName(e.target.value)}
-        fullWidth
-        sx={{ mb: 2 }}
-      />
-      <Button
-        variant="contained"
-        onClick={handleAddPlayer}
-        disabled={!playerName.trim()}
-        fullWidth
-      >
-        Dodaj gracza
-      </Button>
+      <div className="players-view__input-row">
+        <input
+          type="text"
+          placeholder="Nazwa gracza"
+          value={playerName}
+          onChange={(e) => setPlayerName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAddPlayer()}
+        />
+        <button onClick={handleAddPlayer} disabled={!playerName.trim()}>
+          DODAJ
+        </button>
+      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
-        <div style={{ flex: 1 }}>
-          <Typography variant="subtitle1">Punktacja początkowa</Typography>
-          <Typography variant="h6">{startingScore}</Typography>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small" variant="outlined" onClick={() => changeStartingScore(startingScore - 1)}>-</Button>
-          <Button size="small" variant="outlined" onClick={() => changeStartingScore(startingScore + 1)}>+</Button>
+      <div className="players-view__score-setting">
+        <div>Punktacja początkowa</div>
+        <div className="players-view__score-setting-controls">
+          <button onClick={() => changeStartingScore(startingScore - 1)}>-</button>
+          <span>{startingScore}</span>
+          <button onClick={() => changeStartingScore(startingScore + 1)}>+</button>
         </div>
       </div>
 
-      {gameSettings.players.length > 0 && (
-        <Paper elevation={3} sx={{ mt: 2, p: 2 }}>
-          <List>
-            {gameSettings.players.map((player, index) => (
-              <ListItem
-                key={index}
-                secondaryAction={
-                  <>
-                    {editingIndex === index ? (
-                      <IconButton onClick={() => handleSaveEdit(index)}>
-                        <Save />
-                      </IconButton>
-                    ) : (
-                      <IconButton onClick={() => handleEditPlayer(index)}>
-                        <Edit />
-                      </IconButton>
-                    )}
-                    <IconButton onClick={() => handleDeletePlayer(index)}>
-                      <Delete />
-                    </IconButton>
-                  </>
-                }
-              >
+      <div className="players-view__list">
+        {gameSettings.players.map((player, index) => (
+          <div key={index} className="players-view__item">
+            <div className="players-view__item-info">
+              <div className="players-view__item-avatar">
+                <Person />
+              </div>
+              <div style={{ flex: 1 }}>
                 {editingIndex === index ? (
-                  <TextField
+                   <input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    fullWidth
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveEdit(index)}
+                    autoFocus
+                    style={{ background: "none", border: "1px solid #2ecc71", color: "#fff", padding: "4px", width: "100%" }}
                   />
                 ) : (
-                  <ListItemText
-                    primary={`${player.name} (Punkty: ${player.points})`}
-                  />
+                  <>
+                    <div className="players-view__item-name">{player.name}</div>
+                    <div className="players-view__item-score">{player.points} pkt</div>
+                  </>
                 )}
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-      )}
+              </div>
+              <div style={{ display: "flex", gap: "4px", alignItems: "center", marginRight: "10px" }}>
+                  <IconButton onClick={() => adjustPlayerScore(index, -1)} size="small" sx={{ color: "rgba(255,255,255,0.3)" }}>
+                    <Remove fontSize="small" />
+                  </IconButton>
+                  <IconButton onClick={() => adjustPlayerScore(index, 1)} size="small" sx={{ color: "#2ecc71" }}>
+                    <Add fontSize="small" />
+                  </IconButton>
+              </div>
+            </div>
+            <div className="players-view__item-actions">
+               {editingIndex === index ? (
+                  <IconButton onClick={() => handleSaveEdit(index)} size="small">
+                    <Save fontSize="small" style={{ color: "#2ecc71" }} />
+                  </IconButton>
+                ) : (
+                  <IconButton onClick={() => handleEditPlayer(index)} size="small">
+                    <Edit fontSize="small" style={{ color: "rgba(255,255,255,0.3)" }} />
+                  </IconButton>
+                )}
+                <IconButton onClick={() => handleDeletePlayer(index)} size="small" className="delete">
+                  <Delete fontSize="small" />
+                </IconButton>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* Przycisk "Gotowe" */}
       {gameSettings.players.length > 0 && (
-        <Button
-          variant="contained"
-          color="success"
+        <button
           onClick={handleFinish}
-          fullWidth
-          sx={{ mt: 2 }}
+          style={{ width: "100%", background: "#2ecc71", color: "#000", border: "none", padding: "16px", borderRadius: "12px", fontWeight: "700", cursor: "pointer", fontSize: "16px" }}
         >
-          Gotowe
-        </Button>
+          GOTOWE
+        </button>
       )}
     </div>
   );

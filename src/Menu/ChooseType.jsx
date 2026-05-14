@@ -1,11 +1,14 @@
 import { useContext, useRef, useState } from "react";
-import { Button, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { Typography } from "@mui/material";
 import { AppContext } from "../contexts/AppContext";
 import { readQuizFile } from "../utils/quizStorage";
 import { validateQuiz } from "../utils/quizValidation";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const ChooseType = () => {
-  const { resetSavedGame, setEditingQuiz, setScreen } = useContext(AppContext);
+  const navigate = useNavigate();
+  const { resetSavedGame, setEditingQuiz } = useContext(AppContext);
   const [importMessage, setImportMessage] = useState("");
   const fileInputRef = useRef(null);
 
@@ -23,7 +26,7 @@ const ChooseType = () => {
       }
 
       setEditingQuiz({ index: null, quiz });
-      setScreen("createNew");
+      navigate("/stworz");
     } catch {
       setImportMessage("Nie udało się odczytać pliku JSON.");
     } finally {
@@ -32,18 +35,17 @@ const ChooseType = () => {
   };
 
   return (
-    <>
-      <div className="menu-button">
-        <button onClick={() => setScreen("readySet")}>Wybierz gotowy zestaw</button>
-      </div>
-      <div className="menu-button">
-        <button onClick={() => setScreen("composeSet")}>Skomponuj zestaw</button>
-      </div>
-      <div className="menu-button">
-        <button onClick={() => fileInputRef.current?.click()}>
-          Wczytaj JSON do edycji
-        </button>
-      </div>
+    <div className="choice-screen">
+      <button className="choice-screen__btn" onClick={() => navigate("/kategorie")}>
+        Wybierz gotowy zestaw <ChevronRightIcon />
+      </button>
+      <button className="choice-screen__btn" onClick={() => navigate("/zloz")}>
+        Skomponuj zestaw <ChevronRightIcon />
+      </button>
+      <button className="choice-screen__btn" onClick={() => fileInputRef.current?.click()}>
+        Wczytaj JSON do edycji <ChevronRightIcon />
+      </button>
+      
       <input
         ref={fileInputRef}
         type="file"
@@ -51,17 +53,24 @@ const ChooseType = () => {
         onChange={handleImport}
         style={{ display: "none" }}
       />
-      <div style={{ width: "100%", textAlign: "center" }}>
-        <Button variant="outlined" onClick={resetSavedGame}>
+
+      <div style={{ marginTop: "40px", textAlign: "center" }}>
+        <button 
+          onClick={() => {
+            resetSavedGame();
+            navigate("/");
+          }}
+          style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: "12px", textDecoration: "underline" }}
+        >
           Wyczyść zapisaną rozgrywkę
-        </Button>
+        </button>
         {importMessage && (
-          <Typography sx={{ mt: 2 }} variant="body1">
+          <Typography sx={{ mt: 2, color: "#ef4444" }} variant="body2">
             {importMessage}
           </Typography>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

@@ -1,79 +1,120 @@
-import { useContext } from "react";
-import { Button } from "@mui/material";
+import { useContext, useCallback, useMemo, useState } from "react";
 import { AppContext } from "../contexts/AppContext";
 import Question from "./Game/Question";
 import Results from "./Game/Results";
+import QuizLog from "./Game/QuizLog";
+import Ranking from "./Ranking";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+
+const stringToHslColor = (str, s = 70, l = 60) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  return `hsl(${h}, ${s}%, ${l}%)`;
+};
 
 const Game = () => {
-  const stringToHslColor = (str, s = 70, l = 60) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const h = Math.abs(hash) % 360;
-    return `hsl(${h}, ${s}%, ${l}%)`;
-  };
-
-  const stringToFontSize = (str, min = 30, max = 60, minLen = 5, maxLen = 15) => {
-    const length = Math.max(0, (str || "").length);
-    if (length <= minLen) return max;
-    if (length >= maxLen) return min;
-    const ratio = (length - minLen) / (maxLen - minLen);
-    return Math.round(max - ratio * (max - min));
-  };
-
+  const [isRankingOpen, setIsRankingOpen] = useState(false);
   const {
     gameSettings,
     isQuestionActive,
     setIsQuestionActive,
-    setScreen,
-    selectedCategory,
-    setSelectedCategory,
+    selectedCategoryName,
+    setSelectedCategoryName,
+    addToLog,
+    dashboardBg,
   } = useContext(AppContext);
 
   const getUnusedQuestionsCount = (category) =>
     category.list?.filter((question) => question && !question.done).length || 0;
 
-  const handleCategorySelect = (category) => {
+  const handleCategorySelect = useCallback((category) => {
     if (!category.list || category.list.length === 0) return;
-    setSelectedCategory(category);
+    setSelectedCategoryName(category.name);
     setIsQuestionActive(true);
-  };
+    addToLog({ 
+      type: "QUESTION_OPENED", 
+      categoryName: category.name,
+      description: `Otwarto kategorię: ${category.name}` 
+    });
+  }, [setSelectedCategoryName, setIsQuestionActive, addToLog]);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     setIsQuestionActive(false);
-    setSelectedCategory(null);
-  };
+    setSelectedCategoryName(null);
+  }, [setIsQuestionActive, setSelectedCategoryName]);
+
+  const currentCategory = useMemo(() => {
+    if (!selectedCategoryName || !gameSettings.quiz?.categories) return null;
+    return gameSettings.quiz.categories.find(c => c.name === selectedCategoryName);
+  }, [gameSettings.quiz?.categories, selectedCategoryName]);
 
   return (
-    <div style={{ padding: "20px", textAlign: "center" }}>
-      <Results />
+    <div style={{ width: "100%", maxWidth: "1200px" }}>
+      <Ranking open={isRankingOpen} onClose={() => setIsRankingOpen(false)} />
+      
+      {/* Warstwa "napaćkanego" tła */}
+      {!isQuestionActive && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 0,
+            pointerEvents: "none",
+            ...dashboardBg
+          }} 
+        />
+      )}
 
-      {isQuestionActive && selectedCategory ? (
-        <Question category={selectedCategory} handleGoBack={handleGoBack} />
+      <Results />
+      <QuizLog />
+
+      {isQuestionActive && currentCategory ? (
+        <Question category={currentCategory} handleGoBack={handleGoBack} />
       ) : (
         <>
-          <div style={{ marginBottom: 20 }}>
-            <Button variant="contained" color="success" onClick={() => setScreen("ranking")}>
-              Pokaż ranking końcowy
-            </Button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "800" }}>Wybierz kategorię</h2>
+            <button 
+              onClick={() => setIsRankingOpen(true)}
+              style={{ background: "#2ecc71", color: "#000", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
+            >
+              RANKING KOŃCOWY
+            </button>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", justifyContent: "center" }}>
+          
+          <div className="quiz-grid">
             {gameSettings.quiz?.categories?.map((category, index) => {
               const unusedQuestionsCount = getUnusedQuestionsCount(category);
-              const bg = stringToHslColor(category.name || String(index), 70, 55);
-              const fontSize = stringToFontSize(category.name || String(index), 30, 60);
+              const isActive = unusedQuestionsCount > 0;
+              const bg = stringToHslColor(category.name || String(index), 60, 50);
 
               return (
-                <div key={index} className="menu-button">
-                  <button
-                    disabled={unusedQuestionsCount === 0}
-                    onClick={() => handleCategorySelect(category)}
-                    className="category"
-                    style={{ backgroundColor: bg, color: "#fff", border: "none", fontSize }}
-                  >
-                    {category.name} ({unusedQuestionsCount})
-                  </button>
+                <div 
+                  key={index} 
+                  className="quiz-card" 
+                  onClick={() => isActive && handleCategorySelect(category)}
+                  style={{ 
+                    opacity: isActive ? 1 : 0.4, 
+                    cursor: isActive ? "pointer" : "not-allowed",
+                    border: isActive ? "1px solid rgba(255,255,255,0.05)" : "none"
+                  }}
+                >
+                  <div className="quiz-card__icon" style={{ background: bg }}>
+                    {category.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <h3 className="quiz-card__title">{category.name}</h3>
+                  <p className="quiz-card__info">
+                    Pozostało pytań: {unusedQuestionsCount}
+                  </p>
+                  <div className="quiz-card__dots" style={{ top: "auto", bottom: "20px" }}>
+                    <ChevronRightIcon />
+                  </div>
                 </div>
               );
             })}
