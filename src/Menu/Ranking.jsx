@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 import { AppContext } from "../contexts/AppContext";
 import { Modal, Paper, Typography, Box } from "@mui/material";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
@@ -102,6 +103,11 @@ const Ranking = ({ open, onClose }) => {
       </Paper>
     </Modal>
   );
+};
+
+Ranking.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
 export default Ranking;

@@ -3,7 +3,7 @@ const CUSTOM_QUIZZES_KEY = "super-zgadywanka:custom-quizzes";
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
 
-const readJson = (key, fallback) => {
+export const readJson = (key, fallback) => {
   if (!canUseStorage()) return fallback;
 
   try {
@@ -14,7 +14,7 @@ const readJson = (key, fallback) => {
   }
 };
 
-const writeJson = (key, value) => {
+export const writeJson = (key, value) => {
   if (!canUseStorage()) return;
 
   try {

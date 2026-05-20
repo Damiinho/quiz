@@ -8,6 +8,8 @@ import {
   loadGameState,
   saveCustomQuizzes,
   saveGameState,
+  readJson,
+  writeJson,
 } from "../utils/quizStorage";
 import { syncStateToCloud, listenForBuzzers, clearBuzzers } from "../utils/cloudSync";
 
@@ -42,34 +44,27 @@ export const AppProvider = ({ children }) => {
   const [isResultsPinned, setIsResultsPinned] = useState(false);
   const [isLogsPinned, setIsLogsPinned] = useState(false);
 
-  const dashboardBg = useMemo(() => {
-    const colors = [
-      "rgba(16, 185, 129, 0.4)", // Emerald
-      "rgba(59, 130, 246, 0.4)", // Blue
-      "rgba(139, 92, 246, 0.4)", // Purple
-      "rgba(236, 72, 153, 0.4)", // Pink
-      "rgba(245, 158, 11, 0.4)",  // Amber
-      "rgba(6, 182, 212, 0.4)",  // Cyan
-      "rgba(132, 204, 22, 0.4)", // Lime
-      "rgba(99, 102, 241, 0.4)", // Indigo
-      "rgba(244, 63, 94, 0.4)",  // Rose
-      "rgba(255, 120, 0, 0.4)",  // Orange
-    ];
-    
-    return {
-      background: `
-        radial-gradient(circle at 5% 5%, ${colors[0]} 0%, transparent 45%),
-        radial-gradient(circle at 95% 5%, ${colors[1]} 0%, transparent 45%),
-        radial-gradient(circle at 50% 15%, ${colors[2]} 0%, transparent 50%),
-        radial-gradient(circle at 10% 90%, ${colors[3]} 0%, transparent 45%),
-        radial-gradient(circle at 90% 85%, ${colors[4]} 0%, transparent 45%),
-        radial-gradient(circle at 20% 40%, ${colors[5]} 0%, transparent 40%),
-        radial-gradient(circle at 80% 45%, ${colors[6]} 0%, transparent 40%),
-        radial-gradient(circle at 35% 70%, ${colors[7]} 0%, transparent 45%),
-        radial-gradient(circle at 65% 75%, ${colors[8]} 0%, transparent 45%),
-        radial-gradient(circle at 50% 95%, ${colors[9]} 0%, transparent 40%)
-      `
-    };
+  // Ustawienia wizualne
+  const [appSettings, setAppSettings] = useState(
+    readJson("super-zgadywanka:app-settings", {
+      themeMode: "colorful", // "colorful" lub "simple"
+      fontSize: 100, // procentowo
+      focusMode: false,
+      soundEffects: true,
+      boardScale: "normal",
+      logVisibility: "normal",
+      scoreFormat: "total",
+    })
+  );
+
+  useEffect(() => {
+    writeJson("super-zgadywanka:app-settings", appSettings);
+    // Aplikowanie rozmiaru czcionki na zmienną CSS
+    document.documentElement.style.setProperty('--app-font-size', `${(appSettings.fontSize / 100) * 16}px`);
+  }, [appSettings]);
+
+  const removeCustomQuiz = useCallback((quizName) => {
+    setCustomQuizzes((prev) => prev.filter(q => q.name !== quizName));
   }, []);
 
   const startNewQuiz = useCallback((quiz) => {
@@ -303,7 +298,9 @@ export const AppProvider = ({ children }) => {
     setIsResultsPinned,
     isLogsPinned,
     setIsLogsPinned,
-    dashboardBg,
+    appSettings,
+    setAppSettings,
+    removeCustomQuiz,
     }), [
     gameSettings, 
     scoreHistory, 
@@ -329,7 +326,8 @@ export const AppProvider = ({ children }) => {
     isAudioPlaying,
     isResultsPinned,
     isLogsPinned,
-    dashboardBg
+    appSettings,
+    removeCustomQuiz
     ]);
   return (
     <AppContext.Provider value={providerValue}>{children}</AppContext.Provider>

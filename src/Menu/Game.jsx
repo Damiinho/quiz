@@ -6,13 +6,51 @@ import QuizLog from "./Game/QuizLog";
 import Ranking from "./Ranking";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
-const stringToHslColor = (str, s = 70, l = 60) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+const getCategoryCardBackground = (index) => {
+  const colors = [
+    "rgba(46, 204, 113, 0.45)", // Green
+    "rgba(168, 85, 247, 0.45)", // Purple
+    "rgba(59, 130, 246, 0.45)", // Blue
+    "rgba(239, 68, 68, 0.45)",  // Red
+    "rgba(234, 179, 8, 0.45)",  // Yellow
+    "rgba(99, 102, 241, 0.45)"  // Indigo
+  ];
+  return colors[index % colors.length];
+};
+
+const getDynamicFontSize = (text, baseSize) => {
+  const matches = baseSize.match(/([\d.]+)(rem|vw|px)/g);
+  let maxVal = 2.4; 
+  if (matches && matches.length > 0) {
+    maxVal = parseFloat(matches[matches.length - 1]);
   }
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, ${s}%, ${l}%)`;
+
+  const length = text.length;
+  if (length < 8) return `${maxVal * 1.8}rem`;
+  if (length < 12) return `${maxVal * 1.3}rem`;
+  if (length < 18) return `${maxVal * 1.0}rem`;
+  return `${maxVal * 0.8}rem`;
+};
+
+const boardScaleSettings = {
+  compact: {
+    maxWidth: "980px",
+    cardMinHeight: "140px",
+    cardPadding: "1rem",
+    titleSize: "1.8rem",
+  },
+  normal: {
+    maxWidth: "1200px",
+    cardMinHeight: "180px",
+    cardPadding: "1.25rem",
+    titleSize: "2.5rem",
+  },
+  large: {
+    maxWidth: "1440px",
+    cardMinHeight: "230px",
+    cardPadding: "1.5rem",
+    titleSize: "3.2rem",
+  },
 };
 
 const Game = () => {
@@ -25,6 +63,7 @@ const Game = () => {
     setSelectedCategoryName,
     addToLog,
     dashboardBg,
+    appSettings,
   } = useContext(AppContext);
 
   const getUnusedQuestionsCount = (category) =>
@@ -48,11 +87,16 @@ const Game = () => {
 
   const currentCategory = useMemo(() => {
     if (!selectedCategoryName || !gameSettings.quiz?.categories) return null;
-    return gameSettings.quiz.categories.find(c => c.name === selectedCategoryName);
-  }, [gameSettings.quiz?.categories, selectedCategoryName]);
+    const category = gameSettings.quiz.categories.find(c => c.name === selectedCategoryName);
+    return category ? { ...category, randomizeQuestions: gameSettings.quiz?.randomizeQuestions } : null;
+  }, [gameSettings.quiz?.categories, gameSettings.quiz?.randomizeQuestions, selectedCategoryName]);
+
+  const shouldHidePanels = appSettings?.focusMode && isQuestionActive;
+  const boardScale = boardScaleSettings[appSettings?.boardScale] || boardScaleSettings.normal;
+  const shouldShowLog = appSettings?.logVisibility !== "hidden";
 
   return (
-    <div style={{ width: "100%", maxWidth: "1200px" }}>
+    <div style={{ width: "100%", maxWidth: boardScale.maxWidth, margin: "0 auto" }}>
       <Ranking open={isRankingOpen} onClose={() => setIsRankingOpen(false)} />
       
       {/* Warstwa "napaćkanego" tła */}
@@ -71,28 +115,38 @@ const Game = () => {
         />
       )}
 
-      <Results />
-      <QuizLog />
+      {!shouldHidePanels && (
+        <>
+          <Results />
+          {shouldShowLog && <QuizLog />}
+        </>
+      )}
 
       {isQuestionActive && currentCategory ? (
         <Question category={currentCategory} handleGoBack={handleGoBack} />
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "24px", fontWeight: "800" }}>Wybierz kategorię</h2>
-            <button 
-              onClick={() => setIsRankingOpen(true)}
-              style={{ background: "#2ecc71", color: "#000", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <h1 
+              style={{ 
+                fontSize: "3.5rem", 
+                fontWeight: "900", 
+                textTransform: "uppercase", 
+                letterSpacing: "-2px",
+                margin: 0,
+                lineHeight: 1
+              }}
             >
-              RANKING KOŃCOWY
-            </button>
+              KATEGORIE
+            </h1>
           </div>
           
           <div className="quiz-grid">
             {gameSettings.quiz?.categories?.map((category, index) => {
               const unusedQuestionsCount = getUnusedQuestionsCount(category);
               const isActive = unusedQuestionsCount > 0;
-              const bg = stringToHslColor(category.name || String(index), 60, 50);
+              const cardBg = getCategoryCardBackground(index);
+              const dynamicSize = getDynamicFontSize(category.name, boardScale.titleSize);
 
               return (
                 <div 
@@ -102,22 +156,83 @@ const Game = () => {
                   style={{ 
                     opacity: isActive ? 1 : 0.4, 
                     cursor: isActive ? "pointer" : "not-allowed",
-                    border: isActive ? "1px solid rgba(255,255,255,0.05)" : "none"
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: cardBg,
+                    backgroundColor: cardBg,
+                    backdropFilter: "blur(8px)",
+                    minHeight: boardScale.cardMinHeight,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    padding: boardScale.cardPadding,
+                    borderRadius: "24px",
+                    boxShadow: isActive ? "0 10px 30px rgba(0,0,0,0.3)" : "none",
+                    transition: "all 0.3s ease",
+                    overflow: "hidden"
                   }}
                 >
-                  <div className="quiz-card__icon" style={{ background: bg }}>
-                    {category.name?.charAt(0).toUpperCase()}
+                  <h3
+                    className="quiz-card__title"
+                    style={{
+                      fontFamily: "inherit",
+                      fontSize: dynamicSize,
+                      fontWeight: 900,
+                      lineHeight: 0.95,
+                      margin: 0,
+                      textAlign: "center",
+                      width: "100%",
+                      color: "#fff",
+                      textTransform: "uppercase",
+                      letterSpacing: "-1.5px",
+                      wordBreak: "keep-all",
+                      overflowWrap: "anywhere",
+                      textShadow: "0 2px 10px rgba(0,0,0,0.5)"
+                    }}
+                  >
+                    {category.name}
+                  </h3>
+                  <div style={{ marginTop: "1rem" }}>
+                    <p className="quiz-card__info" style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px" }}>
+                      POZOSTAŁO: {unusedQuestionsCount}
+                    </p>
                   </div>
-                  <h3 className="quiz-card__title">{category.name}</h3>
-                  <p className="quiz-card__info">
-                    Pozostało pytań: {unusedQuestionsCount}
-                  </p>
-                  <div className="quiz-card__dots" style={{ top: "auto", bottom: "20px" }}>
+                  <div className="quiz-card__dots" style={{ top: "auto", bottom: "15px", right: "15px", color: "rgba(255,255,255,0.5)" }}>
                     <ChevronRightIcon />
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: "60px" }}>
+            <button 
+              onClick={() => setIsRankingOpen(true)}
+              style={{ 
+                background: "rgba(255,255,255,0.05)", 
+                color: "#fff", 
+                border: "1px solid rgba(255,255,255,0.1)", 
+                padding: "16px 48px", 
+                borderRadius: "12px", 
+                fontWeight: "800", 
+                cursor: "pointer", 
+                fontSize: "1rem",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                transition: "all 0.2s"
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              RANKING GRACZY
+            </button>
           </div>
         </>
       )}

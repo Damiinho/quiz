@@ -7,6 +7,7 @@ const CreateNew = () => {
 
   return (
     <QuizEditor
+      key={editingQuiz?.quiz?.name || "new"}
       editingIndex={editingQuiz?.index}
       initialQuiz={editingQuiz?.quiz}
       title={editingQuiz ? "Edytuj quiz" : "Stwórz quiz"}

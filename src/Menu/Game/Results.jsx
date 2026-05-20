@@ -1,16 +1,23 @@
 import { useState, useContext, useEffect, useRef } from "react";
-import { Button, Typography, Paper, IconButton } from "@mui/material";
+import { Typography, IconButton } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
-import UndoIcon from "@mui/icons-material/Undo";
 import { AppContext } from "../../contexts/AppContext";
-
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 
-const Results = () => {
-  const { gameSettings, setGameSettings, addToLog, isResultsPinned, setIsResultsPinned } = useContext(AppContext);
-  const [isOpen, setIsOpen] = useState(false); // Stan rozwinięcia panelu wyników
+export const Results = () => {
+  const { 
+    gameSettings, 
+    setGameSettings, 
+    addToLog, 
+    quizLog, 
+    isResultsPinned, 
+    setIsResultsPinned, 
+    appSettings 
+  } = useContext(AppContext);
+
+  const [isOpen, setIsOpen] = useState(false);
   const [flashPlayer, setFlashPlayer] = useState({ index: null, type: null });
   const containerRef = useRef(null);
   const audioSuccessRef = useRef(null);
@@ -22,6 +29,7 @@ const Results = () => {
   };
 
   const playSound = (type) => {
+    if (appSettings?.soundEffects === false) return;
     if (type === "success" && audioSuccessRef.current) {
       audioSuccessRef.current.currentTime = 0;
       audioSuccessRef.current.play().catch(() => {});
@@ -76,6 +84,13 @@ const Results = () => {
   }, [isOpen, isResultsPinned]);
 
   const showContent = isOpen || isResultsPinned;
+  
+  const lastPointChanges = quizLog.reduce((acc, log) => {
+    if (log.type === "POINTS_CHANGE") {
+      acc[log.playerIndex] = log.change;
+    }
+    return acc;
+  }, {});
 
   return (
     <div
@@ -83,12 +98,12 @@ const Results = () => {
       style={{
         position: "fixed",
         top: "20px",
-        left: "20px",
+        left: "90px",
         width: "280px",
-        backgroundColor: "rgba(30, 41, 59, 0.7)",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
         backdropFilter: "blur(12px)",
         border: "1px solid rgba(255, 255, 255, 0.1)",
-        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
         borderRadius: "16px",
         padding: "16px",
         zIndex: 9999,
@@ -156,6 +171,11 @@ const Results = () => {
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: "800", color: "#2ecc71" }}>
                     {player.points} pkt
+                    {appSettings?.scoreFormat === "withLastChange" && lastPointChanges[index] && (
+                      <span style={{ color: lastPointChanges[index] > 0 ? "#2ecc71" : "#ef4444", marginLeft: "6px" }}>
+                        ({lastPointChanges[index] > 0 ? "+" : ""}{lastPointChanges[index]})
+                      </span>
+                    )}
                   </Typography>
                 </div>
                 <div style={{ display: "flex", gap: "6px" }}>
@@ -173,8 +193,6 @@ const Results = () => {
                       fontSize: "12px",
                       transition: "all 0.2s"
                     }}
-                    onMouseOver={(e) => e.target.style.background = "rgba(46, 204, 113, 0.2)"}
-                    onMouseOut={(e) => e.target.style.background = "rgba(46, 204, 113, 0.1)"}
                   >
                     +1
                   </button>
@@ -192,8 +210,6 @@ const Results = () => {
                       fontSize: "12px",
                       transition: "all 0.2s"
                     }}
-                    onMouseOver={(e) => e.target.style.background = "rgba(239, 68, 68, 0.2)"}
-                    onMouseOut={(e) => e.target.style.background = "rgba(239, 68, 68, 0.1)"}
                   >
                     -1
                   </button>

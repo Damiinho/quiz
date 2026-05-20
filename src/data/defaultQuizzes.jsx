@@ -26,7 +26,7 @@ export const defaultQuizzes = [
           ],
         },
         {type: "standard",
-          name: "Recyacja",
+          name: "Recytacja",
           list: [
             {
               no: 7,
@@ -237,7 +237,7 @@ export const defaultQuizzes = [
         },
 
         {type: "standard",
-          name: "Kluczowa wiedza o Kazachsanie",
+          name: "Kluczowa wiedza o Kazachstanie",
           list: [
             {
               no: 0,
@@ -822,7 +822,7 @@ export const defaultQuizzes = [
                 "Rakieta balistyczna",
                 "Bomba atomowa",
                 "Samolot",
-                "Sakmochód"
+                "Samochód"
               ],
               correctAnswer: ["Samolot"],
             },
@@ -1026,7 +1026,7 @@ export const defaultQuizzes = [
               answers: [
                 "Bocian",
                 "Czapla",
-              "Baźant", "Kruk"],
+              "Bażant", "Kruk"],
               correctAnswer: ["Bocian"],
               sound: "birds/bocian.mp3",
             }, 
@@ -1056,3 +1056,5 @@ export const defaultQuizzes = [
       ],
     },
   ];
+
+

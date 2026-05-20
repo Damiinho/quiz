@@ -9,6 +9,14 @@ $primary-red: #ef4444;
 $text-white: #ffffff;
 $text-muted: #94a3b8;
 
+:root {
+  --app-font-size: 16px;
+}
+
+html {
+  font-size: var(--app-font-size);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -22,12 +30,9 @@ body {
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
+  font-size: 1rem; // Odniesienie do html root
   
-  background-image: 
-    radial-gradient(circle at 20% 20%, rgba(46, 204, 113, 0.03) 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(46, 204, 113, 0.03) 0%, transparent 40%),
-    radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 30px 30px;
+  // Usunięto stałe tło na rzecz dynamicznego
 }
 
 #root {
@@ -39,21 +44,19 @@ body {
 
 .header {
   width: 100%;
-  height: 80px;
+  height: 5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 60px;
+  padding: 0 3.75rem;
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 100;
-  background: rgba($bg-dark, 0.7);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 1000;
+  background: transparent;
 
   &__logo {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 800;
     color: $text-white;
     cursor: pointer;
@@ -62,10 +65,10 @@ body {
 
   &__nav {
     display: flex;
-    gap: 32px;
+    gap: 2rem;
     
     span {
-      font-size: 13px;
+      font-size: 0.8125rem;
       font-weight: 600;
       color: rgba(255, 255, 255, 0.8);
       cursor: pointer;
@@ -81,7 +84,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 100px 20px 40px; 
+  padding: 6.25rem 1.25rem 2.5rem; 
   min-height: 100vh;
 }
 
@@ -91,7 +94,7 @@ body {
   text-align: center;
   z-index: 1;
   width: 100%;
-  max-width: 900px;
+  max-width: 56.25rem;
 
   &::before {
     content: '';
@@ -99,33 +102,33 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 600px;
-    height: 600px;
+    width: 37.5rem;
+    height: 37.5rem;
     background: radial-gradient(circle, rgba(46, 204, 113, 0.12) 0%, rgba(15, 23, 42, 0) 70%);
     z-index: -1;
     pointer-events: none;
   }
 
   &__welcome {
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: 0.625rem;
   }
 
   &__title {
-    font-size: 90px;
+    font-size: 5.625rem;
     font-weight: 800;
     line-height: 0.95;
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
     letter-spacing: -2px;
   }
 
   &__subtitle {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 40px;
-    max-width: 450px;
+    margin-bottom: 2.5rem;
+    max-width: 28.125rem;
     margin-left: auto;
     margin-right: auto;
   }
@@ -134,42 +137,42 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 0.75rem;
     background-color: $primary-green;
     color: #000;
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
-    padding: 16px 80px;
-    border-radius: 10px;
+    padding: 1rem 5rem;
+    border-radius: 0.625rem;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 24px;
+    margin-bottom: 1.5rem;
     margin-left: auto;
     margin-right: auto;
 
     &:hover {
       background-color: lighten($primary-green, 5%);
       transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(46, 204, 113, 0.2);
+      box-shadow: 0 0.625rem 1.875rem rgba(46, 204, 113, 0.2);
     }
   }
 
   &__actions {
     display: flex;
-    gap: 12px;
+    gap: 0.75rem;
     justify-content: center;
     
     button {
       background-color: rgba(255, 255, 255, 0.05);
       color: $text-white;
       border: none;
-      padding: 10px 24px;
-      border-radius: 8px;
+      padding: 0.625rem 1.5rem;
+      border-radius: 0.5rem;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
-      font-size: 11px;
+      font-size: 0.6875rem;
       letter-spacing: 0.5px;
 
       &:hover {
@@ -183,17 +186,17 @@ body {
 .choice-screen {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
   width: 100%;
-  max-width: 500px;
+  max-width: 31.25rem;
   
   &__btn {
     background: $bg-card;
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: #fff;
-    padding: 24px;
-    border-radius: 16px;
-    font-size: 18px;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    font-size: 1.125rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
@@ -213,17 +216,17 @@ body {
 // Karty Quizów (Grid)
 .quiz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  gap: 1.5rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 75rem;
   margin: 0 auto;
 }
 
 .quiz-card {
   background: $bg-card;
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -232,73 +235,74 @@ body {
   text-align: left;
 
   &:hover {
-    transform: translateY(-5px);
+    transform: translateY(-0.3125rem);
     border-color: rgba($primary-green, 0.3);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0.625rem 1.875rem rgba(0, 0, 0, 0.2);
   }
 
   &__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
-    font-size: 24px;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
   }
 
   &__title {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 0.25rem;
   }
 
   &__info {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: $text-muted;
   }
 
   &__dots {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 1.25rem;
+    right: 1.25rem;
     color: $text-muted;
+    z-index: 5;
   }
 }
 
 // Zarządzaj Graczami
 .players-view {
   width: 100%;
-  max-width: 600px;
+  max-width: 37.5rem;
   background: $bg-card;
-  border-radius: 24px;
-  padding: 32px;
+  border-radius: 1.5rem;
+  padding: 2rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   text-align: left;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  box-shadow: 0 1.25rem 3.125rem rgba(0,0,0,0.3);
 
   &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
-    h2 { font-size: 20px; font-weight: 800; }
+    margin-bottom: 1.5rem;
+    h2 { font-size: 1.25rem; font-weight: 800; }
   }
 
   &__input-row {
     display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
     
     input {
       flex: 1;
       background: rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 14px 20px;
+      border-radius: 0.75rem;
+      padding: 0.875rem 1.25rem;
       color: #fff;
-      font-size: 15px;
+      font-size: 0.9375rem;
       outline: none;
       &:focus { border-color: $primary-green; }
     }
@@ -307,8 +311,8 @@ body {
       background: $primary-green;
       color: #000;
       border: none;
-      border-radius: 12px;
-      padding: 0 32px;
+      border-radius: 0.75rem;
+      padding: 0 2rem;
       font-weight: 800;
       cursor: pointer;
       transition: all 0.2s;
@@ -322,28 +326,28 @@ body {
     justify-content: space-between;
     align-items: center;
     background: rgba(0,0,0,0.15);
-    padding: 16px 20px;
-    border-radius: 16px;
-    margin-bottom: 32px;
-    font-size: 14px;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: $text-muted;
 
     &-controls {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 1rem;
       
       button {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.625rem;
         border: 1px solid rgba(255,255,255,0.1);
         background: rgba(255,255,255,0.05);
         color: #fff;
         cursor: pointer;
         font-weight: 800;
-        font-size: 18px;
+        font-size: 1.125rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -351,21 +355,21 @@ body {
         &:hover { background: rgba(255,255,255,0.15); border-color: $primary-green; }
       }
       
-      span { font-weight: 800; font-size: 20px; width: 30px; text-align: center; color: #fff; }
+      span { font-weight: 800; font-size: 1.25rem; width: 1.875rem; text-align: center; color: #fff; }
     }
   }
 
   &__list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 32px;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
   }
 
   &__item {
     background: rgba(0, 0, 0, 0.15);
-    border-radius: 16px;
-    padding: 16px 20px;
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -374,28 +378,28 @@ body {
     &-info {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 1rem;
       flex: 1;
     }
 
-    &-name { font-weight: 700; font-size: 16px; color: #fff; }
-    &-score { color: $primary-green; font-weight: 800; font-size: 13px; margin-top: 2px; }
+    &-name { font-weight: 700; font-size: 1rem; color: #fff; }
+    &-score { color: $primary-green; font-weight: 800; font-size: 0.8125rem; margin-top: 0.125rem; }
     
     &-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 0.75rem;
       background: rgba($primary-green, 0.1);
       color: $primary-green;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 1.5rem;
     }
 
     &-actions {
       display: flex;
-      gap: 10px;
+      gap: 0.625rem;
       button {
         background: none;
         border: none;
@@ -412,96 +416,108 @@ body {
 // Kreator Quizu
 .editor-view {
   width: 100%;
-  max-width: 1000px;
-  background: $bg-card;
-  border-radius: 24px;
+  max-width: 75rem;
+  background: rgba($bg-card, 0.6);
+  backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   text-align: left;
+  box-shadow: 0 1.875rem 5rem rgba(0,0,0,0.4);
 
   &__steps {
     display: flex;
-    background: rgba(0,0,0,0.1);
-    padding: 12px 24px;
-    gap: 32px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.3);
+    padding: 1rem 2rem;
+    gap: 2.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   &__step {
-    font-size: 13px;
+    font-size: 0.875rem;
     font-weight: 700;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.2);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.75rem;
     cursor: pointer;
-    padding: 12px 0;
-    transition: color 0.2s;
+    padding: 0.75rem 0;
+    transition: all 0.2s;
 
     &--active {
       color: $primary-green;
-      span { background: $primary-green; color: #000; }
+      span { background: $primary-green; color: #000; box-shadow: 0 0 0.9375rem rgba($primary-green, 0.3); }
+    }
+
+    &:hover:not(.editor-view__step--active) {
+        color: rgba(255,255,255,0.5);
     }
 
     span {
-      width: 22px;
-      height: 22px;
+      width: 1.75rem;
+      height: 1.75rem;
       border-radius: 50%;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
-      transition: all 0.2s;
+      font-size: 0.75rem;
     }
   }
 
   &__content {
-    padding: 40px;
-    min-height: 400px;
+    padding: 3rem;
+    min-height: 34.375rem;
   }
 
   &__footer {
-    padding: 24px 40px;
-    background: rgba(0,0,0,0.1);
+    padding: 2rem 3rem;
+    background: rgba(0,0,0,0.2);
     display: flex;
     justify-content: space-between;
     border-top: 1px solid rgba(255,255,255,0.05);
   }
 
   &__input-group {
-    margin-bottom: 24px;
-    label { display: block; font-size: 13px; font-weight: 600; color: $text-muted; margin-bottom: 8px; }
+    margin-bottom: 2rem;
+    label { display: block; font-size: 0.875rem; font-weight: 600; color: $text-muted; margin-bottom: 0.75rem; }
+    
     input, textarea, select {
       width: 100%;
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.25);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 12px 16px;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
       color: #fff;
-      font-size: 14px;
+      font-size: 0.9375rem;
       outline: none;
-      &:focus { border-color: $primary-green; }
+      transition: all 0.2s;
+      &:focus { border-color: $primary-green; background: rgba(0,0,0,0.4); }
     }
+    
+    textarea { resize: none; line-height: 1.5; }
   }
 
   &__btn {
     background: $primary-green;
     color: #000;
     border: none;
-    border-radius: 8px;
-    padding: 12px 24px;
-    font-weight: 700;
+    border-radius: 0.75rem;
+    padding: 0 2rem;
+    height: 3rem;
+    font-weight: 800;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 0.875rem;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: background 0.2s;
+    justify-content: center;
+    gap: 0.625rem;
+    transition: all 0.2s;
 
-    &:hover { background: lighten($primary-green, 5%); }
-    &:disabled { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); cursor: not-allowed; }
+    &:hover:not(:disabled) { transform: translateY(-2px); background: lighten($primary-green, 5%); box-shadow: 0 0.625rem 1.25rem rgba(46, 204, 113, 0.2); }
+    &:active { transform: translateY(0); }
+    &:disabled { opacity: 0.3; cursor: not-allowed; }
 
     &--secondary {
       background: rgba(255,255,255,0.05);
@@ -511,9 +527,9 @@ body {
 
     &--outline {
         background: none;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 2px solid rgba(255,255,255,0.1);
         color: #fff;
-        &:hover { border-color: $primary-green; }
+        &:hover { border-color: $primary-green; background: rgba($primary-green, 0.05); }
     }
   }
 }
@@ -521,12 +537,12 @@ body {
 // Ekran Pytania
 .question-view {
   width: 100%;
-  max-width: 1600px;
-  height: calc(100vh - 120px);
+  max-width: 100rem;
+  height: calc(100vh - 7.5rem);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  padding: 20px 40px;
+  padding: 1.25rem 2.5rem;
   position: relative;
   // Usunięto overflow: hidden, aby części po pęknięciu mogły wychodzić poza kontener
 
@@ -534,7 +550,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
     flex-shrink: 0;
   }
 
@@ -544,7 +560,7 @@ body {
     flex-direction: column;
     justify-content: center; // Centrowanie w pionie
     align-items: center; // Centrowanie w poziomie
-    gap: 40px;
+    gap: 2.5rem;
     width: 100%;
     // Usunięto overflow: hidden
   }
@@ -553,22 +569,22 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 20px;
+    margin-top: 1.25rem;
     flex-shrink: 0;
     position: relative;
     z-index: 10; // Stopka zawsze na wierzchu
   }
 
   &__timer, &__audio-btn {
-    width: 70px;
-    height: 70px;
+    width: 4.375rem;
+    height: 4.375rem;
     border-radius: 50%;
     border: 4px solid $primary-green;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 24px;
+    font-size: 1.5rem;
     color: $primary-green;
     background: rgba(0,0,0,0.4);
     cursor: pointer;
@@ -585,12 +601,12 @@ body {
   &__box {
     background: #fff;
     color: #000;
-    padding: 40px;
-    border-radius: 24px;
-    font-size: clamp(24px, 4vw, 52px);
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+    font-size: clamp(1.5rem, 4vw, 3.25rem);
     font-weight: 800;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 1.25rem 3.75rem rgba(0,0,0,0.5);
     line-height: 1.1;
     width: 100%;
     max-height: 45vh;
@@ -604,25 +620,25 @@ body {
   &__answers {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 1.25rem;
     width: 100%;
-    max-width: 1100px;
+    max-width: 68.75rem;
     margin: 0 auto;
   }
 
   &__answer {
     background: $bg-card;
-    padding: 16px 32px;
-    border-radius: 16px;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 24px;
+    gap: 1.5rem;
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.2s;
-    font-size: clamp(14px, 1.5vw, 22px);
-    min-height: 80px;
+    font-size: clamp(0.875rem, 1.5vw, 1.375rem);
+    min-height: 5rem;
 
     &:hover {
       background: lighten($bg-card, 5%);
@@ -630,21 +646,21 @@ body {
     }
 
     &-letter {
-      width: 36px;
-      height: 36px;
+      width: 2.25rem;
+      height: 2.25rem;
       background: rgba(255,255,255,0.05);
-      border-radius: 10px;
+      border-radius: 0.625rem;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 16px;
+      font-size: 1rem;
     }
 
     &--correct {
       background: rgba($primary-green, 0.15) !important;
       border-color: $primary-green !important;
-      box-shadow: 0 0 30px rgba($primary-green, 0.2);
+      box-shadow: 0 0 1.875rem rgba($primary-green, 0.2);
     }
   }
 }
@@ -702,20 +718,20 @@ body {
 }
 
 // Animacje H
-@keyframes break-h-1 { 0% { transform: translate(0, 0); } 100% { transform: translate(-20px, -60px) rotate(-6deg); opacity: 0.8; } }
-@keyframes break-h-2 { 0% { transform: translate(0, 0); } 100% { transform: translate(20px, 60px) rotate(5deg); opacity: 0.8; } }
+@keyframes break-h-1 { 0% { transform: translate(0, 0); } 100% { transform: translate(-1.25rem, -3.75rem) rotate(-6deg); opacity: 0.8; } }
+@keyframes break-h-2 { 0% { transform: translate(0, 0); } 100% { transform: translate(1.25rem, 3.75rem) rotate(5deg); opacity: 0.8; } }
 
 // Animacje V
-@keyframes break-v-1 { 0% { transform: translate(0, 0); } 100% { transform: translate(-80px, -10px) rotate(-5deg); opacity: 0.8; } }
-@keyframes break-v-2 { 0% { transform: translate(0, 0); } 100% { transform: translate(80px, 10px) rotate(4deg); opacity: 0.8; } }
+@keyframes break-v-1 { 0% { transform: translate(0, 0); } 100% { transform: translate(-5rem, -0.625rem) rotate(-5deg); opacity: 0.8; } }
+@keyframes break-v-2 { 0% { transform: translate(0, 0); } 100% { transform: translate(5rem, 0.625rem) rotate(4deg); opacity: 0.8; } }
 
 // Animacje D1
-@keyframes break-d1-1 { 0% { transform: translate(0, 0); } 100% { transform: translate(-50px, -50px) rotate(-8deg); opacity: 0.8; } }
-@keyframes break-d1-2 { 0% { transform: translate(0, 0); } 100% { transform: translate(50px, 50px) rotate(6deg); opacity: 0.8; } }
+@keyframes break-d1-1 { 0% { transform: translate(0, 0); } 100% { transform: translate(-3.125rem, -3.125rem) rotate(-8deg); opacity: 0.8; } }
+@keyframes break-d1-2 { 0% { transform: translate(0, 0); } 100% { transform: translate(3.125rem, 3.125rem) rotate(6deg); opacity: 0.8; } }
 .MuiPaper-root {
   background-color: $bg-card !important;
   color: $text-white !important;
-  border-radius: 16px !important;
+  border-radius: 1rem !important;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -723,7 +739,7 @@ body {
   .MuiOutlinedInput-root {
     background: rgba(0,0,0,0.2);
     color: #fff;
-    border-radius: 8px;
+    border-radius: 0.5rem;
     & fieldset { border-color: rgba(255,255,255,0.1); }
     &:hover fieldset { border-color: rgba(255,255,255,0.2); }
     &.Mui-focused fieldset { border-color: $primary-green; }
@@ -734,7 +750,7 @@ body {
 .MuiButton-root {
     text-transform: none !important;
     font-weight: 700 !important;
-    border-radius: 8px !important;
+    border-radius: 0.5rem !important;
 }
 
 @keyframes pulse-bg {
@@ -757,10 +773,10 @@ body {
 
 @keyframes shake {
   0%, 100% { transform: translate(0, 0); }
-  10%, 90% { transform: translate(-8px, -4px); }
-  20%, 80% { transform: translate(8px, 4px); }
-  30%, 50%, 70% { transform: translate(-12px, 8px); }
-  40%, 60% { transform: translate(12px, -8px); }
+  10%, 90% { transform: translate(-0.5rem, -0.25rem); }
+  20%, 80% { transform: translate(0.5rem, 0.25rem); }
+  30%, 50%, 70% { transform: translate(-0.75rem, 0.5rem); }
+  40%, 60% { transform: translate(0.75rem, -0.5rem); }
 }
 
 .shake-heavy {
@@ -777,14 +793,14 @@ body {
 
 // Scrollbar
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 0.5rem;
 }
 ::-webkit-scrollbar-track {
   background: $bg-dark;
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 0.625rem;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);

@@ -15,7 +15,8 @@ const Question = ({ category, handleGoBack }) => {
     showAnswer, 
     setShowAnswer, 
     isAudioPlaying, 
-    setIsAudioPlaying 
+    setIsAudioPlaying,
+    appSettings
   } = useContext(AppContext);
 
   const selectedQuestion = useMemo(() => {
@@ -23,6 +24,9 @@ const Question = ({ category, handleGoBack }) => {
     const unanswered = category.list.filter((q) => !q.done);
     if (unanswered.length === 0) return null;
     const questionsWithNo = unanswered.filter((q) => q.no != null);
+    if (category?.randomizeQuestions) {
+      return unanswered[Math.floor(Math.random() * unanswered.length)];
+    }
     if (questionsWithNo.length > 0) {
       return [...questionsWithNo].sort((a, b) => a.no - b.no)[0];
     }
@@ -36,7 +40,8 @@ const Question = ({ category, handleGoBack }) => {
   const audioTickRef = useRef(null);
   const audioRevealRef = useRef(null);
 
-  const [timer, setTimer] = useState(category?.timerSeconds || 30);
+  const questionTimerSeconds = selectedQuestion?.timerSeconds || category?.timerSeconds || 30;
+  const [timer, setTimer] = useState(questionTimerSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [crackType, setCrackType] = useState("crack-h"); // Stan dla losowego pęknięcia
   const [bgTheme, setBgTheme] = useState(null); // Stan dla losowego tła
@@ -44,8 +49,14 @@ const Question = ({ category, handleGoBack }) => {
 
   const albumImages = useMemo(() => selectedQuestion?.images || [], [selectedQuestion]);
   const hasMultipleImages = albumImages.length > 1;
-  const hasCorrectAnswer = Array.isArray(selectedQuestion?.correctAnswer) && selectedQuestion.correctAnswer.length > 0;
+  const hasCorrectAnswer = Array.isArray(selectedQuestion?.correctAnswer) && selectedQuestion.correctAnswer.some(answer => String(answer).trim());
   const shouldShowAnswerButton = hasCorrectAnswer && category?.type !== "duel";
+
+  const getAssetPath = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("data:") || path.startsWith("/")) return path;
+    return `/${path}`;
+  };
 
   // Losowanie efektów przy zmianie pytania
   useEffect(() => {
@@ -76,6 +87,7 @@ const Question = ({ category, handleGoBack }) => {
   }, [selectedQuestion, category?.type]);
 
   const playEffect = useCallback((type) => {
+    if (appSettings?.soundEffects === false) return;
     if (type === "tick" && audioTickRef.current) {
       audioTickRef.current.currentTime = 0;
       audioTickRef.current.play().catch(() => {});
@@ -83,7 +95,7 @@ const Question = ({ category, handleGoBack }) => {
       audioRevealRef.current.currentTime = 0;
       audioRevealRef.current.play().catch(() => {});
     }
-  }, []);
+  }, [appSettings?.soundEffects]);
 
   const handleGoBackWithLog = useCallback(() => {
     addToLog({
@@ -137,12 +149,12 @@ const Question = ({ category, handleGoBack }) => {
     setSelectedAnswerIndex(null);
     setCurrentImageIndex(0);
     setIsAudioPlaying(false);
-    setTimer(category?.timerSeconds || 30);
+    setTimer(questionTimerSeconds);
     setIsTimerRunning(false);
     if (category?.type === "album" && selectedQuestion.images?.length > 0) {
       setEnlargedImage(selectedQuestion.images[0]);
     }
-  }, [selectedQuestion, category.type, category.timerSeconds, setShowAnswer, setIsAudioPlaying]);
+  }, [selectedQuestion, category.type, questionTimerSeconds, setShowAnswer, setIsAudioPlaying]);
 
   useEffect(() => {
     if (isTimerRunning && timerRef.current == null) {
@@ -187,8 +199,9 @@ const Question = ({ category, handleGoBack }) => {
   if (!selectedQuestion) return null;
 
   const playSound = (path) => {
+    if (appSettings?.soundEffects === false) return;
     if (audioRef.current) {
-      audioRef.current.src = path.startsWith("/") ? path : `/${path}`;
+      audioRef.current.src = getAssetPath(path);
       audioRef.current.play().catch(console.error);
       setIsAudioPlaying(true);
       addToLog({ type: "SOUND_PLAY", description: `Dźwięk: ${path.split('/').pop()}` });
@@ -207,7 +220,7 @@ const Question = ({ category, handleGoBack }) => {
   else if (isEarly && !isTimeUp) shakeClass = "shake-tiny";
 
   const hasAnswers = Array.isArray(selectedQuestion.answers) && selectedQuestion.answers.length > 0;
-  const shouldShowGenericAnswers = hasAnswers && category?.type !== "illustrated";
+  const shouldShowGenericAnswers = hasAnswers;
 
   return (
     <>
@@ -296,7 +309,7 @@ const Question = ({ category, handleGoBack }) => {
                   <IconButton size="small" onClick={() => setIsTimerRunning(!isTimerRunning)} sx={{ color: isTimerRunning ? "#f39c12" : "#2ecc71", p: 0.5 }}>
                     {isTimerRunning ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
                   </IconButton>
-                  <IconButton size="small" onClick={() => { setTimer(category?.timerSeconds || 30); setIsTimerRunning(false); }} sx={{ color: "rgba(255,255,255,0.3)", p: 0.5 }}>
+                  <IconButton size="small" onClick={() => { setTimer(questionTimerSeconds); setIsTimerRunning(false); }} sx={{ color: "rgba(255,255,255,0.3)", p: 0.5 }}>
                     <ReplayIcon fontSize="small" />
                   </IconButton>
                 </div>
@@ -307,7 +320,7 @@ const Question = ({ category, handleGoBack }) => {
 
         {category?.type === "auction" && (
           <div style={{ width: "100%", height: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "6px", marginBottom: "20px", overflow: "hidden" }}>
-            <div style={{ width: `${(timer / (category?.timerSeconds || 30)) * 100}%`, height: "100%", background: timer <= 10 ? (timer <= 5 ? "#ef4444" : "#f39c12") : "#2ecc71", transition: "width 1s linear, background 0.3s ease" }} />
+            <div style={{ width: `${(timer / questionTimerSeconds) * 100}%`, height: "100%", background: timer <= 10 ? (timer <= 5 ? "#ef4444" : "#f39c12") : "#2ecc71", transition: "width 1s linear, background 0.3s ease" }} />
           </div>
         )}
 
@@ -330,16 +343,16 @@ const Question = ({ category, handleGoBack }) => {
             </div>
           )}
 
-          {category?.type === "illustrated" && selectedQuestion.image && (
-            <div style={{ textAlign: "center" }}>
-              <img src={selectedQuestion.image.startsWith("/") ? selectedQuestion.image : `/${selectedQuestion.image}`} alt="Pytanie" style={{ maxWidth: "100%", maxHeight: "45vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer" }} onClick={() => setEnlargedImage(selectedQuestion.image)} />
+          {(category?.type === "illustrated" || category?.type === "forehead") && selectedQuestion.image && (
+            <div style={{ textAlign: "center", width: "100%" }}>
+              <img src={getAssetPath(selectedQuestion.image)} alt="Pytanie" style={{ maxWidth: "100%", maxHeight: hasAnswers ? "30vh" : "45vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer", objectFit: "contain" }} onClick={() => setEnlargedImage(selectedQuestion.image)} />
             </div>
           )}
 
           {category?.type === "album" && albumImages.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "30px" }}>
               {hasMultipleImages && <IconButton onClick={() => setCurrentImageIndex(p => (p === 0 ? albumImages.length - 1 : p - 1))} sx={{ color: "#fff", background: "rgba(255,255,255,0.05)", p: 2 }}><ChevronLeftIcon fontSize="large" /></IconButton>}
-              <img src={albumImages[currentImageIndex].startsWith("/") ? albumImages[currentImageIndex] : `/${albumImages[currentImageIndex]}`} alt="Album" style={{ maxWidth: "100%", maxHeight: "50vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer" }} onClick={() => setEnlargedImage(albumImages[currentImageIndex])} />
+              <img src={getAssetPath(albumImages[currentImageIndex])} alt="Album" style={{ maxWidth: "100%", maxHeight: "50vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer" }} onClick={() => setEnlargedImage(albumImages[currentImageIndex])} />
               {hasMultipleImages && <IconButton onClick={() => setCurrentImageIndex(p => (p === albumImages.length - 1 ? 0 : p + 1))} sx={{ color: "#fff", background: "rgba(255,255,255,0.05)", p: 2 }}><ChevronRightIcon fontSize="large" /></IconButton>}
             </div>
           )}
@@ -354,7 +367,12 @@ const Question = ({ category, handleGoBack }) => {
                   <div 
                     key={index} className={`question-view__answer ${isCorrect ? 'question-view__answer--correct' : ''}`}
                     onClick={() => { if(!showAnswer) { setSelectedAnswerIndex(index); if(answer === selectedQuestion.correctAnswer?.[0]) setShowAnswer(true); } }}
-                    style={{ border: isSelected ? "3px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.05)", background: isWrong ? "rgba(239, 68, 68, 0.1)" : isCorrect ? "rgba(46, 204, 113, 0.1)" : isSelected ? "rgba(59, 130, 246, 0.1)" : "rgba(30, 41, 59, 0.5)" }}
+                    style={{ 
+                      border: isSelected ? "3px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.05)", 
+                      background: isWrong ? "rgba(239, 68, 68, 0.1)" : isCorrect ? "rgba(46, 204, 113, 0.1)" : isSelected ? "rgba(59, 130, 246, 0.1)" : "rgba(30, 41, 59, 0.5)",
+                      minHeight: (hasAnswers && selectedQuestion.image) ? "60px" : "80px",
+                      padding: (hasAnswers && selectedQuestion.image) ? "12px 24px" : "16px 32px"
+                    }}
                   >
                     <div className="question-view__answer-letter">{String.fromCharCode(65 + index)}</div>
                     <div>{answer}</div>
@@ -385,7 +403,7 @@ const Question = ({ category, handleGoBack }) => {
       <Modal open={!!enlargedImage} onClose={() => setEnlargedImage(null)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
         <Paper sx={{ p: 1, background: 'transparent !important', border: 'none !important', boxShadow: 'none !important', outline: 'none', position: 'relative' }}>
           {hasMultipleImages && <IconButton onClick={(e) => { e.stopPropagation(); const n = currentImageIndex === 0 ? albumImages.length - 1 : currentImageIndex - 1; setCurrentImageIndex(n); setEnlargedImage(albumImages[n]); }} sx={{ position: 'absolute', left: '-60px', top: '50%', color: '#fff', background: 'rgba(0,0,0,0.5)' }}><ChevronLeftIcon fontSize="large" /></IconButton>}
-          <img src={enlargedImage?.startsWith("/") ? enlargedImage : `/${enlargedImage}`} alt="Zoom" style={{ maxWidth: '100%', maxHeight: '95vh', borderRadius: '8px' }} onClick={() => setEnlargedImage(null)} />
+          <img src={getAssetPath(enlargedImage)} alt="Zoom" style={{ maxWidth: '100%', maxHeight: '95vh', borderRadius: '8px' }} onClick={() => setEnlargedImage(null)} />
           {hasMultipleImages && <IconButton onClick={(e) => { e.stopPropagation(); const n = currentImageIndex === albumImages.length - 1 ? 0 : currentImageIndex + 1; setCurrentImageIndex(n); setEnlargedImage(albumImages[n]); }} sx={{ position: 'absolute', right: '-60px', top: '50%', color: '#fff', background: 'rgba(0,0,0,0.5)' }}><ChevronRightIcon fontSize="large" /></IconButton>}
         </Paper>
       </Modal>

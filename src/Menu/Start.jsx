@@ -21,7 +21,7 @@ const Start = () => {
 
         <button 
           className="hero__main-btn" 
-          onClick={() => navigate("/wybor")}
+          onClick={() => navigate("/kategorie")}
         >
           ZAGRAJ <PlayArrowIcon />
         </button>
@@ -29,13 +29,12 @@ const Start = () => {
         <div className="hero__actions">
           <button
             onClick={() => {
-              setEditingQuiz(null);
-              navigate("/stworz");
+              navigate("/wybor");
             }}
           >
             STWÓRZ QUIZ
           </button>
-          <button onClick={() => {}}>
+          <button onClick={() => navigate("/ustawienia")}>
             USTAWIENIA
           </button>
         </div>

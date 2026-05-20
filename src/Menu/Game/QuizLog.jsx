@@ -5,17 +5,24 @@ import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import { AppContext } from "../../contexts/AppContext";
-
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 
-const QuizLog = () => {
-  const { quizLog, undoAction, redoAction, jumpToLogIndex, undoPointer, isLogsPinned, setIsLogsPinned } = useContext(AppContext);
+export const QuizLog = () => {
+  const { 
+    quizLog, 
+    undoAction, 
+    redoAction, 
+    jumpToLogIndex, 
+    undoPointer, 
+    isLogsPinned, 
+    setIsLogsPinned 
+  } = useContext(AppContext);
+
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   const scrollRef = useRef(null);
 
-  // Automatyczne przewijanie do pointera (aktualnej akcji)
   useEffect(() => {
     if (scrollRef.current && undoPointer !== -1) {
       const activeAction = scrollRef.current.children[quizLog.length - 1 - undoPointer];
@@ -44,12 +51,12 @@ const QuizLog = () => {
       style={{
         position: "fixed",
         top: "20px",
-        left: "320px",
+        left: "380px",
         width: "280px",
-        backgroundColor: "rgba(30, 41, 59, 0.7)",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
         backdropFilter: "blur(12px)",
         border: "1px solid rgba(255, 255, 255, 0.1)",
-        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
         borderRadius: "16px",
         padding: "16px",
         zIndex: 9999,
@@ -78,7 +85,6 @@ const QuizLog = () => {
                 "&:hover": { color: undoPointer < 0 ? "rgba(255,255,255,0.1)" : "#fff" },
                 cursor: undoPointer < 0 ? "default" : "pointer"
               }}
-              title="Cofnij"
             >
               <UndoIcon fontSize="small" />
             </IconButton>
@@ -91,7 +97,6 @@ const QuizLog = () => {
                 "&:hover": { color: undoPointer >= quizLog.length - 1 ? "rgba(255,255,255,0.1)" : "#fff" },
                 cursor: undoPointer >= quizLog.length - 1 ? "default" : "pointer"
               }}
-              title="Ponów"
             >
               <RedoIcon fontSize="small" />
             </IconButton>
