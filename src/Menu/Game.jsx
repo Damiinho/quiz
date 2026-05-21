@@ -20,16 +20,16 @@ const getCategoryCardBackground = (index) => {
 
 const getDynamicFontSize = (text, baseSize) => {
   const matches = baseSize.match(/([\d.]+)(rem|vw|px)/g);
-  let maxVal = 2.0; 
+  let maxVal = 2.4; 
   if (matches && matches.length > 0) {
     maxVal = parseFloat(matches[matches.length - 1]);
   }
 
   const length = text.length;
-  if (length < 8) return `${maxVal * 1.4}rem`; 
-  if (length < 12) return `${maxVal * 1.1}rem`;
-  if (length < 18) return `${maxVal * 0.9}rem`;
-  return `${maxVal * 0.7}rem`;
+  if (length < 8) return `${maxVal * 1.8}rem`;
+  if (length < 12) return `${maxVal * 1.3}rem`;
+  if (length < 18) return `${maxVal * 1.0}rem`;
+  return `${maxVal * 0.8}rem`;
 };
 
 const boardScaleSettings = {
