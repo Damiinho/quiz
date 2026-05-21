@@ -112,6 +112,7 @@ const Settings = () => {
                         <MenuItem value="compact">Kompaktowa</MenuItem>
                         <MenuItem value="normal">Normalna</MenuItem>
                         <MenuItem value="large">Duża</MenuItem>
+                        <MenuItem value="extraLarge">Bardzo duża</MenuItem>
                     </Select>
                 </Box>
                 <Box>

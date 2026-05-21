@@ -158,6 +158,7 @@ const Header = () => {
             <MenuItem value="compact">Skala: kompaktowa</MenuItem>
             <MenuItem value="normal">Skala: normalna</MenuItem>
             <MenuItem value="large">Skala: duża</MenuItem>
+            <MenuItem value="extraLarge">Skala: bardzo duża</MenuItem>
           </Select>
           <Select
             size="small"

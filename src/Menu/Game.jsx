@@ -34,24 +34,35 @@ const getDynamicFontSize = (text, baseSize) => {
 
 const boardScaleSettings = {
   compact: {
+    maxWidth: "800px",
+    cardMinHeight: "110px",
+    cardPadding: "0.75rem",
+    titleSize: "1.4rem",
+    gridTemplate: "repeat(auto-fill, minmax(220px, 1fr))",
+  },
+  normal: {
     maxWidth: "980px",
     cardMinHeight: "140px",
     cardPadding: "1rem",
     titleSize: "1.8rem",
-  },
-  normal: {
-    maxWidth: "1200px",
-    cardMinHeight: "180px",
-    cardPadding: "1.25rem",
-    titleSize: "2.5rem",
+    gridTemplate: "repeat(auto-fill, minmax(280px, 1fr))",
   },
   large: {
-    maxWidth: "1440px",
-    cardMinHeight: "230px",
+    maxWidth: "1300px",
+    cardMinHeight: "190px",
     cardPadding: "1.5rem",
+    titleSize: "2.5rem",
+    gridTemplate: "repeat(auto-fill, minmax(360px, 1fr))",
+  },
+  extraLarge: {
+    maxWidth: "1600px",
+    cardMinHeight: "240px",
+    cardPadding: "2rem",
     titleSize: "3.2rem",
+    gridTemplate: "repeat(auto-fill, minmax(460px, 1fr))",
   },
 };
+
 
 const Game = () => {
   const [isRankingOpen, setIsRankingOpen] = useState(false);
@@ -141,7 +152,14 @@ const Game = () => {
             </h1>
           </div>
           
-          <div className="quiz-grid">
+          <div 
+            className="quiz-grid"
+            style={{ 
+              display: "grid", 
+              gridTemplateColumns: boardScale.gridTemplate,
+              gap: "1.5rem"
+            }}
+          >
             {gameSettings.quiz?.categories?.map((category, index) => {
               const unusedQuestionsCount = getUnusedQuestionsCount(category);
               const isActive = unusedQuestionsCount > 0;
@@ -170,7 +188,8 @@ const Game = () => {
                     borderRadius: "24px",
                     boxShadow: isActive ? "0 10px 30px rgba(0,0,0,0.3)" : "none",
                     transition: "all 0.3s ease",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    wordBreak: "normal"
                   }}
                 >
                   <h3
@@ -179,16 +198,17 @@ const Game = () => {
                       fontFamily: "inherit",
                       fontSize: dynamicSize,
                       fontWeight: 900,
-                      lineHeight: 0.95,
+                      lineHeight: 1.1,
                       margin: 0,
                       textAlign: "center",
                       width: "100%",
                       color: "#fff",
                       textTransform: "uppercase",
                       letterSpacing: "-1.5px",
-                      wordBreak: "keep-all",
-                      overflowWrap: "anywhere",
-                      textShadow: "0 2px 10px rgba(0,0,0,0.5)"
+                      wordBreak: "normal",
+                      overflowWrap: "normal",
+                      whiteSpace: "normal",
+                      textShadow: "0 2px 10px rgba(0,0,0,0.5)",
                     }}
                   >
                     {category.name}
