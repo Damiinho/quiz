@@ -78,3 +78,27 @@ export const clearBuzzers = async (gameCode) => {
     console.error("Clear buzzers error:", error);
   }
 };
+
+/**
+ * Listens for game state changes.
+ */
+export const listenForGameState = (gameCode, onStateChange) => {
+  if (!gameCode) return null;
+
+  const url = `${FIREBASE_BASE_URL}/games/${gameCode}/state.json`;
+  const eventSource = new EventSource(url);
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data && data.data) {
+      onStateChange(data.data);
+    }
+  };
+
+  eventSource.onerror = (err) => {
+    console.error("Game state EventSource error:", err);
+    eventSource.close();
+  };
+
+  return eventSource;
+};

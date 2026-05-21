@@ -67,6 +67,13 @@ export const AppProvider = ({ children }) => {
     setCustomQuizzes((prev) => prev.filter(q => q.name !== quizName));
   }, []);
 
+  // Generowanie kodu gry dla Cloud Mode
+  const generateGameCode = useCallback(() => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setGameCode(code);
+    return code;
+  }, []);
+
   const startNewQuiz = useCallback((quiz) => {
     setQuizLog([]);
     setUndoPointer(-1);
@@ -75,6 +82,9 @@ export const AppProvider = ({ children }) => {
       quiz: quiz,
     });
     
+    // Generujemy kod gry jeśli go nie ma
+    const code = generateGameCode();
+
     // Rozpoczynamy nowy log od razu
     const startAction = {
       type: "START_QUIZ",
@@ -85,7 +95,7 @@ export const AppProvider = ({ children }) => {
     };
     setQuizLog([startAction]);
     setUndoPointer(0);
-  }, []);
+  }, [generateGameCode]);
 
   const addToLog = useCallback((action) => {
     setQuizLog((prev) => {
@@ -185,13 +195,6 @@ export const AppProvider = ({ children }) => {
     }
     setUndoPointer(targetIndex);
   }, [undoPointer, quizLog, performAction]);
-
-  // Generowanie kodu gry dla Cloud Mode
-  const generateGameCode = useCallback(() => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setGameCode(code);
-    return code;
-  }, []);
 
   const quizList = useMemo(
     () => [...defaultQuizzes, ...customQuizzes],

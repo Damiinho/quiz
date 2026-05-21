@@ -7,8 +7,14 @@ import HomeIcon from "@mui/icons-material/Home";
 
 const Header = () => {
   const navigate = useNavigate();
-  const { isQuestionActive, setIsQuestionActive, appSettings, setAppSettings } =
-    useContext(AppContext);
+  const { 
+    isQuestionActive, 
+    setIsQuestionActive, 
+    appSettings, 
+    setAppSettings, 
+    gameCode, 
+    generateGameCode 
+  } = useContext(AppContext);
 
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -58,6 +64,26 @@ const Header = () => {
           <HomeIcon fontSize="large" />
         </IconButton>
       </div>
+
+      {gameCode && (
+        <div style={{ 
+          position: 'absolute',
+          left: '20px',
+          top: '90px',
+          background: 'rgba(0,0,0,0.4)', 
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.1)', 
+          padding: '8px 16px', 
+          borderRadius: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 1000
+        }}>
+          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '800', textTransform: 'uppercase' }}>KOD GRY</span>
+          <span style={{ fontSize: '18px', color: '#2ecc71', fontWeight: '900', letterSpacing: '1px' }}>{gameCode}</span>
+        </div>
+      )}
+
 
       <div style={{ position: 'absolute', right: '20px', top: '20px' }}>
         <IconButton 
@@ -170,6 +196,27 @@ const Header = () => {
             <MenuItem value="normal">Log: pokaż</MenuItem>
             <MenuItem value="hidden">Log: ukryj</MenuItem>
           </Select>
+
+          {!gameCode && (
+            <button
+              onClick={() => { generateGameCode(); handleClose(); }}
+              style={{
+                width: '100%',
+                marginTop: '12px',
+                background: 'rgba(46, 204, 113, 0.1)',
+                border: '1px solid #2ecc71',
+                color: '#2ecc71',
+                padding: '8px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                textTransform: 'uppercase'
+              }}
+            >
+              Uaktywnij tryb Cloud (Kod)
+            </button>
+          )}
         </Box>
         <Divider sx={{ background: "rgba(255,255,255,0.05)", my: 1 }} />
         <MenuItem onClick={() => { navigate("/ustawienia"); handleClose(); }} sx={{ fontSize: '0.8rem', justifyContent: 'center', color: '#2ecc71', fontWeight: '700' }}>

@@ -9,6 +9,7 @@ import QuizEditor from "./Menu/QuizEditor";
 import CreateNew from "./Menu/CreateNew";
 import ComposeSet from "./Menu/ComposeSet";
 import Settings from "./Menu/Settings";
+import PlayerView from "./Menu/PlayerView";
 import DynamicBackground from "./DynamicBackground";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/stworz" element={<CreateNew />} />
           <Route path="/zloz" element={<ComposeSet />} />
           <Route path="/ustawienia" element={<Settings />} />
+          <Route path="/gracz" element={<PlayerView />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
