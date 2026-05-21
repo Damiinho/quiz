@@ -22,23 +22,26 @@ export const syncStateToCloud = async (gameCode, state) => {
 
 /**
  * Listens for buzzer hits from players.
- * Returns an EventSource or a polling interval.
  */
 export const listenForBuzzers = (gameCode, onBuzzerHit) => {
   if (!gameCode) return null;
 
-  // Firebase Realtime DB supports Server-Sent Events via .json with 'Accept: text/event-stream'
   const url = `${FIREBASE_BASE_URL}/games/${gameCode}/buzzers.json`;
-  
-  // For simplicity and reliability on all browsers, we'll use a EventSource if supported
   const eventSource = new EventSource(url);
 
-  eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data && data.data) {
-      onBuzzerHit(data.data);
+  const handleUpdate = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data && data.data) {
+        onBuzzerHit(data.data);
+      }
+    } catch (e) {
+      console.error("Buzzer parse error:", e);
     }
   };
+
+  eventSource.addEventListener("put", handleUpdate);
+  eventSource.addEventListener("patch", handleUpdate);
 
   eventSource.onerror = (err) => {
     console.error("Buzzer EventSource error:", err);
@@ -88,12 +91,20 @@ export const listenForGameState = (gameCode, onStateChange) => {
   const url = `${FIREBASE_BASE_URL}/games/${gameCode}/state.json`;
   const eventSource = new EventSource(url);
 
-  eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data && data.data) {
-      onStateChange(data.data);
+  const handleUpdate = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      // Firebase SSE wysyła cały obiekt pod kluczem 'data' przy zdarzeniu 'put'
+      if (data && data.data) {
+        onStateChange(data.data);
+      }
+    } catch (e) {
+      console.error("State parse error:", e);
     }
   };
+
+  eventSource.addEventListener("put", handleUpdate);
+  eventSource.addEventListener("patch", handleUpdate);
 
   eventSource.onerror = (err) => {
     console.error("Game state EventSource error:", err);
