@@ -1,9 +1,9 @@
 /**
- * Cloud Sync Utility using Firebase Realtime Database REST API.
- * This allows real-time state sharing and buzzer support without heavy SDKs.
+ * Cloud Sync Utility using ntfy.sh (Public Pub/Sub service).
+ * Provides zero-config real-time state sharing and buzzer support.
  */
 
-const FIREBASE_BASE_URL = "https://super-zgadywanka-default-rtdb.europe-west1.firebasedatabase.app";
+const NTFY_BASE_URL = "https://ntfy.sh";
 
 /**
  * Pushes the current game state to the cloud.
@@ -11,9 +11,15 @@ const FIREBASE_BASE_URL = "https://super-zgadywanka-default-rtdb.europe-west1.fi
 export const syncStateToCloud = async (gameCode, state) => {
   if (!gameCode) return;
   try {
-    await fetch(`${FIREBASE_BASE_URL}/games/${gameCode}/state.json`, {
-      method: "PUT",
+    // We use a unique topic for the state
+    const topic = `sz-state-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
       body: JSON.stringify(state),
+      headers: {
+        "Title": "StateUpdate",
+        "Tags": "update"
+      }
     });
   } catch (error) {
     console.error("Cloud sync error:", error);
@@ -21,64 +27,25 @@ export const syncStateToCloud = async (gameCode, state) => {
 };
 
 /**
- * Listens for buzzer hits from players.
- */
-export const listenForBuzzers = (gameCode, onBuzzerHit) => {
-  if (!gameCode) return null;
-
-  const url = `${FIREBASE_BASE_URL}/games/${gameCode}/buzzers.json`;
-  const eventSource = new EventSource(url);
-
-  const handleUpdate = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      if (data && data.data) {
-        onBuzzerHit(data.data);
-      }
-    } catch (e) {
-      console.error("Buzzer parse error:", e);
-    }
-  };
-
-  eventSource.addEventListener("put", handleUpdate);
-  eventSource.addEventListener("patch", handleUpdate);
-
-  eventSource.onerror = (err) => {
-    console.error("Buzzer EventSource error:", err);
-    eventSource.close();
-  };
-
-  return eventSource;
-};
-
-/**
- * Registers a buzzer hit (used by the player's phone).
+ * Registers a buzzer hit.
  */
 export const hitBuzzer = async (gameCode, playerName) => {
   if (!gameCode) return;
   try {
-    await fetch(`${FIREBASE_BASE_URL}/games/${gameCode}/buzzers.json`, {
-      method: "PATCH",
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
       body: JSON.stringify({
-        lastHit: {
-          player: playerName,
-          time: Date.now(),
-        }
+        player: playerName,
+        time: Date.now(),
       }),
+      headers: {
+        "Title": "BuzzerHit",
+        "Tags": "trumpet"
+      }
     });
   } catch (error) {
     console.error("Buzzer hit error:", error);
-  }
-};
-
-export const clearBuzzers = async (gameCode) => {
-  if (!gameCode) return;
-  try {
-    await fetch(`${FIREBASE_BASE_URL}/games/${gameCode}/buzzers.json`, {
-      method: "DELETE",
-    });
-  } catch (error) {
-    console.error("Clear buzzers error:", error);
   }
 };
 
@@ -88,28 +55,60 @@ export const clearBuzzers = async (gameCode) => {
 export const listenForGameState = (gameCode, onStateChange) => {
   if (!gameCode) return null;
 
-  const url = `${FIREBASE_BASE_URL}/games/${gameCode}/state.json`;
-  const eventSource = new EventSource(url);
+  const topic = `sz-state-${gameCode.toLowerCase()}`;
+  const eventSource = new EventSource(`${NTFY_BASE_URL}/${topic}/sse`);
 
-  const handleUpdate = (event) => {
+  eventSource.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      // Firebase SSE wysyła cały obiekt pod kluczem 'data' przy zdarzeniu 'put'
-      if (data && data.data) {
-        onStateChange(data.data);
+      // ntfy.sh sends the message in the 'message' field
+      if (data && data.message) {
+        const state = JSON.parse(data.message);
+        onStateChange(state);
       }
     } catch (e) {
-      console.error("State parse error:", e);
+      // Ignore non-json or keep-alive messages
     }
   };
 
-  eventSource.addEventListener("put", handleUpdate);
-  eventSource.addEventListener("patch", handleUpdate);
-
   eventSource.onerror = (err) => {
-    console.error("Game state EventSource error:", err);
+    console.error("Game state sync error:", err);
     eventSource.close();
   };
 
   return eventSource;
+};
+
+/**
+ * Listens for buzzer hits.
+ */
+export const listenForBuzzers = (gameCode, onBuzzerHit) => {
+  if (!gameCode) return null;
+
+  const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+  const eventSource = new EventSource(`${NTFY_BASE_URL}/${topic}/sse`);
+
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data && data.message) {
+        const buzzerData = JSON.parse(data.message);
+        onBuzzerHit({ lastHit: buzzerData });
+      }
+    } catch (e) {
+      // Ignore
+    }
+  };
+
+  eventSource.onerror = (err) => {
+    console.error("Buzzer sync error:", err);
+    eventSource.close();
+  };
+
+  return eventSource;
+};
+
+export const clearBuzzers = async (gameCode) => {
+  // ntfy.sh doesn't store state like a DB, so "clearing" isn't strictly necessary
+  // but we can send a clear signal if needed.
 };
