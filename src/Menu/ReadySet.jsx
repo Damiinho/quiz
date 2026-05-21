@@ -12,7 +12,18 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 const ReadySet = () => {
   const navigate = useNavigate();
-  const { quizList, startNewQuiz, setEditingQuiz, customQuizzes, removeCustomQuiz, addCustomQuiz, updateCustomQuiz, gameSettings, resetSavedGame } = useContext(AppContext);
+  const { 
+    quizList, 
+    startNewQuiz, 
+    setEditingQuiz, 
+    customQuizzes, 
+    removeCustomQuiz, 
+    addCustomQuiz, 
+    updateCustomQuiz, 
+    gameSettings, 
+    resetSavedGame,
+    loadDownloadedState
+  } = useContext(AppContext);
   const [tab, setTab] = useState("quizzes"); 
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -148,11 +159,20 @@ const ReadySet = () => {
     const file = event.target.files[0];
     if (!file) return;
     import("../utils/quizStorage").then(m => {
-        m.readQuizFile(file).then(quiz => {
-            addCustomQuiz(quiz);
-            alert(`Pomyślnie zaimportowano quiz: ${quiz.name}`);
+        m.readQuizFile(file).then(data => {
+            if (data.quizLog && data.gameSettings) {
+                loadDownloadedState(data);
+                alert(`Pomyślnie wczytano stan rozgrywki dla: ${data.gameSettings.quiz.name}`);
+            } else if (data.categories) {
+                addCustomQuiz(data);
+                alert(`Pomyślnie zaimportowano quiz: ${data.name}`);
+            } else {
+                alert("Nieprawidłowy format pliku JSON.");
+            }
         }).catch(err => alert("Błąd podczas wczytywania pliku: " + err.message));
     });
+    // Reset input value to allow uploading same file again
+    event.target.value = '';
   };
 
   const getIcon = (index) => {
@@ -295,7 +315,10 @@ const ReadySet = () => {
             <>
                 <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileUpload} accept=".json" />
                 <button onClick={() => fileInputRef.current.click()} style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "10px", padding: "12px 16px", color: "#fff", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.6875rem", fontWeight: "700" }}>
-                    <FileUploadIcon fontSize="small" /> WCZYTAJ
+                    <FileUploadIcon fontSize="small" /> WCZYTAJ ROZPOCZĘTĄ ROZGRYWKĘ
+                </button>
+                <button onClick={() => fileInputRef.current.click()} style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "10px", padding: "12px 16px", color: "#fff", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.6875rem", fontWeight: "700" }}>
+                    <FileUploadIcon fontSize="small" /> WCZYTAJ ZESTAW
                 </button>
             </>
           )}

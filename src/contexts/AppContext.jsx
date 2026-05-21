@@ -301,6 +301,26 @@ export const AppProvider = ({ children }) => {
     appSettings,
     setAppSettings,
     removeCustomQuiz,
+    loadDownloadedState: (state) => {
+      setIsQuestionActive(state.isQuestionActive || false);
+      setGameSettings(state.gameSettings || { players: [], quiz: {} });
+      setScoreHistory(state.scoreHistory || []);
+      setQuizLog(state.quizLog || []);
+      setGameCode(state.gameCode || null);
+      setSelectedCategoryName(state.selectedCategoryName || null);
+      setUndoPointer(state.undoPointer ?? (state.quizLog?.length ? state.quizLog.length - 1 : -1));
+      navigate("/gra");
+    },
+    getDownloadableState: () => ({
+      isQuestionActive,
+      gameSettings,
+      scoreHistory,
+      quizLog,
+      gameCode,
+      selectedCategoryName,
+      undoPointer,
+      timestamp: new Date().toISOString()
+    }),
     }), [
     gameSettings, 
     scoreHistory, 
@@ -327,7 +347,8 @@ export const AppProvider = ({ children }) => {
     isResultsPinned,
     isLogsPinned,
     appSettings,
-    removeCustomQuiz
+    removeCustomQuiz,
+    navigate
     ]);
   return (
     <AppContext.Provider value={providerValue}>{children}</AppContext.Provider>

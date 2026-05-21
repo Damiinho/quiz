@@ -7,6 +7,8 @@ import RedoIcon from "@mui/icons-material/Redo";
 import { AppContext } from "../../contexts/AppContext";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import DownloadIcon from "@mui/icons-material/Download";
+import { downloadJson } from "../../utils/quizStorage";
 
 export const QuizLog = () => {
   const { 
@@ -16,12 +18,21 @@ export const QuizLog = () => {
     jumpToLogIndex, 
     undoPointer, 
     isLogsPinned, 
-    setIsLogsPinned 
+    setIsLogsPinned,
+    getDownloadableState,
+    gameSettings
   } = useContext(AppContext);
 
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   const scrollRef = useRef(null);
+
+  const handleDownloadState = (e) => {
+    e.stopPropagation();
+    const state = getDownloadableState();
+    const fileName = `quiz-state-${gameSettings.quiz.name}-${new Date().toLocaleDateString().replace(/\./g, '-')}.json`;
+    downloadJson(state, fileName);
+  };
 
   useEffect(() => {
     if (scrollRef.current && undoPointer !== -1) {
@@ -103,6 +114,14 @@ export const QuizLog = () => {
           </div>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
+          <IconButton
+            size="small"
+            onClick={handleDownloadState}
+            sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" } }}
+            title="Pobierz stan gry"
+          >
+            <DownloadIcon fontSize="small" />
+          </IconButton>
           <IconButton
             size="small"
             onClick={(e) => { e.stopPropagation(); setIsLogsPinned(!isLogsPinned); }}
