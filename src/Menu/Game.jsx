@@ -1,5 +1,6 @@
 import { useContext, useCallback, useMemo, useState } from "react";
 import { AppContext } from "../contexts/AppContext";
+import { Typography } from "@mui/material";
 import Question from "./Game/Question";
 import Results from "./Game/Results";
 import QuizLog from "./Game/QuizLog";
@@ -75,6 +76,8 @@ const Game = () => {
     addToLog,
     dashboardBg,
     appSettings,
+    lastBuzzer,
+    setLastBuzzer
   } = useContext(AppContext);
 
   const getUnusedQuestionsCount = (category) =>
@@ -110,6 +113,55 @@ const Game = () => {
     <div style={{ width: "100%", maxWidth: boardScale.maxWidth, margin: "0 auto" }}>
       <Ranking open={isRankingOpen} onClose={() => setIsRankingOpen(false)} />
       
+      {/* Buzzer Notification Overlay */}
+      {lastBuzzer && (
+        <div style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 10001,
+          background: "#ef4444",
+          color: "#fff",
+          padding: "40px 80px",
+          borderRadius: "40px",
+          boxShadow: "0 0 100px rgba(239, 68, 68, 0.5), 0 20px 50px rgba(0,0,0,0.5)",
+          textAlign: "center",
+          animation: "buzzerPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+        }}>
+          <style>
+            {`
+              @keyframes buzzerPop {
+                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+              }
+            `}
+          </style>
+          <Typography variant="h2" sx={{ fontWeight: "900", mb: 2, textTransform: "uppercase", letterSpacing: "-2px" }}>
+            BUZZER!
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: "800", mb: 4 }}>
+            {lastBuzzer.player}
+          </Typography>
+          <button
+            onClick={() => setLastBuzzer(null)}
+            style={{
+              background: "#fff",
+              color: "#ef4444",
+              border: "none",
+              padding: "12px 32px",
+              borderRadius: "16px",
+              fontWeight: "900",
+              cursor: "pointer",
+              fontSize: "1.2rem",
+              textTransform: "uppercase"
+            }}
+          >
+            OK
+          </button>
+        </div>
+      )}
+
       {/* Warstwa "napaćkanego" tła */}
       {!isQuestionActive && (
         <div 
