@@ -1,10 +1,12 @@
 import { useState, useContext, useEffect, useRef } from "react";
-import { Typography, IconButton } from "@mui/material";
+import { Typography, IconButton, TextField, InputAdornment } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import { AppContext } from "../../contexts/AppContext";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 
 export const Results = () => {
   const { 
@@ -19,6 +21,7 @@ export const Results = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [flashPlayer, setFlashPlayer] = useState({ index: null, type: null });
+  const [newPlayerName, setNewPlayerName] = useState("");
   const containerRef = useRef(null);
   const audioSuccessRef = useRef(null);
   const audioErrorRef = useRef(null);
@@ -69,6 +72,31 @@ export const Results = () => {
     
     playSound("error");
     triggerFlash(playerIndex, "negative");
+  };
+
+  const handleDeletePlayer = (index) => {
+    const playerToDelete = gameSettings.players[index];
+    setGameSettings(prev => ({
+      ...prev,
+      players: prev.players.filter((_, i) => i !== index)
+    }));
+    addToLog({ 
+      type: "PLAYER_REMOVED", 
+      description: `Usunięto gracza: ${playerToDelete.name}` 
+    });
+  };
+
+  const handleAddNewPlayer = () => {
+    if (!newPlayerName.trim()) return;
+    setGameSettings(prev => ({
+      ...prev,
+      players: [...prev.players, { name: newPlayerName, points: 0 }]
+    }));
+    addToLog({ 
+      type: "PLAYER_ADDED", 
+      description: `Dodano gracza: ${newPlayerName}` 
+    });
+    setNewPlayerName("");
   };
 
   useEffect(() => {
@@ -162,10 +190,25 @@ export const Results = () => {
                     ? (flashPlayer.type === "positive" ? "rgba(46, 204, 113, 0.2)" : "rgba(239, 68, 68, 0.2)")
                     : "rgba(0,0,0,0.2)",
                   border: "1px solid rgba(255,255,255,0.05)",
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
+                  position: "relative"
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <IconButton 
+                  onClick={() => handleDeletePlayer(index)}
+                  size="small"
+                  sx={{ 
+                    position: "absolute", 
+                    top: "2px", 
+                    right: "2px", 
+                    color: "rgba(239, 68, 68, 0.4)",
+                    "&:hover": { color: "#ef4444" }
+                  }}
+                >
+                  <DeleteIcon sx={{ fontSize: "14px" }} />
+                </IconButton>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", marginRight: "20px" }}>
                   <Typography variant="body2" sx={{ fontWeight: "700", color: isFlashing ? "#fff" : "rgba(255,255,255,0.9)" }}>
                     {player.name}
                   </Typography>
@@ -217,6 +260,31 @@ export const Results = () => {
               </div>
             );
           })}
+
+          <div style={{ marginTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "12px" }}>
+            <TextField
+              size="small"
+              placeholder="Dodaj gracza..."
+              value={newPlayerName}
+              onChange={(e) => setNewPlayerName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddNewPlayer()}
+              variant="standard"
+              sx={{ 
+                width: "100%",
+                "& .MuiInput-root": { color: "#fff", fontSize: "12px" },
+                "& .MuiInput-underline:before": { borderBottomColor: "rgba(255,255,255,0.2)" }
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={handleAddNewPlayer} size="small" sx={{ color: "#2ecc71" }}>
+                      <AddCircleIcon sx={{ fontSize: "18px" }} />
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

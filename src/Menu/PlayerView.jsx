@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper, TextField, Button, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SensorsIcon from "@mui/icons-material/Sensors";
-import { listenForGameState, hitBuzzer } from "../utils/cloudSync";
+import { listenForGameState, hitBuzzer, joinGame } from "../utils/cloudSync";
 
 const PlayerView = () => {
   const navigate = useNavigate();
@@ -17,16 +17,26 @@ const PlayerView = () => {
     if (joined && code) {
       eventSource = listenForGameState(code.toUpperCase(), (data) => {
         setGameState(data);
+        
+        // Jeśli host usunął nas z listy - rozłączamy się
+        if (data && data.players && playerName) {
+            const stillInGame = data.players.some(p => p.name.toLowerCase() === playerName.toLowerCase());
+            if (!stillInGame) {
+                setJoined(false);
+                setGameState(null);
+            }
+        }
       });
     }
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [joined, code]);
+  }, [joined, code, playerName]);
 
   const handleJoin = () => {
-    if (code.length === 6) {
+    if (code.length === 6 && playerName) {
       setJoined(true);
+      joinGame(code.toUpperCase(), playerName);
     }
   };
 
@@ -110,38 +120,113 @@ const PlayerView = () => {
             )}
           </Paper>
 
-          {/* Buzzer Button */}
-          <button
-            onClick={handleBuzzer}
-            style={{
-                width: '100%',
-                height: '150px',
-                borderRadius: '50% / 20%',
-                background: '#ef4444',
-                color: '#fff',
-                border: 'none',
-                boxShadow: '0 10px 0 #b91c1c, 0 20px 30px rgba(0,0,0,0.5)',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.1s',
-                marginTop: '20px',
-                marginBottom: '40px'
-            }}
-            onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(5px)';
-                e.currentTarget.style.boxShadow = '0 5px 0 #b91c1c, 0 10px 20px rgba(0,0,0,0.5)';
-            }}
-            onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 0 #b91c1c, 0 20px 30px rgba(0,0,0,0.5)';
-            }}
-          >
-            <Typography variant="h3" fontWeight="900">BUZZ</Typography>
-            <Typography variant="caption" sx={{ fontWeight: '700', opacity: 0.7 }}>KLIKNIJ ABY SIĘ ZGŁOSIĆ</Typography>
-          </button>
+          {/* 3D Buzzer Button */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            padding: '40px 0',
+            perspective: '1000px'
+          }}>
+            <button
+                onClick={handleBuzzer}
+                className="buzzer-3d"
+                style={{
+                    position: 'relative',
+                    width: '240px',
+                    height: '240px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    padding: 0,
+                    appearance: 'none',
+                    WebkitTapHighlightColor: 'transparent'
+                }}
+            >
+                <style>
+                    {`
+                        .buzzer-3d {
+                            transition: filter 250ms;
+                        }
+                        .buzzer-3d:hover {
+                            filter: brightness(110%);
+                        }
+                        .buzzer-3d:active .buzzer-3d__front {
+                            transform: translateY(-4px);
+                            transition: transform 34ms;
+                        }
+                        .buzzer-3d:hover .buzzer-3d__front {
+                            transform: translateY(-10px);
+                            transition: transform 250ms cubic-bezier(.3, .7, .4, 1.5);
+                        }
+                        .buzzer-3d:active .buzzer-3d__shadow {
+                            transform: translateY(2px);
+                            transition: transform 34ms;
+                        }
+                        .buzzer-3d:hover .buzzer-3d__shadow {
+                            transform: translateY(8px);
+                            transition: transform 250ms cubic-bezier(.3, .7, .4, 1.5);
+                        }
+
+                        .buzzer-3d__shadow {
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            border-radius: 50%;
+                            background: hsl(0deg 0% 0% / 0.25);
+                            will-change: transform;
+                            transform: translateY(4px);
+                            transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
+                        }
+
+                        .buzzer-3d__edge {
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            border-radius: 50%;
+                            background: linear-gradient(
+                                to left,
+                                hsl(0deg 100% 16%) 0%,
+                                hsl(0deg 100% 32%) 8%,
+                                hsl(0deg 100% 32%) 92%,
+                                hsl(0deg 100% 16%) 100%
+                            );
+                        }
+
+                        .buzzer-3d__front {
+                            display: block;
+                            position: relative;
+                            padding: 12px 42px;
+                            border-radius: 50%;
+                            width: 100%;
+                            height: 100%;
+                            background: hsl(0deg 100% 47%);
+                            color: white;
+                            transform: translateY(-8px);
+                            will-change: transform;
+                            transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
+                            display: flex;
+                            flex-direction: column;
+                            alignItems: center;
+                            justify-content: center;
+                            box-shadow: inset 0 4px 10px rgba(255,255,255,0.3), inset 0 -4px 10px rgba(0,0,0,0.3);
+                        }
+                    `}
+                </style>
+                <span className="buzzer-3d__shadow"></span>
+                <span className="buzzer-3d__edge"></span>
+                <span className="buzzer-3d__front">
+                    <Typography variant="h3" fontWeight="900" sx={{ textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>BUZZ</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: '700', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px' }}>KLIKNIJ!</Typography>
+                </span>
+            </button>
+          </div>
 
           {/* Wyniki Graczy */}
           <Typography variant="subtitle2" fontWeight="800" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>AKTUALNE WYNIKI</Typography>

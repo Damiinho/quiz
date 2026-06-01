@@ -11,7 +11,7 @@ import {
   readJson,
   writeJson,
 } from "../utils/quizStorage";
-import { syncStateToCloud, listenForBuzzers, clearBuzzers } from "../utils/cloudSync";
+import { syncStateToCloud, listenForEvents, clearBuzzers } from "../utils/cloudSync";
 
 export const AppContext = createContext();
 
@@ -82,8 +82,8 @@ export const AppProvider = ({ children }) => {
       quiz: quiz,
     });
     
-    // Generujemy kod gry jeśli go nie ma
-    const code = generateGameCode();
+    // Nie generujemy już kodu od razu - user zrobi to na liście kategorii
+    setGameCode(null);
 
     // Rozpoczynamy nowy log od razu
     const startAction = {
@@ -95,7 +95,7 @@ export const AppProvider = ({ children }) => {
     };
     setQuizLog([startAction]);
     setUndoPointer(0);
-  }, [generateGameCode]);
+  }, []);
 
   const addToLog = useCallback((action) => {
     setQuizLog((prev) => {
@@ -253,9 +253,28 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     let eventSource = null;
     if (gameCode) {
-      eventSource = listenForBuzzers(gameCode, (data) => {
-        if (data.lastHit) {
-          setLastBuzzer(data.lastHit);
+      eventSource = listenForEvents(gameCode, (eventData) => {
+        if (eventData.type === "BUZZER") {
+          setLastBuzzer(eventData);
+        } else if (eventData.type === "JOIN") {
+          // Automatyczne dopisanie lub powiązanie gracza (niezależnie od wielkości liter)
+          setGameSettings(prev => {
+            const playerIndex = prev.players.findIndex(p => p.name.toLowerCase() === eventData.player.toLowerCase());
+            if (playerIndex === -1) {
+              const newPlayer = { name: eventData.player, points: 0, connected: true };
+              return { ...prev, players: [...prev.players, newPlayer] };
+            } else {
+              // Powiązanie z istniejącym (zachowujemy oryginalną nazwę hosta, ale oznaczamy jako połączony)
+              return {
+                ...prev,
+                players: prev.players.map((p, i) => 
+                  i === playerIndex 
+                    ? { ...p, connected: true } 
+                    : p
+                )
+              };
+            }
+          });
         }
       });
     }

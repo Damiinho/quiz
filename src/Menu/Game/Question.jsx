@@ -326,8 +326,34 @@ const Question = ({ category, handleGoBack }) => {
 
         <div className="question-view__content">
           {category?.type === "forehead" && !showAnswer && (
-            <div style={{ textAlign: "center", padding: "30px", background: "rgba(239, 68, 68, 0.15)", border: "4px solid #ef4444", borderRadius: "24px", color: "#ef4444", fontSize: "32px", fontWeight: "900" }}>
-              ODWRÓĆ SIĘ LUB ZAMKNIJ OCZY!
+            <div style={{ 
+              width: "100%", 
+              textAlign: "center", 
+              padding: "40px 20px", 
+              background: "rgba(15, 23, 42, 0.9)", 
+              backdropFilter: "blur(10px)",
+              border: "4px solid #ef4444", 
+              borderRadius: "32px", 
+              color: "#fff", 
+              marginBottom: "30px",
+              boxShadow: "0 0 50px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.2)",
+              animation: "pulseBorder 2s infinite ease-in-out"
+            }}>
+              <style>
+                {`
+                  @keyframes pulseBorder {
+                    0% { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.3); }
+                    50% { border-color: #f87171; box-shadow: 0 0 60px rgba(239, 68, 68, 0.5); }
+                    100% { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.3); }
+                  }
+                `}
+              </style>
+              <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: "1000", letterSpacing: "8px", fontSize: "2.5rem", display: "block", mb: 0, lineHeight: 1 }}>
+                UWAGA!
+              </Typography>
+              <Typography variant="h3" sx={{ fontWeight: "900", textTransform: "uppercase", letterSpacing: "-1px" }}>
+                ODWRÓĆ SIĘ LUB ZAMKNIJ OCZY!
+              </Typography>
             </div>
           )}
 

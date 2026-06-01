@@ -77,7 +77,9 @@ const Game = () => {
     dashboardBg,
     appSettings,
     lastBuzzer,
-    setLastBuzzer
+    setLastBuzzer,
+    gameCode,
+    generateGameCode
   } = useContext(AppContext);
 
   const getUnusedQuestionsCount = (category) =>
@@ -121,43 +123,77 @@ const Game = () => {
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 10001,
-          background: "#ef4444",
+          background: "rgba(15, 23, 42, 0.95)",
+          backdropFilter: "blur(20px)",
           color: "#fff",
-          padding: "40px 80px",
+          padding: "40px 60px",
           borderRadius: "40px",
-          boxShadow: "0 0 100px rgba(239, 68, 68, 0.5), 0 20px 50px rgba(0,0,0,0.5)",
+          border: "4px solid #ef4444",
+          boxShadow: "0 0 100px rgba(239, 68, 68, 0.4), 0 20px 50px rgba(0,0,0,0.8)",
           textAlign: "center",
-          animation: "buzzerPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+          animation: "buzzerPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+          minWidth: "400px"
         }}>
           <style>
             {`
               @keyframes buzzerPop {
-                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
                 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+              }
+              @keyframes pulseRed {
+                0% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.4); }
+                50% { box-shadow: 0 0 80px rgba(239, 68, 68, 0.7); }
+                100% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.4); }
               }
             `}
           </style>
-          <Typography variant="h2" sx={{ fontWeight: "900", mb: 2, textTransform: "uppercase", letterSpacing: "-2px" }}>
-            BUZZER!
+          <div style={{ 
+            animation: "pulseRed 2s infinite ease-in-out", 
+            position: "absolute", 
+            top: 0, left: 0, right: 0, bottom: 0, 
+            borderRadius: "36px", 
+            pointerEvents: "none" 
+          }} />
+          
+          <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: "900", letterSpacing: "4px", fontSize: "1.2rem" }}>
+            ZGŁOSZENIE!
           </Typography>
-          <Typography variant="h4" sx={{ fontWeight: "800", mb: 4 }}>
+          <Typography variant="h2" sx={{ 
+            fontWeight: "900", 
+            mb: 4, 
+            mt: 1,
+            textTransform: "uppercase", 
+            letterSpacing: "-2px",
+            textShadow: "0 0 20px rgba(239, 68, 68, 0.5)"
+          }}>
             {lastBuzzer.player}
           </Typography>
+          
           <button
             onClick={() => setLastBuzzer(null)}
             style={{
-              background: "#fff",
-              color: "#ef4444",
+              background: "#ef4444",
+              color: "#fff",
               border: "none",
-              padding: "12px 32px",
-              borderRadius: "16px",
+              padding: "16px 48px",
+              borderRadius: "20px",
               fontWeight: "900",
               cursor: "pointer",
-              fontSize: "1.2rem",
-              textTransform: "uppercase"
+              fontSize: "1.4rem",
+              textTransform: "uppercase",
+              transition: "all 0.2s",
+              boxShadow: "0 8px 0 #b91c1c"
+            }}
+            onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'translateY(4px)';
+                e.currentTarget.style.boxShadow = '0 4px 0 #b91c1c';
+            }}
+            onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 0 #b91c1c';
             }}
           >
-            OK
+            ROZUMIEM
           </button>
         </div>
       )}
@@ -202,6 +238,28 @@ const Game = () => {
             >
               KATEGORIE
             </h1>
+            
+            {/* Online Game Code Section */}
+            <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
+              {!gameCode && (
+                <button
+                  onClick={generateGameCode}
+                  style={{
+                    background: "#2ecc71",
+                    color: "#000",
+                    border: "none",
+                    padding: "8px 24px",
+                    borderRadius: "12px",
+                    fontWeight: "900",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    textTransform: "uppercase"
+                  }}
+                >
+                  Generuj kod gry online
+                </button>
+              )}
+            </div>
           </div>
           
           <div 

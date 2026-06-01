@@ -36,6 +36,7 @@ export const hitBuzzer = async (gameCode, playerName) => {
     await fetch(`${NTFY_BASE_URL}/${topic}`, {
       method: "POST",
       body: JSON.stringify({
+        type: "BUZZER",
         player: playerName,
         time: Date.now(),
       }),
@@ -46,6 +47,30 @@ export const hitBuzzer = async (gameCode, playerName) => {
     });
   } catch (error) {
     console.error("Buzzer hit error:", error);
+  }
+};
+
+/**
+ * Registers a player joining.
+ */
+export const joinGame = async (gameCode, playerName) => {
+  if (!gameCode) return;
+  try {
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "JOIN",
+        player: playerName,
+        time: Date.now(),
+      }),
+      headers: {
+        "Title": "PlayerJoined",
+        "Tags": "wave"
+      }
+    });
+  } catch (error) {
+    console.error("Join game error:", error);
   }
 };
 
@@ -80,9 +105,9 @@ export const listenForGameState = (gameCode, onStateChange) => {
 };
 
 /**
- * Listens for buzzer hits.
+ * Listens for buzzer hits and joins.
  */
-export const listenForBuzzers = (gameCode, onBuzzerHit) => {
+export const listenForEvents = (gameCode, onEvent) => {
   if (!gameCode) return null;
 
   const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
@@ -92,8 +117,8 @@ export const listenForBuzzers = (gameCode, onBuzzerHit) => {
     try {
       const data = JSON.parse(event.data);
       if (data && data.message) {
-        const buzzerData = JSON.parse(data.message);
-        onBuzzerHit({ lastHit: buzzerData });
+        const eventData = JSON.parse(data.message);
+        onEvent(eventData);
       }
     } catch (e) {
       // Ignore
@@ -101,7 +126,7 @@ export const listenForBuzzers = (gameCode, onBuzzerHit) => {
   };
 
   eventSource.onerror = (err) => {
-    console.error("Buzzer sync error:", err);
+    console.error("Event sync error:", err);
     eventSource.close();
   };
 
