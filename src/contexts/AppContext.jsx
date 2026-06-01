@@ -36,7 +36,7 @@ export const AppProvider = ({ children }) => {
   const [quizLog, setQuizLog] = useState(savedGameState?.quizLog || []);
   const [undoPointer, setUndoPointer] = useState(savedGameState?.quizLog?.length ? savedGameState.quizLog.length - 1 : -1);
   const [gameCode, setGameCode] = useState(savedGameState?.gameCode || null);
-  const [lastBuzzer, setLastBuzzer] = useState(null);
+  const [buzzerQueue, setBuzzerQueue] = useState([]);
 
   // Globalne stany aktywnego pytania dla undo/redo
   const [showAnswer, setShowAnswer] = useState(false);
@@ -220,7 +220,7 @@ export const AppProvider = ({ children }) => {
     setQuizLog([]);
     setUndoPointer(-1);
     setGameCode(null);
-    setLastBuzzer(null);
+    setBuzzerQueue([]);
   }, [gameCode]);
 
   useEffect(() => {
@@ -255,7 +255,10 @@ export const AppProvider = ({ children }) => {
     if (gameCode) {
       eventSource = listenForEvents(gameCode, (eventData) => {
         if (eventData.type === "BUZZER") {
-          setLastBuzzer(eventData);
+          setBuzzerQueue(prev => {
+            if (prev.some(b => b.player.toLowerCase() === eventData.player.toLowerCase())) return prev;
+            return [...prev, eventData];
+          });
         } else if (eventData.type === "JOIN") {
           // Automatyczne dopisanie lub powiązanie gracza (niezależnie od wielkości liter)
           setGameSettings(prev => {
@@ -291,8 +294,8 @@ export const AppProvider = ({ children }) => {
     gameCode,
     setGameCode,
     generateGameCode,
-    lastBuzzer,
-    setLastBuzzer,
+    buzzerQueue,
+    setBuzzerQueue,
     quizList,
     customQuizzes,
     setCustomQuizzes,
@@ -348,7 +351,7 @@ export const AppProvider = ({ children }) => {
     scoreHistory, 
     gameCode, 
     generateGameCode, 
-    lastBuzzer, 
+    buzzerQueue, 
     quizList, 
     customQuizzes, 
     addCustomQuiz, 

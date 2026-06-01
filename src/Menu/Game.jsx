@@ -1,6 +1,6 @@
 import { useContext, useCallback, useMemo, useState } from "react";
 import { AppContext } from "../contexts/AppContext";
-import { Typography } from "@mui/material";
+import { Typography, Box } from "@mui/material";
 import Question from "./Game/Question";
 import Results from "./Game/Results";
 import QuizLog from "./Game/QuizLog";
@@ -76,8 +76,8 @@ const Game = () => {
     addToLog,
     dashboardBg,
     appSettings,
-    lastBuzzer,
-    setLastBuzzer,
+    buzzerQueue,
+    setBuzzerQueue,
     gameCode,
     generateGameCode
   } = useContext(AppContext);
@@ -111,12 +111,15 @@ const Game = () => {
   const boardScale = boardScaleSettings[appSettings?.boardScale] || boardScaleSettings.normal;
   const shouldShowLog = appSettings?.logVisibility !== "hidden";
 
+  const firstBuzzer = buzzerQueue.length > 0 ? buzzerQueue[0] : null;
+  const otherBuzzers = buzzerQueue.length > 1 ? buzzerQueue.slice(1) : [];
+
   return (
     <div style={{ width: "100%", maxWidth: boardScale.maxWidth, margin: "0 auto" }}>
       <Ranking open={isRankingOpen} onClose={() => setIsRankingOpen(false)} />
       
       {/* Buzzer Notification Overlay */}
-      {lastBuzzer && (
+      {firstBuzzer && (
         <div style={{
           position: "fixed",
           top: "50%",
@@ -132,7 +135,7 @@ const Game = () => {
           boxShadow: "0 0 100px rgba(239, 68, 68, 0.4), 0 20px 50px rgba(0,0,0,0.8)",
           textAlign: "center",
           animation: "buzzerPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-          minWidth: "400px"
+          minWidth: "450px"
         }}>
           <style>
             {`
@@ -155,22 +158,47 @@ const Game = () => {
             pointerEvents: "none" 
           }} />
           
-          <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: "900", letterSpacing: "4px", fontSize: "1.2rem" }}>
-            ZGŁOSZENIE!
+          <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: "1000", letterSpacing: "4px", fontSize: "1.2rem" }}>
+            {otherBuzzers.length > 0 ? `KOLEJKA (${buzzerQueue.length})` : "ZGŁOSZENIE!"}
           </Typography>
           <Typography variant="h2" sx={{ 
             fontWeight: "900", 
-            mb: 4, 
+            mb: 1, 
             mt: 1,
             textTransform: "uppercase", 
             letterSpacing: "-2px",
             textShadow: "0 0 20px rgba(239, 68, 68, 0.5)"
           }}>
-            {lastBuzzer.player}
+            {firstBuzzer.player}
           </Typography>
+
+          {/* Kolejne osoby w kolejce */}
+          {otherBuzzers.length > 0 && (
+            <Box sx={{ 
+              mt: 2, 
+              mb: 4, 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: 1,
+              maxHeight: "150px",
+              overflowY: "auto",
+              padding: "10px",
+              background: "rgba(0,0,0,0.2)",
+              borderRadius: "20px"
+            }}>
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: "800", textTransform: "uppercase", mb: 0.5 }}>Następni:</Typography>
+              {otherBuzzers.map((buzzer, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
+                   <Typography variant="body1" sx={{ fontWeight: "800", opacity: 0.8 }}>
+                    {idx + 2}. {buzzer.player}
+                  </Typography>
+                </div>
+              ))}
+            </Box>
+          )}
           
           <button
-            onClick={() => setLastBuzzer(null)}
+            onClick={() => setBuzzerQueue(prev => prev.slice(1))}
             style={{
               background: "#ef4444",
               color: "#fff",
@@ -182,7 +210,8 @@ const Game = () => {
               fontSize: "1.4rem",
               textTransform: "uppercase",
               transition: "all 0.2s",
-              boxShadow: "0 8px 0 #b91c1c"
+              boxShadow: "0 8px 0 #b91c1c",
+              marginTop: otherBuzzers.length === 0 ? "20px" : "0"
             }}
             onMouseDown={(e) => {
                 e.currentTarget.style.transform = 'translateY(4px)';
@@ -193,8 +222,18 @@ const Game = () => {
                 e.currentTarget.style.boxShadow = '0 8px 0 #b91c1c';
             }}
           >
-            ROZUMIEM
+            {otherBuzzers.length > 0 ? "NASTĘPNY" : "ROZUMIEM"}
           </button>
+
+          {otherBuzzers.length > 0 && (
+            <Typography 
+                variant="caption" 
+                onClick={() => setBuzzerQueue([])}
+                sx={{ display: "block", mt: 2, color: "rgba(255,255,255,0.3)", cursor: "pointer", "&:hover": { color: "#fff" } }}
+            >
+                WYCZYŚĆ WSZYSTKICH
+            </Typography>
+          )}
         </div>
       )}
 
