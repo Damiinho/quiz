@@ -126,16 +126,21 @@ const Game = () => {
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 10001,
-          background: "rgba(15, 23, 42, 0.95)",
-          backdropFilter: "blur(20px)",
+          background: "rgba(15, 23, 42, 0.98)",
+          backdropFilter: "blur(25px)",
           color: "#fff",
-          padding: "40px 60px",
+          padding: "40px",
           borderRadius: "40px",
           border: "4px solid #ef4444",
-          boxShadow: "0 0 100px rgba(239, 68, 68, 0.4), 0 20px 50px rgba(0,0,0,0.8)",
+          boxShadow: "0 0 100px rgba(239, 68, 68, 0.4), 0 40px 80px rgba(0,0,0,0.9)",
           textAlign: "center",
           animation: "buzzerPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-          minWidth: "450px"
+          width: "auto",
+          minWidth: "450px",
+          maxWidth: "90vw",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center"
         }}>
           <style>
             {`
@@ -144,9 +149,9 @@ const Game = () => {
                 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
               }
               @keyframes pulseRed {
-                0% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.4); }
-                50% { box-shadow: 0 0 80px rgba(239, 68, 68, 0.7); }
-                100% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.4); }
+                0% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.3); }
+                50% { box-shadow: 0 0 70px rgba(239, 68, 68, 0.6); }
+                100% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.3); }
               }
             `}
           </style>
@@ -158,82 +163,113 @@ const Game = () => {
             pointerEvents: "none" 
           }} />
           
-          <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: "1000", letterSpacing: "4px", fontSize: "1.2rem" }}>
-            {otherBuzzers.length > 0 ? `KOLEJKA (${buzzerQueue.length})` : "ZGŁOSZENIE!"}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+            <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: "1000", letterSpacing: "4px", fontSize: "1.2rem" }}>
+                {otherBuzzers.length > 0 ? "KOLEJKA ZGŁOSZEŃ" : "ZGŁOSZENIE!"}
+            </Typography>
+            {buzzerQueue.length > 1 && (
+                <Box sx={{ background: "#ef4444", color: "#fff", px: 1.5, py: 0.5, borderRadius: "10px", fontWeight: "900", fontSize: "1rem" }}>
+                    {buzzerQueue.length}
+                </Box>
+            )}
+          </Box>
+
           <Typography variant="h2" sx={{ 
             fontWeight: "900", 
-            mb: 1, 
+            mb: 2, 
             mt: 1,
             textTransform: "uppercase", 
             letterSpacing: "-2px",
-            textShadow: "0 0 20px rgba(239, 68, 68, 0.5)"
+            textShadow: "0 0 20px rgba(239, 68, 68, 0.5)",
+            lineHeight: 1.1
           }}>
             {firstBuzzer.player}
           </Typography>
 
-          {/* Kolejne osoby w kolejce */}
+          {/* Kolejne osoby w kolejce - Sekcja rozszerzająca się */}
           {otherBuzzers.length > 0 && (
             <Box sx={{ 
-              mt: 2, 
+              mt: 1, 
               mb: 4, 
-              display: "flex", 
-              flexDirection: "column", 
-              gap: 1,
-              maxHeight: "150px",
-              overflowY: "auto",
-              padding: "10px",
-              background: "rgba(0,0,0,0.2)",
-              borderRadius: "20px"
+              width: "100%",
+              background: "rgba(0,0,0,0.3)",
+              borderRadius: "24px",
+              border: "1px solid rgba(255,255,255,0.05)",
+              overflow: "hidden"
             }}>
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: "800", textTransform: "uppercase", mb: 0.5 }}>Następni:</Typography>
-              {otherBuzzers.map((buzzer, idx) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
-                   <Typography variant="body1" sx={{ fontWeight: "800", opacity: 0.8 }}>
-                    {idx + 2}. {buzzer.player}
-                  </Typography>
-                </div>
-              ))}
+              <Box sx={{ p: 2, borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
+                 <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px" }}>
+                    Następni w kolejce:
+                 </Typography>
+              </Box>
+              <Box sx={{ 
+                maxHeight: "200px", 
+                overflowY: "auto", 
+                p: 2,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5
+              }}>
+                {otherBuzzers.map((buzzer, idx) => (
+                  <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+                    <Typography sx={{ color: "rgba(255,255,255,0.3)", fontWeight: "900", fontSize: "1.1rem" }}>{idx + 2}.</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: "800", color: "rgba(255,255,255,0.9)" }}>
+                        {buzzer.player}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
             </Box>
           )}
           
-          <button
-            onClick={() => setBuzzerQueue(prev => prev.slice(1))}
-            style={{
-              background: "#ef4444",
-              color: "#fff",
-              border: "none",
-              padding: "16px 48px",
-              borderRadius: "20px",
-              fontWeight: "900",
-              cursor: "pointer",
-              fontSize: "1.4rem",
-              textTransform: "uppercase",
-              transition: "all 0.2s",
-              boxShadow: "0 8px 0 #b91c1c",
-              marginTop: otherBuzzers.length === 0 ? "20px" : "0"
-            }}
-            onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(4px)';
-                e.currentTarget.style.boxShadow = '0 4px 0 #b91c1c';
-            }}
-            onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 0 #b91c1c';
-            }}
-          >
-            {otherBuzzers.length > 0 ? "NASTĘPNY" : "ROZUMIEM"}
-          </button>
-
-          {otherBuzzers.length > 0 && (
-            <Typography 
-                variant="caption" 
-                onClick={() => setBuzzerQueue([])}
-                sx={{ display: "block", mt: 2, color: "rgba(255,255,255,0.3)", cursor: "pointer", "&:hover": { color: "#fff" } }}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", mt: otherBuzzers.length === 0 ? 2 : 0 }}>
+            <button
+                onClick={() => setBuzzerQueue(prev => prev.slice(1))}
+                style={{
+                background: "#ef4444",
+                color: "#fff",
+                border: "none",
+                padding: "18px 60px",
+                borderRadius: "24px",
+                fontWeight: "900",
+                cursor: "pointer",
+                fontSize: "1.5rem",
+                textTransform: "uppercase",
+                transition: "all 0.2s",
+                boxShadow: "0 8px 0 #b91c1c",
+                width: "100%"
+                }}
+                onMouseDown={(e) => {
+                    e.currentTarget.style.transform = 'translateY(4px)';
+                    e.currentTarget.style.boxShadow = '0 4px 0 #b91c1c';
+                }}
+                onMouseUp={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 8px 0 #b91c1c';
+                }}
             >
-                WYCZYŚĆ WSZYSTKICH
-            </Typography>
-          )}
+                {otherBuzzers.length > 0 ? "NASTĘPNY" : "ROZUMIEM"}
+            </button>
+
+            {otherBuzzers.length > 0 && (
+                <button 
+                    onClick={() => setBuzzerQueue([])}
+                    style={{ 
+                        background: "transparent",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        color: "rgba(255,255,255,0.4)",
+                        padding: "10px",
+                        borderRadius: "16px",
+                        cursor: "pointer",
+                        fontWeight: "800",
+                        fontSize: "0.8rem",
+                        textTransform: "uppercase"
+                    }}
+                >
+                    Wyczyść wszystkich
+                </button>
+            )}
+          </Box>
         </div>
       )}
 
