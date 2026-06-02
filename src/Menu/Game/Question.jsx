@@ -1,23 +1,48 @@
 import { useState, useEffect, useCallback, useContext, useRef, useMemo } from "react";
-import { Typography, Paper, Modal, IconButton } from "@mui/material";
+import { Typography, Paper, Modal, IconButton, Box } from "@mui/material";
 import PropTypes from "prop-types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import ReplayIcon from "@mui/icons-material/Replay";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import GavelIcon from "@mui/icons-material/Gavel";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { AppContext } from "../../contexts/AppContext";
 
 const Question = ({ category, handleGoBack }) => {
   const { 
+    gameSettings,
     setGameSettings, 
     addToLog, 
     showAnswer, 
     setShowAnswer, 
     isAudioPlaying, 
     setIsAudioPlaying,
-    appSettings
+    appSettings,
+    auctionBids,
+    setAuctionBids,
+    auctionStage,
+    setAuctionStage,
+    isAuctionTimerRunning,
+    setIsAuctionTimerRunning,
+    isQuestionActive
   } = useContext(AppContext);
+
+  const [wiemLepiejNotify, setWiemLepiejNotify] = useState(null);
+  const prevWiemLepiejRef = useRef({});
+
+  useEffect(() => {
+    gameSettings.players.forEach((player) => {
+        const prevUsed = prevWiemLepiejRef.current[player.name] || 0;
+        const currentUsed = player.wiemLepiejUsed || 0;
+        if (currentUsed > prevUsed && isQuestionActive) {
+            setWiemLepiejNotify(player.name);
+            setTimeout(() => setWiemLepiejNotify(null), 3500);
+        }
+        prevWiemLepiejRef.current[player.name] = currentUsed;
+    });
+  }, [gameSettings.players, isQuestionActive]);
 
   const selectedQuestion = useMemo(() => {
     if (!category?.list) return null;
@@ -214,6 +239,12 @@ const Question = ({ category, handleGoBack }) => {
   const isDanger = (category?.type === "auction" && isTimerRunning && timer <= 5 && timer > 0) || isTimeUp;
   const isEarly = category?.type === "auction" && isTimerRunning && timer <= 20 && timer > 10;
 
+  const winner = useMemo(() => {
+    const playersWithBids = Object.entries(auctionBids).filter(([_, amount]) => amount > 0);
+    if (playersWithBids.length === 0) return null;
+    return playersWithBids.reduce((prev, current) => (prev[1] > current[1] ? prev : current));
+  }, [auctionBids]);
+
   let shakeClass = "";
   if (isDanger && !isTimeUp) shakeClass = "shake-heavy";
   else if (isUrgent && !isTimeUp) shakeClass = "shake-medium";
@@ -224,6 +255,40 @@ const Question = ({ category, handleGoBack }) => {
 
   return (
     <>
+      {/* Powiadomienie Wiem Lepiej */}
+      {wiemLepiejNotify && (
+        <Box sx={{ 
+            position: 'fixed', 
+            top: '15%', 
+            left: '50%', 
+            transform: 'translateX(-50%)', 
+            zIndex: 10000,
+            background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+            color: '#fff',
+            px: 8,
+            py: 4,
+            borderRadius: '32px',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.6), 0 0 30px rgba(168, 85, 247, 0.4)',
+            border: '3px solid rgba(255,255,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            animation: 'wiemLepiejSlideIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }}>
+            <style>{`
+                @keyframes wiemLepiejSlideIn {
+                    from { transform: translate(-50%, -150px) scale(0.5); opacity: 0; }
+                    to { transform: translate(-50%, 0) scale(1); opacity: 1; }
+                }
+            `}</style>
+            <AutoAwesomeIcon sx={{ fontSize: '3.5rem', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.5))' }} />
+            <Box>
+                <Typography variant="h3" fontWeight="1000" sx={{ letterSpacing: '-2px', textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>{wiemLepiejNotify.toUpperCase()}</Typography>
+                <Typography variant="h5" fontWeight="800" sx={{ opacity: 0.9, textTransform: 'uppercase', letterSpacing: '2px' }}>używa "Wiem Lepiej!"</Typography>
+            </Box>
+        </Box>
+      )}
+
       {/* Warstwa tła z pulsowaniem - dla Licytacji */}
       {isUrgent && (
         <div 
@@ -355,6 +420,121 @@ const Question = ({ category, handleGoBack }) => {
                 ODWRÓĆ SIĘ LUB ZAMKNIJ OCZY!
               </Typography>
             </div>
+          )}
+
+          {category?.type === "auction" && (
+            <Box sx={{ 
+              width: "100%", 
+              background: "rgba(15, 23, 42, 0.95)", 
+              backdropFilter: "blur(20px)",
+              border: "2px solid #eab308", 
+              borderRadius: "32px", 
+              p: 4,
+              mb: 4,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+              textAlign: "center",
+              position: "relative",
+              zIndex: 1000
+            }}>
+              {auctionStage < 3 ? (
+                <>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 4, flexWrap: "wrap", gap: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <GavelIcon sx={{ color: "#eab308", fontSize: "2rem" }} />
+                        <Typography variant="h4" sx={{ fontWeight: 900, color: "#eab308", letterSpacing: "-1px" }}>LICYTACJA</Typography>
+                    </Box>
+
+                    <button 
+                        onClick={() => setAuctionStage(prev => (prev < 3 ? prev + 1 : 0))}
+                        style={{ 
+                            background: auctionStage > 0 ? "#eab308" : "rgba(234, 179, 8, 0.2)", 
+                            border: "none", 
+                            color: auctionStage > 0 ? "#000" : "#eab308", 
+                            padding: "14px 40px", 
+                            borderRadius: "16px", 
+                            fontWeight: "900", 
+                            fontSize: "1.1rem",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                            boxShadow: auctionStage > 0 ? "0 0 20px rgba(234, 179, 8, 0.3)" : "none",
+                            border: "2px solid #eab308"
+                        }}
+                    >
+                        {auctionStage === 0 && "PO RAZ PIERWSZY..."}
+                        {auctionStage === 1 && "PO RAZ DRUGI..."}
+                        {auctionStage === 2 && "PO RAZ TRZECI!"}
+                    </button>
+                  </Box>
+
+                  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
+                    {gameSettings.players.map((player, idx) => {
+                      const currentBid = auctionBids[player.name] || 0;
+                      return (
+                        <Paper key={idx} sx={{ 
+                            p: 2, 
+                            background: currentBid > 0 ? "rgba(234, 179, 8, 0.1)" : "rgba(255,255,255,0.02)",
+                            border: currentBid > 0 ? "2px solid #eab308" : "1px solid rgba(255,255,255,0.05)",
+                            borderRadius: "20px",
+                            textAlign: "center"
+                        }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, opacity: 0.6, mb: 1 }}>{player.name}</Typography>
+                            <Typography variant="h4" sx={{ fontWeight: 900, color: currentBid > 0 ? "#eab308" : "#fff", mb: 2 }}>
+                                {currentBid}
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                                <button 
+                                    onClick={() => {
+                                        setAuctionBids(prev => ({ ...prev, [player.name]: (prev[player.name] || 0) + 1 }));
+                                        setAuctionStage(0);
+                                    }}
+                                    style={{ flex: 1, background: "rgba(234, 179, 8, 0.2)", border: "none", color: "#eab308", padding: "8px", borderRadius: "10px", fontWeight: "900", cursor: "pointer" }}
+                                >
+                                    +1
+                                </button>
+                                <button 
+                                    onClick={() => setAuctionBids(prev => ({ ...prev, [player.name]: Math.max(0, (prev[player.name] || 0) - 1) }))}
+                                    style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.4)", padding: "8px", borderRadius: "10px", fontWeight: "900", cursor: "pointer" }}
+                                >
+                                    -1
+                                </button>
+                            </Box>
+                        </Paper>
+                      );
+                    })}
+                  </Box>
+                </>
+              ) : (
+                <Box sx={{ py: 3, background: "rgba(234, 179, 8, 0.05)", borderRadius: "24px", border: "1px solid rgba(234, 179, 8, 0.3)" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, mb: 1 }}>
+                        <GavelIcon sx={{ color: "#eab308", fontSize: "2rem" }} />
+                        <Typography variant="h4" sx={{ color: "#eab308", fontWeight: 900, letterSpacing: "-1px" }}>LICYTACJA ZAKOŃCZONA</Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                        {winner ? (
+                            <>
+                                <Box sx={{ textAlign: "right" }}>
+                                    <Typography variant="overline" sx={{ color: "#eab308", fontWeight: 800, display: "block", mb: -1 }}>ZWYCIĘZCA</Typography>
+                                    <Typography variant="h2" sx={{ fontWeight: 900, color: "#fff", letterSpacing: "-2px" }}>{winner[0]}</Typography>
+                                </Box>
+                                <Box sx={{ width: "2px", height: "40px", background: "rgba(234, 179, 8, 0.3)" }} />
+                                <Box sx={{ textAlign: "left" }}>
+                                    <Typography variant="h2" sx={{ fontWeight: 900, color: "#eab308", letterSpacing: "-1px" }}>{winner[1]}</Typography>
+                                </Box>
+                            </>
+                        ) : (
+                            <Typography variant="h4" sx={{ fontWeight: 900, color: "#fff" }}>BRAK OFERT</Typography>
+                        )}
+                        <button 
+                            onClick={() => setAuctionStage(0)}
+                            style={{ marginLeft: "32px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.75rem" }}
+                        >
+                            Resetuj etap
+                        </button>
+                    </Box>
+                </Box>
+              )}
+            </Box>
           )}
 
           {selectedQuestion.question && (

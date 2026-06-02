@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect, useRef } from "react";
-import { Typography, IconButton, TextField, InputAdornment } from "@mui/material";
+import { Typography, IconButton, TextField, InputAdornment, Box } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import { AppContext } from "../../contexts/AppContext";
@@ -7,6 +7,7 @@ import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 export const Results = () => {
   const { 
@@ -16,7 +17,8 @@ export const Results = () => {
     quizLog, 
     isResultsPinned, 
     setIsResultsPinned, 
-    appSettings 
+    appSettings,
+    toggleWiemLepiej
   } = useContext(AppContext);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -74,6 +76,10 @@ export const Results = () => {
     triggerFlash(playerIndex, "negative");
   };
 
+  const handleToggleWiemLepiej = (playerIndex) => {
+    toggleWiemLepiej(playerIndex);
+  };
+
   const handleDeletePlayer = (index) => {
     const playerToDelete = gameSettings.players[index];
     setGameSettings(prev => ({
@@ -90,7 +96,7 @@ export const Results = () => {
     if (!newPlayerName.trim()) return;
     setGameSettings(prev => ({
       ...prev,
-      players: [...prev.players, { name: newPlayerName, points: 0 }]
+      players: [...prev.players, { name: newPlayerName, points: 0, wiemLepiejUsed: 0 }]
     }));
     addToLog({ 
       type: "PLAYER_ADDED", 
@@ -179,6 +185,7 @@ export const Results = () => {
         <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
           {gameSettings.players.map((player, index) => {
             const isFlashing = flashPlayer.index === index;
+            const isWiemLepiejUsed = (player.wiemLepiejUsed || 0) >= (gameSettings.wiemLepiejLimit || 1);
             
             return (
               <div 
@@ -189,9 +196,10 @@ export const Results = () => {
                   background: isFlashing 
                     ? (flashPlayer.type === "positive" ? "rgba(46, 204, 113, 0.2)" : "rgba(239, 68, 68, 0.2)")
                     : "rgba(0,0,0,0.2)",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  border: isWiemLepiejUsed ? "2px solid #a855f7" : "1px solid rgba(255,255,255,0.05)",
                   transition: "all 0.3s ease",
-                  position: "relative"
+                  position: "relative",
+                  boxShadow: isWiemLepiejUsed ? "0 0 15px rgba(168, 85, 247, 0.2)" : "none"
                 }}
               >
                 <IconButton 
@@ -209,9 +217,28 @@ export const Results = () => {
                 </IconButton>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", marginRight: "20px" }}>
-                  <Typography variant="body2" sx={{ fontWeight: "700", color: isFlashing ? "#fff" : "rgba(255,255,255,0.9)" }}>
-                    {player.name}
-                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: "900", color: isFlashing ? "#fff" : (isWiemLepiejUsed ? "#d8b4fe" : "rgba(255,255,255,0.9)") }}>
+                        {player.name}
+                    </Typography>
+                    {gameSettings.wiemLepiejLimit > 0 && (
+                        <IconButton 
+                            size="small" 
+                            onClick={() => handleToggleWiemLepiej(index)}
+                            sx={{ 
+                                p: "4px",
+                                color: isWiemLepiejUsed ? "#fff" : "rgba(255,255,255,0.1)",
+                                background: isWiemLepiejUsed ? "#a855f7" : "rgba(255,255,255,0.05)",
+                                border: isWiemLepiejUsed ? "none" : "1px solid rgba(255,255,255,0.1)",
+                                "&:hover": { background: isWiemLepiejUsed ? "#9333ea" : "rgba(255,255,255,0.2)" },
+                                boxShadow: isWiemLepiejUsed ? "0 0 10px rgba(168, 85, 247, 0.5)" : "none"
+                            }}
+                            title={isWiemLepiejUsed ? "Wykorzystano 'Wiem Lepiej!' (Kliknij by przywrócić)" : "Oznacz użycie 'Wiem Lepiej!'"}
+                        >
+                            <AutoAwesomeIcon sx={{ fontSize: "16px" }} />
+                        </IconButton>
+                    )}
+                  </Box>
                   <Typography variant="body2" sx={{ fontWeight: "800", color: "#2ecc71" }}>
                     {player.points} pkt
                     {appSettings?.scoreFormat === "withLastChange" && lastPointChanges[index] && (

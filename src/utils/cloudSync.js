@@ -75,6 +75,55 @@ export const joinGame = async (gameCode, playerName) => {
 };
 
 /**
+ * Registers a "Wiem Lepiej" action.
+ */
+export const hitWiemLepiej = async (gameCode, playerName) => {
+  if (!gameCode) return;
+  try {
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "WIEM_LEPIEJ",
+        player: playerName,
+        time: Date.now(),
+      }),
+      headers: {
+        "Title": "WiemLepiejHit",
+        "Tags": "sparkles"
+      }
+    });
+  } catch (error) {
+    console.error("Wiem Lepiej hit error:", error);
+  }
+};
+
+/**
+ * Submits an auction bid.
+ */
+export const submitBid = async (gameCode, playerName, amount) => {
+  if (!gameCode) return;
+  try {
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "BID",
+        player: playerName,
+        amount: parseInt(amount, 10),
+        time: Date.now(),
+      }),
+      headers: {
+        "Title": "AuctionBid",
+        "Tags": "moneybag"
+      }
+    });
+  } catch (error) {
+    console.error("Submit bid error:", error);
+  }
+};
+
+/**
  * Listens for game state changes.
  */
 export const listenForGameState = (gameCode, onStateChange) => {

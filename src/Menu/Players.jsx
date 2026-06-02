@@ -97,6 +97,21 @@ const Players = () => {
         </div>
       </div>
 
+      <div className="players-view__score-setting" style={{ marginTop: "12px", justifyContent: "space-between" }}>
+        <div style={{ textAlign: 'left' }}>
+            <div style={{ fontWeight: 800 }}>Opcja "Wiem Lepiej!"</div>
+            <div style={{ fontSize: '12px', opacity: 0.6 }}>Pozwala graczom raz na grę zgłosić chęć odpowiedzi poza kolejką.</div>
+        </div>
+        <div className="players-view__score-setting-controls">
+          <input 
+            type="checkbox" 
+            checked={(gameSettings.wiemLepiejLimit || 0) > 0} 
+            onChange={(e) => setGameSettings(prev => ({ ...prev, wiemLepiejLimit: e.target.checked ? 1 : 0 }))}
+            style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: '#a855f7' }}
+          />
+        </div>
+      </div>
+
       <div className="players-view__list">
         {gameSettings.players.map((player, index) => (
           <div key={index} className="players-view__item">
