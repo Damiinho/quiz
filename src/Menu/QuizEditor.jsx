@@ -42,6 +42,7 @@ const emptyQuestionForm = {
   sound: "",
   images: "",
   timerSeconds: 30,
+  hiddenQuestion: "",
 };
 
 const getFilledAnswers = (answers = []) => answers.filter(answer => answer.trim());
@@ -309,6 +310,11 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     }
     if (selectedType !== "openAnswer") {
         delete newQuestion.inputMethod;
+        delete newQuestion.hiddenQuestion;
+    } else if (questionForm.hiddenQuestion?.trim()) {
+        newQuestion.hiddenQuestion = questionForm.hiddenQuestion.trim();
+    } else {
+        delete newQuestion.hiddenQuestion;
     }
 
     if (questionForm.answerMode === "choices" && (selectedType === "standard" || selectedType === "illustrated")) {
@@ -375,6 +381,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
       sound: q.sound || "",
       timerSeconds: q.timerSeconds || 30,
       inputMethod: q.inputMethod || "typing",
+      hiddenQuestion: q.hiddenQuestion || "",
       answerMode: isChoicesMode ? "choices" : "open"
     });
     setEditingQuestionIndex(index);
@@ -655,6 +662,18 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                                 <div className="editor-view__input-group">
                                     <label>Treść pytania</label>
                                     <textarea rows={3} value={questionForm.question} onChange={e => setQuestionForm({...questionForm, question: e.target.value})} placeholder="Wpisz treść pytania..." style={{ fontSize: "18px" }} />
+                                </div>
+                            )}
+
+                            {selectedType === "openAnswer" && (
+                                <div className="editor-view__input-group">
+                                    <label>Ukryta część pytania (opcjonalnie)</label>
+                                    <textarea
+                                        rows={3}
+                                        value={questionForm.hiddenQuestion || ""}
+                                        onChange={e => setQuestionForm({ ...questionForm, hiddenQuestion: e.target.value })}
+                                        placeholder="Dodatkowa część pytania pojawiająca się po kliknięciu przycisku..."
+                                    />
                                 </div>
                             )}
 

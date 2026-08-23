@@ -104,33 +104,50 @@ body {
     transform: translate(-50%, -50%);
     width: 37.5rem;
     height: 37.5rem;
-    background: radial-gradient(circle, rgba(46, 204, 113, 0.12) 0%, rgba(15, 23, 42, 0) 70%);
+    background: radial-gradient(circle, rgba(46, 204, 113, 0.14) 0%, rgba(15, 23, 42, 0) 72%);
     z-index: -1;
     pointer-events: none;
+    filter: blur(16px);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   &__welcome {
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.18rem;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
     margin-bottom: 0.625rem;
   }
 
   &__title {
-    font-size: 5.625rem;
-    font-weight: 800;
-    line-height: 0.95;
+    font-size: clamp(3.5rem, 7vw, 5.625rem);
+    font-weight: 900;
+    line-height: 0.9;
     margin-bottom: 1.25rem;
     letter-spacing: -2px;
+    text-transform: lowercase;
+    background: linear-gradient(135deg, #ffffff 0%, #c7f9cc 32%, #2ecc71 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 28px rgba(46, 204, 113, 0.14);
   }
 
   &__subtitle {
     font-size: 0.875rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.7);
     margin-bottom: 2.5rem;
     max-width: 28.125rem;
     margin-left: auto;
     margin-right: auto;
+    letter-spacing: 0.02em;
   }
 
   &__main-btn {
@@ -138,23 +155,44 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    background-color: $primary-green;
-    color: #000;
-    font-size: 1.25rem;
-    font-weight: 700;
-    padding: 1rem 5rem;
-    border-radius: 0.625rem;
-    border: none;
+    background: linear-gradient(135deg, #34d399 0%, #2ecc71 40%, #22c55e 100%);
+    color: #08110d;
+    font-size: 1.125rem;
+    font-weight: 800;
+    padding: 1.05rem 4.75rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(167, 243, 208, 0.7);
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     margin-left: auto;
     margin-right: auto;
+    box-shadow: 0 1rem 2rem rgba(34, 197, 94, 0.24);
 
     &:hover {
-      background-color: lighten($primary-green, 5%);
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 1.25rem 2.5rem rgba(34, 197, 94, 0.3);
+    }
+  }
+
+  &__join-btn {
+    background: rgba(255, 255, 255, 0.04);
+    color: #2ecc71;
+    border: 2px solid rgba(46, 204, 113, 0.9);
+    padding: 0.875rem 2.5rem;
+    border-radius: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(46, 204, 113, 0.12);
       transform: translateY(-2px);
-      box-shadow: 0 0.625rem 1.875rem rgba(46, 204, 113, 0.2);
+      box-shadow: 0 0.75rem 1.5rem rgba(46, 204, 113, 0.12);
     }
   }
 
@@ -162,22 +200,25 @@ body {
     display: flex;
     gap: 0.75rem;
     justify-content: center;
-    
-    button {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: $text-white;
-      border: none;
-      padding: 0.625rem 1.5rem;
-      border-radius: 0.5rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 0.6875rem;
-      letter-spacing: 0.5px;
+    flex-wrap: wrap;
+  }
 
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
+  &__action-btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: $text-white;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08rem;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+      border-color: rgba(46, 204, 113, 0.35);
     }
   }
 }
@@ -221,10 +262,38 @@ body {
   width: 100%;
   max-width: 75rem;
   margin: 0 auto;
+  position: relative;
+  padding: 0.5rem 0 1.5rem;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    width: 18rem;
+    height: 18rem;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.24;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  &::before {
+    left: -3rem;
+    top: -3rem;
+    background: rgba(46, 204, 113, 0.3);
+  }
+
+  &::after {
+    right: -2rem;
+    bottom: -4rem;
+    background: rgba(168, 85, 247, 0.3);
+  }
 }
 
 .quiz-card {
-  background: $bg-card;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.8));
   border-radius: 1.25rem;
   padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -233,11 +302,28 @@ body {
   position: relative;
   overflow: hidden;
   text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 rgba(0,0,0,0);
+  z-index: 1;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -20% 60% 60% -20%;
+    background: linear-gradient(125deg, rgba(255, 255, 255, 0), rgba(255,255,255,0.22), rgba(255,255,255,0));
+    transform: rotate(18deg);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
 
   &:hover {
     transform: translateY(-0.3125rem);
     border-color: rgba($primary-green, 0.3);
-    box-shadow: 0 0.625rem 1.875rem rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.28), 0 0 2rem rgba(46, 204, 113, 0.12);
+
+    &::before {
+      opacity: 1;
+      animation: cardShimmer 0.8s ease;
+    }
   }
 
   &__icon {
@@ -556,7 +642,32 @@ body {
   flex-direction: column;
   padding: 1.25rem 2.5rem;
   position: relative;
-  // Usunięto overflow: hidden, aby części po pęknięciu mogły wychodzić poza kontener
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(15, 23, 42, 0.82));
+  border-radius: 2rem;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 15%, rgba(255,255,255,0.12), transparent 35%),
+      linear-gradient(120deg, rgba(46, 204, 113, 0.08), transparent 35%, rgba(168, 85, 247, 0.08) 70%, transparent 100%);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: -15%;
+    right: -15%;
+    top: 25%;
+    height: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+    filter: blur(80px);
+    opacity: 0.35;
+    animation: stageSweep 7s ease-in-out infinite;
+    pointer-events: none;
+  }
 
   &__header {
     display: flex;
@@ -564,17 +675,25 @@ body {
     align-items: center;
     margin-bottom: 1.25rem;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
   }
 
   &__content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center; // Centrowanie w pionie
-    align-items: center; // Centrowanie w poziomie
+    justify-content: center;
+    align-items: center;
     gap: 2.5rem;
     width: 100%;
-    // Usunięto overflow: hidden
+    position: relative;
+    z-index: 1;
   }
 
   &__footer {
@@ -584,7 +703,11 @@ body {
     margin-top: 1.25rem;
     flex-shrink: 0;
     position: relative;
-    z-index: 10; // Stopka zawsze na wierzchu
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
   }
 
   &__timer, &__audio-btn {
@@ -603,30 +726,32 @@ body {
     transition: all 0.2s;
     position: relative;
     z-index: 10;
+    box-shadow: 0 0 0 rgba(46, 204, 113, 0.3), 0 0 2rem rgba(46, 204, 113, 0.2);
     
     &:hover {
       transform: scale(1.05);
       background: rgba(0,0,0,0.6);
+      box-shadow: 0 0 0 rgba(46, 204, 113, 0.3), 0 0 2.5rem rgba(46, 204, 113, 0.25);
     }
   }
 
   &__box {
-    background: #fff;
+    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(236, 252, 245, 0.96));
     color: #000;
     padding: 2.5rem;
     border-radius: 1.5rem;
     font-size: clamp(1.5rem, 4vw, 3.25rem);
     font-weight: 800;
     text-align: center;
-    box-shadow: 0 1.25rem 3.75rem rgba(0,0,0,0.5);
+    box-shadow: 0 1.25rem 3.75rem rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.3), inset 0 1px 0 rgba(255,255,255,0.8);
     line-height: 1.1;
     width: 100%;
     max-height: 45vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    // Usunięto overflow: hidden
     position: relative;
+    border: 1px solid rgba(15, 23, 42, 0.08);
   }
 
   &__answers {
@@ -639,7 +764,7 @@ body {
   }
 
   &__answer {
-    background: $bg-card;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.9));
     padding: 1rem 2rem;
     border-radius: 1rem;
     display: flex;
@@ -651,10 +776,12 @@ body {
     transition: all 0.2s;
     font-size: clamp(0.875rem, 1.5vw, 1.375rem);
     min-height: 5rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 
     &:hover {
-      background: lighten($bg-card, 5%);
-      transform: scale(1.02);
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.95));
+      transform: translateY(-0.125rem) scale(1.01);
+      box-shadow: 0 0.8rem 1.7rem rgba(0,0,0,0.2), 0 0 1rem rgba(46,204,113,0.1);
     }
 
     &-letter {
@@ -773,6 +900,19 @@ body {
 @keyframes pulse-danger {
   0% { opacity: 0.4; transform: scale(1); filter: contrast(1.2); }
   100% { opacity: 0.9; transform: scale(1.05); filter: contrast(1.5); }
+}
+
+@keyframes cardShimmer {
+  0% { transform: translateX(-30%) rotate(18deg); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateX(120%) rotate(18deg); opacity: 0; }
+}
+
+@keyframes stageSweep {
+  0% { transform: translateX(-12%) scaleX(0.7); opacity: 0; }
+  20% { opacity: 0.4; }
+  50% { transform: translateX(0) scaleX(1); opacity: 0.8; }
+  100% { transform: translateX(12%) scaleX(0.7); opacity: 0; }
 }
 
 .pulse-urgent {

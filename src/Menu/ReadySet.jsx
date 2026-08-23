@@ -467,6 +467,17 @@ const ReadySet = () => {
                                 />
                             </div>
                         )}
+                        {selectedCategoryDetail?.type === "openAnswer" && (
+                            <div className="editor-view__input-group">
+                                <label>Ukryta część pytania (opcjonalnie)</label>
+                                <textarea
+                                    rows={3}
+                                    value={editingQuestion.hiddenQuestion || ""}
+                                    onChange={e => setEditingQuestion({ ...editingQuestion, hiddenQuestion: e.target.value })}
+                                    placeholder="Dodatkowa część pytania pojawiająca się po kliknięciu przycisku..."
+                                />
+                            </div>
+                        )}
                         {(selectedCategoryDetail?.type === "auction" || selectedCategoryDetail?.type === "openAnswer") && (
                             <div className="editor-view__input-group">
                                 <label>{selectedCategoryDetail?.type === "auction" ? "Czas licytacji (sekundy)" : "Czas na odpowiedź (sekundy)"}</label>

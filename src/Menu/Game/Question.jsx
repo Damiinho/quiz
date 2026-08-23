@@ -25,6 +25,15 @@ const getQuestionFontSize = (text = "") => {
   return "clamp(1.8rem, 4vw, 3.25rem)";
 };
 
+const getHiddenQuestionFontSize = (text = "") => {
+  const len = String(text).length;
+  if (len > 220) return "clamp(0.72rem, 1vw, 0.95rem)";
+  if (len > 120) return "clamp(0.85rem, 1.4vw, 1.1rem)";
+  if (len > 60) return "clamp(1rem, 1.8vw, 1.35rem)";
+  if (len > 25) return "clamp(1.2rem, 2.3vw, 1.8rem)";
+  return "clamp(1.5rem, 3vw, 2.35rem)";
+};
+
 const Question = ({ category }) => {
   const { 
     gameSettings, 
@@ -82,6 +91,7 @@ const Question = ({ category }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
+  const [showHiddenQuestion, setShowHiddenQuestion] = useState(false);
   const audioRef = useRef(null);
   const audioTickRef = useRef(null);
   const audioRevealRef = useRef(null);
@@ -173,6 +183,7 @@ const Question = ({ category }) => {
     if (!selectedQuestion) return;
     setSelectedAnswerIndex(null);
     setCurrentImageIndex(0);
+    setShowHiddenQuestion(false);
     setIsAudioPlaying(false);
     setTimer(questionTimerSeconds);
     setIsTimerRunning(false);
@@ -285,6 +296,24 @@ const Question = ({ category }) => {
 
   return (
     <>
+      <style>
+        {`
+          @keyframes pulseReveal {
+            0%, 100% { transform: scale(1) translateY(0); box-shadow: 0 0 0 rgba(168, 85, 247, 0.2), 0 0 0 rgba(59, 130, 246, 0.1); }
+            25% { transform: scale(1.02) translateY(-1px); }
+            50% { transform: scale(1.06) translateY(-2px); box-shadow: 0 0 30px rgba(168, 85, 247, 0.5), 0 0 48px rgba(59, 130, 246, 0.22); }
+          }
+          @keyframes revealIn {
+            0% { opacity: 0; transform: translateY(10px) scale(0.97); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+          }
+          @keyframes spotlightSweep {
+            0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+            15% { opacity: 1; }
+            100% { transform: translateX(130%) skewX(-18deg); opacity: 0; }
+          }
+        `}
+      </style>
       <audio ref={audioRef} />
       <audio ref={audioTickRef} src="/sounds/tick.mp3" />
       <audio ref={audioRevealRef} src="/sounds/reveal.mp3" />
@@ -566,6 +595,84 @@ const Question = ({ category }) => {
                 </>
               )}
             </div>
+          )}
+
+          {category?.type === "openAnswer" && selectedQuestion.hiddenQuestion && (
+            <Box sx={{ width: "100%", maxWidth: "900px", mx: "auto", display: "flex", justifyContent: "center", textAlign: "center" }}>
+              {!showHiddenQuestion ? (
+                <button
+                  type="button"
+                  onClick={() => setShowHiddenQuestion(true)}
+                  style={{
+                    position: "relative",
+                    overflow: "hidden",
+                    background: "linear-gradient(135deg, rgba(147, 51, 234, 0.8), rgba(59, 130, 246, 0.7), rgba(14, 165, 233, 0.7))",
+                    border: "1px solid rgba(216, 180, 254, 0.8)",
+                    color: "#fff",
+                    borderRadius: "999px",
+                    padding: "14px 30px",
+                    fontWeight: 900,
+                    letterSpacing: "0.12em",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    fontSize: "0.72rem",
+                    boxShadow: "0 0 0 rgba(168, 85, 247, 0.4), 0 0 28px rgba(168, 85, 247, 0.5), 0 10px 30px rgba(14, 165, 233, 0.25)",
+                    animation: "pulseReveal 1.8s ease-in-out infinite",
+                    margin: "0 auto",
+                    textShadow: "0 0 16px rgba(255,255,255,0.8)"
+                  }}
+                >
+                  <span style={{ position: "absolute", inset: "-30% -10%", background: "linear-gradient(110deg, rgba(255,255,255,0) 25%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 75%)", transform: "translateX(-130%) skewX(-18deg)", animation: "spotlightSweep 2.8s ease-in-out infinite" }} />
+                  <span style={{ position: "relative", zIndex: 1 }}>Pokaż dalej</span>
+                </button>
+              ) : (
+                <Paper sx={{
+                  p: 3,
+                  background: "linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.88), rgba(14, 165, 233, 0.14))",
+                  border: "1px solid rgba(125, 211, 252, 0.7)",
+                  borderRadius: "20px",
+                  textAlign: "center",
+                  boxShadow: "0 18px 50px rgba(14, 165, 233, 0.18), inset 0 0 18px rgba(255,255,255,0.08)",
+                  transform: "translateY(0)",
+                  animation: "revealIn 0.35s ease-out",
+                  width: "100%",
+                  position: "relative",
+                  overflow: "hidden"
+                }}>
+                  <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 45%)", pointerEvents: "none" }} />
+                  <div style={{ position: "relative", zIndex: 1 }}>
+                    <Typography sx={{
+                      color: "rgba(255,255,255,0.96)",
+                      fontSize: getHiddenQuestionFontSize(selectedQuestion.hiddenQuestion),
+                      lineHeight: 1.6,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                      textShadow: "0 0 18px rgba(125, 211, 252, 0.25)"
+                    }}>
+                      {selectedQuestion.hiddenQuestion}
+                    </Typography>
+                    <button
+                      type="button"
+                      onClick={() => setShowHiddenQuestion(false)}
+                      style={{
+                        marginTop: "16px",
+                        background: "rgba(15, 118, 110, 0.35)",
+                        border: "1px solid rgba(45, 212, 191, 0.8)",
+                        color: "#ccfbf1",
+                        borderRadius: "12px",
+                        padding: "8px 16px",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        boxShadow: "0 8px 24px rgba(45, 212, 191, 0.18)"
+                      }}
+                    >
+                      Ukryj
+                    </button>
+                  </div>
+                </Paper>
+              )}
+            </Box>
           )}
 
           {questionContext && isContextOpen && (

@@ -16,49 +16,19 @@ const Start = () => {
           Twórz quizy, graj ze znajomymi i zostań mistrzem zgadywania!
         </p>
 
-        <button 
-          className="hero__main-btn" 
-          onClick={() => navigate("/kategorie")}
-        >
+        <button className="hero__main-btn" onClick={() => navigate("/kategorie")}>
           ZAGRAJ <PlayArrowIcon />
         </button>
 
-        <button 
-          onClick={() => navigate("/gracz")}
-          style={{ 
-              background: "rgba(255, 255, 255, 0.05)", 
-              color: "#2ecc71", 
-              border: "2px solid #2ecc71", 
-              padding: "12px 40px", 
-              borderRadius: "12px", 
-              fontWeight: "800", 
-              cursor: "pointer", 
-              fontSize: "14px",
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              marginBottom: '24px',
-              transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => {
-              e.currentTarget.style.background = "rgba(46, 204, 113, 0.1)";
-              e.currentTarget.style.transform = "translateY(-2px)";
-          }}
-          onMouseOut={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-              e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
+        <button className="hero__join-btn" onClick={() => navigate("/gracz")}>
           DOŁĄCZ DO GRY
         </button>
+
         <div className="hero__actions">
-          <button
-            onClick={() => {
-              navigate("/wybor");
-            }}
-          >
+          <button className="hero__action-btn" onClick={() => navigate("/wybor")}>
             STWÓRZ QUIZ
           </button>
-          <button onClick={() => navigate("/ustawienia")}>
+          <button className="hero__action-btn" onClick={() => navigate("/ustawienia")}>
             USTAWIENIA
           </button>
         </div>
