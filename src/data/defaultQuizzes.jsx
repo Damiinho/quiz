@@ -389,6 +389,24 @@ export const defaultQuizzes = [
             },
           ],
         },
+        {
+          name: "Napisz odpowiedź",
+          type: "openAnswer",
+          list: [
+            {
+              no: 1,
+              question: "Jak nazywa się stolica Polski?",
+              correctAnswer: ["Warszawa"],
+              inputMethod: "typing"
+            },
+            {
+              no: 2,
+              question: "Narysuj słońce",
+              correctAnswer: ["Słońce"],
+              inputMethod: "drawing"
+            }
+          ]
+        },
         {type: "forehead",
           name: "Czółko",
           list: [

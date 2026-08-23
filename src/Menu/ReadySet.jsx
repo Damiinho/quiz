@@ -439,6 +439,15 @@ const ReadySet = () => {
                             />
                         </div>
                         )}
+                        <div className="editor-view__input-group">
+                            <label>Kontekst / ciekawostka (opcjonalnie)</label>
+                            <textarea
+                                rows={3}
+                                value={editingQuestion.context || ""}
+                                onChange={e => setEditingQuestion({ ...editingQuestion, context: e.target.value })}
+                                placeholder="Dodatkowy kontekst lub ciekawostka dla prowadzącego..."
+                            />
+                        </div>
                         {(selectedCategoryDetail?.type === "forehead" || !Array.isArray(editingQuestion.answers)) && (
                         <div className="editor-view__input-group">
                             <label>Poprawna odpowiedź</label>
@@ -458,15 +467,15 @@ const ReadySet = () => {
                                 />
                             </div>
                         )}
-                        {selectedCategoryDetail?.type === "auction" && (
+                        {(selectedCategoryDetail?.type === "auction" || selectedCategoryDetail?.type === "openAnswer") && (
                             <div className="editor-view__input-group">
-                                <label>Czas licytacji (sekundy)</label>
+                                <label>{selectedCategoryDetail?.type === "auction" ? "Czas licytacji (sekundy)" : "Czas na odpowiedź (sekundy)"}</label>
                                 <input
                                     type="number"
-                                    min="5"
-                                    step="5"
+                                    min="1"
+                                    step="1"
                                     value={editingQuestion.timerSeconds || 30}
-                                    onChange={e => setEditingQuestion({...editingQuestion, timerSeconds: Math.max(5, Number(e.target.value) || 30)})}
+                                    onChange={e => setEditingQuestion({...editingQuestion, timerSeconds: Math.max(1, Number(e.target.value) || 30)})}
                                 />
                             </div>
                         )}

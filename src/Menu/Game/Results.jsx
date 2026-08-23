@@ -12,13 +12,14 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 export const Results = () => {
   const { 
     gameSettings, 
-    setGameSettings, 
-    addToLog, 
+    changePlayerPoints,
+    togglePlayerWiemLepiej,
+    addPlayerInGame,
+    removePlayerInGame,
     quizLog, 
     isResultsPinned, 
     setIsResultsPinned, 
-    appSettings,
-    toggleWiemLepiej
+    appSettings
   } = useContext(AppContext);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -45,63 +46,28 @@ export const Results = () => {
   };
 
   const handleAddPoints = (playerIndex) => {
-    const updatedPlayers = [...gameSettings.players];
-    updatedPlayers[playerIndex].points += 1;
-    
-    addToLog({ 
-      type: "POINTS_CHANGE", 
-      playerIndex, 
-      change: 1, 
-      description: `+1 pkt dla ${updatedPlayers[playerIndex].name}` 
-    });
-    setGameSettings((prevState) => ({ ...prevState, players: updatedPlayers }));
-    
+    changePlayerPoints(playerIndex, 1);
     playSound("success");
     triggerFlash(playerIndex, "positive");
   };
 
   const handleSubtractPoints = (playerIndex) => {
-    const updatedPlayers = [...gameSettings.players];
-    updatedPlayers[playerIndex].points -= 1;
-
-    addToLog({ 
-      type: "POINTS_CHANGE", 
-      playerIndex, 
-      change: -1, 
-      description: `-1 pkt dla ${updatedPlayers[playerIndex].name}` 
-    });
-    setGameSettings((prevState) => ({ ...prevState, players: updatedPlayers }));
-    
+    changePlayerPoints(playerIndex, -1);
     playSound("error");
     triggerFlash(playerIndex, "negative");
   };
 
   const handleToggleWiemLepiej = (playerIndex) => {
-    toggleWiemLepiej(playerIndex);
+    togglePlayerWiemLepiej(playerIndex);
   };
 
   const handleDeletePlayer = (index) => {
-    const playerToDelete = gameSettings.players[index];
-    setGameSettings(prev => ({
-      ...prev,
-      players: prev.players.filter((_, i) => i !== index)
-    }));
-    addToLog({ 
-      type: "PLAYER_REMOVED", 
-      description: `Usunięto gracza: ${playerToDelete.name}` 
-    });
+    removePlayerInGame(index);
   };
 
   const handleAddNewPlayer = () => {
     if (!newPlayerName.trim()) return;
-    setGameSettings(prev => ({
-      ...prev,
-      players: [...prev.players, { name: newPlayerName, points: 0, wiemLepiejUsed: 0 }]
-    }));
-    addToLog({ 
-      type: "PLAYER_ADDED", 
-      description: `Dodano gracza: ${newPlayerName}` 
-    });
+    addPlayerInGame(newPlayerName);
     setNewPlayerName("");
   };
 

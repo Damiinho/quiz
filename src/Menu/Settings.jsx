@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { AppContext } from "../contexts/AppContext";
+import PropTypes from "prop-types";
 import { IconButton, Slider, Switch, Box, Typography, Paper, Select, MenuItem } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +42,12 @@ const Settings = () => {
       {children}
     </Paper>
   );
+
+  SettingCard.propTypes = {
+    title: PropTypes.string.isRequired,
+    icon: PropTypes.node.isRequired,
+    children: PropTypes.node.isRequired,
+  };
 
   return (
     <Box sx={{ width: "100%", maxWidth: "900px", margin: "0 auto", pb: 8 }}>

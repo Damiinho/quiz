@@ -3,46 +3,49 @@ import { Typography, Paper, Modal, IconButton, Box } from "@mui/material";
 import PropTypes from "prop-types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
-import ReplayIcon from "@mui/icons-material/Replay";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import GavelIcon from "@mui/icons-material/Gavel";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { AppContext } from "../../contexts/AppContext";
 
-const Question = ({ category, handleGoBack }) => {
+const getAnswerFontSize = (text = "") => {
+  const len = String(text).length;
+  if (len > 120) return "clamp(0.75rem, 1.1vw, 0.95rem)";
+  if (len > 70) return "clamp(0.85rem, 1.3vw, 1.1rem)";
+  if (len > 40) return "clamp(0.95rem, 1.5vw, 1.25rem)";
+  return "clamp(1.1rem, 1.8vw, 1.45rem)";
+};
+
+const getQuestionFontSize = (text = "") => {
+  const len = String(text).length;
+  if (len > 250) return "clamp(1.1rem, 2.2vw, 1.6rem)";
+  if (len > 140) return "clamp(1.3rem, 2.8vw, 2.1rem)";
+  if (len > 70) return "clamp(1.5rem, 3.4vw, 2.6rem)";
+  return "clamp(1.8rem, 4vw, 3.25rem)";
+};
+
+const Question = ({ category }) => {
   const { 
-    gameSettings,
-    setGameSettings, 
-    addToLog, 
+    gameSettings, 
     showAnswer, 
-    setShowAnswer, 
     isAudioPlaying, 
     setIsAudioPlaying,
     appSettings,
     auctionBids,
-    setAuctionBids,
     auctionStage,
-    setAuctionStage,
-    isAuctionTimerRunning,
-    setIsAuctionTimerRunning,
-    isQuestionActive
+    isQuestionActive,
+    playerAnswers,
+    closeCategory,
+    finishQuestion,
+    toggleAnswer,
+    changeAuctionBid,
+    advanceAuctionStageGame
   } = useContext(AppContext);
 
   const [wiemLepiejNotify, setWiemLepiejNotify] = useState(null);
+  const [isContextOpen, setIsContextOpen] = useState(false);
   const prevWiemLepiejRef = useRef({});
-
-  useEffect(() => {
-    gameSettings.players.forEach((player) => {
-        const prevUsed = prevWiemLepiejRef.current[player.name] || 0;
-        const currentUsed = player.wiemLepiejUsed || 0;
-        if (currentUsed > prevUsed && isQuestionActive) {
-            setWiemLepiejNotify(player.name);
-            setTimeout(() => setWiemLepiejNotify(null), 3500);
-        }
-        prevWiemLepiejRef.current[player.name] = currentUsed;
-    });
-  }, [gameSettings.players, isQuestionActive]);
 
   const selectedQuestion = useMemo(() => {
     if (!category?.list) return null;
@@ -58,6 +61,24 @@ const Question = ({ category, handleGoBack }) => {
     return unanswered[0];
   }, [category]);
 
+  const questionContext = selectedQuestion?.context?.trim();
+
+  useEffect(() => {
+    setIsContextOpen(false);
+  }, [selectedQuestion?.no, selectedQuestion?.question, category?.name]);
+
+  useEffect(() => {
+    gameSettings.players.forEach((player) => {
+        const prevUsed = prevWiemLepiejRef.current[player.name] || 0;
+        const currentUsed = player.wiemLepiejUsed || 0;
+        if (currentUsed > prevUsed && isQuestionActive) {
+            setWiemLepiejNotify(player.name);
+            setTimeout(() => setWiemLepiejNotify(null), 3500);
+        }
+        prevWiemLepiejRef.current[player.name] = currentUsed;
+    });
+  }, [gameSettings.players, isQuestionActive]);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
@@ -66,16 +87,29 @@ const Question = ({ category, handleGoBack }) => {
   const audioRevealRef = useRef(null);
 
   const questionTimerSeconds = selectedQuestion?.timerSeconds || category?.timerSeconds || 30;
+  const shouldShowTimer = category?.type === "auction" || category?.type === "openAnswer";
   const [timer, setTimer] = useState(questionTimerSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [crackType, setCrackType] = useState("crack-h"); // Stan dla losowego pęknięcia
-  const [bgTheme, setBgTheme] = useState(null); // Stan dla losowego tła
+  const [crackType, setCrackType] = useState("crack-h");
+  const [bgTheme, setBgTheme] = useState(null);
   const timerRef = useRef(null);
 
-  const albumImages = useMemo(() => selectedQuestion?.images || [], [selectedQuestion]);
-  const hasMultipleImages = albumImages.length > 1;
+  const allAlbumImages = useMemo(() => selectedQuestion?.images || [], [selectedQuestion]);
+  const albumAnswerImage = useMemo(() => {
+    if (selectedQuestion?.correctAnswerImage) return selectedQuestion.correctAnswerImage;
+    if (allAlbumImages.length > 1) return allAlbumImages[allAlbumImages.length - 1];
+    return null;
+  }, [selectedQuestion, allAlbumImages]);
+  const albumRiddleImages = useMemo(() => {
+    if (albumAnswerImage && allAlbumImages.length > 1 && allAlbumImages[allAlbumImages.length - 1] === albumAnswerImage) {
+      return allAlbumImages.slice(0, -1);
+    }
+    return allAlbumImages;
+  }, [allAlbumImages, albumAnswerImage]);
+
+  const hasMultipleRiddleImages = albumRiddleImages.length > 1;
   const hasCorrectAnswer = Array.isArray(selectedQuestion?.correctAnswer) && selectedQuestion.correctAnswer.some(answer => String(answer).trim());
-  const shouldShowAnswerButton = hasCorrectAnswer && category?.type !== "duel";
+  const shouldShowAnswerButton = (hasCorrectAnswer || category?.type === "openAnswer" || (category?.type === "album" && !!albumAnswerImage)) && category?.type !== "duel";
 
   const getAssetPath = (path) => {
     if (!path) return "";
@@ -123,63 +157,29 @@ const Question = ({ category, handleGoBack }) => {
   }, [appSettings?.soundEffects]);
 
   const handleGoBackWithLog = useCallback(() => {
-    addToLog({
-      type: "QUESTION_CLOSED",
-      categoryName: category.name,
-      description: `Zamknięto kategorię: ${category.name}`
-    });
-    handleGoBack();
-  }, [category.name, handleGoBack, addToLog]);
+    closeCategory(category.name);
+  }, [category.name, closeCategory]);
 
   const handleShowAnswerToggle = useCallback(() => {
-    const nextShow = !showAnswer;
-    setShowAnswer(nextShow);
-    addToLog({
-      type: "SHOW_ANSWER",
-      description: nextShow ? "Pokazano odpowiedź" : "Ukryto odpowiedź"
-    });
-  }, [showAnswer, setShowAnswer, addToLog]);
+    toggleAnswer();
+  }, [toggleAnswer]);
 
   const handleGoBackAndUpdate = useCallback(() => {
     if (!selectedQuestion) return;
-    addToLog({
-      type: "QUESTION_DONE",
-      categoryName: category.name,
-      questionNo: selectedQuestion.no,
-      questionText: selectedQuestion.question,
-      description: `Zużyto: ${selectedQuestion.question || 'Pytanie ' + selectedQuestion.no}`
-    });
-    setGameSettings((prev) => ({
-      ...prev,
-      quiz: {
-        ...prev.quiz,
-        categories: prev.quiz.categories.map((c) => {
-          if (c.name !== category.name) return c;
-          return {
-            ...c,
-            list: c.list.map((q) => {
-              const isMatch = q.no === selectedQuestion.no && q.question === selectedQuestion.question;
-              return isMatch ? { ...q, done: true } : q;
-            })
-          };
-        })
-      }
-    }));
-    handleGoBack();
-  }, [selectedQuestion, category.name, setGameSettings, handleGoBack, addToLog]);
+    finishQuestion(category.name, selectedQuestion);
+  }, [selectedQuestion, category.name, finishQuestion]);
 
   useEffect(() => {
     if (!selectedQuestion) return;
-    setShowAnswer(false);
     setSelectedAnswerIndex(null);
     setCurrentImageIndex(0);
     setIsAudioPlaying(false);
     setTimer(questionTimerSeconds);
     setIsTimerRunning(false);
-    if (category?.type === "album" && selectedQuestion.images?.length > 0) {
-      setEnlargedImage(selectedQuestion.images[0]);
+    if (category?.type === "album" && albumRiddleImages.length > 0) {
+      setEnlargedImage(albumRiddleImages[0]);
     }
-  }, [selectedQuestion, category.type, questionTimerSeconds, setShowAnswer, setIsAudioPlaying]);
+  }, [selectedQuestion, category.type, questionTimerSeconds, setIsAudioPlaying, albumRiddleImages]);
 
   useEffect(() => {
     if (isTimerRunning && timerRef.current == null) {
@@ -189,7 +189,6 @@ const Question = ({ category, handleGoBack }) => {
             clearInterval(timerRef.current);
             timerRef.current = null;
             setIsTimerRunning(false);
-            // Nie pokazujemy odpowiedzi automatycznie, aby było widać pęknięcie
             playEffect("reveal");
             return 0;
           }
@@ -199,29 +198,50 @@ const Question = ({ category, handleGoBack }) => {
       }, 1000);
     } 
     return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
-  }, [isTimerRunning, playEffect, setShowAnswer]);
+  }, [isTimerRunning, playEffect]);
 
   useEffect(() => { if (showAnswer) playEffect("reveal"); }, [showAnswer, playEffect]);
   useEffect(() => { if (!isAudioPlaying && audioRef.current) audioRef.current.pause(); }, [isAudioPlaying]);
 
   useEffect(() => {
+    if (category?.type === "album" && enlargedImage) {
+      if (showAnswer && albumAnswerImage) {
+        setEnlargedImage(albumAnswerImage);
+      } else if (!showAnswer && albumRiddleImages.length > 0) {
+        setEnlargedImage(albumRiddleImages[currentImageIndex] || albumRiddleImages[0]);
+      }
+    }
+  }, [showAnswer, category?.type, albumAnswerImage, albumRiddleImages, currentImageIndex, enlargedImage]);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape") handleGoBackWithLog();
-      else if (e.key === " " && e.target.tagName !== "BUTTON") {
+      if (e.key === "Escape") {
+        if (enlargedImage) setEnlargedImage(null);
+        else handleGoBackWithLog();
+      } else if (e.key === " " && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") {
         e.preventDefault();
         if (shouldShowAnswerButton) handleShowAnswerToggle();
       } else if (e.key === "ArrowRight") {
-        if (category.type === "album" && hasMultipleImages) setCurrentImageIndex(p => (p === albumImages.length - 1 ? 0 : p + 1));
-        else if (category.type === "auction" && !isTimerRunning && timer > 0) setIsTimerRunning(true);
-      } else if (e.key === "ArrowLeft" && category.type === "album" && hasMultipleImages) {
-        setCurrentImageIndex(p => (p === 0 ? albumImages.length - 1 : p - 1));
+        if (category.type === "album" && hasMultipleRiddleImages && !showAnswer) {
+          setCurrentImageIndex(p => {
+            const nextIdx = p === albumRiddleImages.length - 1 ? 0 : p + 1;
+            if (enlargedImage) setEnlargedImage(albumRiddleImages[nextIdx]);
+            return nextIdx;
+          });
+        } else if (shouldShowTimer && !isTimerRunning && timer > 0) {
+          setIsTimerRunning(true);
+        }
+      } else if (e.key === "ArrowLeft" && category.type === "album" && hasMultipleRiddleImages && !showAnswer) {
+        setCurrentImageIndex(p => {
+          const prevIdx = p === 0 ? albumRiddleImages.length - 1 : p - 1;
+          if (enlargedImage) setEnlargedImage(albumRiddleImages[prevIdx]);
+          return prevIdx;
+        });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [category.type, albumImages, hasMultipleImages, isTimerRunning, timer, shouldShowAnswerButton, handleGoBackWithLog, handleShowAnswerToggle]);
-
-  if (!selectedQuestion) return null;
+  }, [category.type, albumRiddleImages, hasMultipleRiddleImages, showAnswer, isTimerRunning, timer, shouldShowAnswerButton, handleGoBackWithLog, handleShowAnswerToggle, enlargedImage, shouldShowTimer]);
 
   const playSound = (path) => {
     if (appSettings?.soundEffects === false) return;
@@ -229,187 +249,160 @@ const Question = ({ category, handleGoBack }) => {
       audioRef.current.src = getAssetPath(path);
       audioRef.current.play().catch(console.error);
       setIsAudioPlaying(true);
-      addToLog({ type: "SOUND_PLAY", description: `Dźwięk: ${path.split('/').pop()}` });
     }
   };
 
-  const isTimeUp = category?.type === "auction" && timer === 0;
+  const isTimeUp = shouldShowTimer && timer === 0;
   const isCracked = category?.type === "auction" && timer <= 1 && !showAnswer;
-  const isUrgent = (category?.type === "auction" && isTimerRunning && timer <= 10 && timer > 0) || isTimeUp;
-  const isDanger = (category?.type === "auction" && isTimerRunning && timer <= 5 && timer > 0) || isTimeUp;
-  const isEarly = category?.type === "auction" && isTimerRunning && timer <= 20 && timer > 10;
+  const isUrgent = (shouldShowTimer && isTimerRunning && timer <= 10 && timer > 0) || isTimeUp;
+  const isDanger = (shouldShowTimer && isTimerRunning && timer <= 5 && timer > 0) || isTimeUp;
 
-  const winner = useMemo(() => {
-    const playersWithBids = Object.entries(auctionBids).filter(([_, amount]) => amount > 0);
-    if (playersWithBids.length === 0) return null;
-    return playersWithBids.reduce((prev, current) => (prev[1] > current[1] ? prev : current));
-  }, [auctionBids]);
-
-  let shakeClass = "";
-  if (isDanger && !isTimeUp) shakeClass = "shake-heavy";
-  else if (isUrgent && !isTimeUp) shakeClass = "shake-medium";
-  else if (isEarly && !isTimeUp) shakeClass = "shake-tiny";
+  if (!selectedQuestion) {
+    return (
+      <div className="question-view">
+        <Typography variant="h4" color="#fff" textAlign="center" mt={10}>
+          Brak pytań w tej kategorii!
+        </Typography>
+        <button onClick={handleGoBackWithLog} className="question-view__btn" style={{ margin: "20px auto", display: "block" }}>
+          Wróć
+        </button>
+      </div>
+    );
+  }
 
   const hasAnswers = Array.isArray(selectedQuestion.answers) && selectedQuestion.answers.length > 0;
-  const shouldShowGenericAnswers = hasAnswers;
+  const shouldShowGenericAnswers = hasAnswers && category?.type !== "forehead" && category?.type !== "auction" && category?.type !== "duel";
+  const shouldShowPlayerAnswers = showAnswer || appSettings?.alwaysShowPlayerAnswers;
+
+  const getWinner = () => {
+    const bids = Object.entries(auctionBids).filter(([, bid]) => bid > 0);
+    if (bids.length === 0) return null;
+    bids.sort((a, b) => b[1] - a[1]);
+    return bids[0];
+  };
+
+  const winner = getWinner();
 
   return (
     <>
-      {/* Powiadomienie Wiem Lepiej */}
+      <audio ref={audioRef} />
+      <audio ref={audioTickRef} src="/sounds/tick.mp3" />
+      <audio ref={audioRevealRef} src="/sounds/reveal.mp3" />
+
       {wiemLepiejNotify && (
-        <Box sx={{ 
-            position: 'fixed', 
-            top: '15%', 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
+        <div style={{
+            position: "fixed",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "linear-gradient(135deg, #a855f7, #ec4899)",
+            color: "#fff",
+            padding: "16px 32px",
+            borderRadius: "50px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
             zIndex: 10000,
-            background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-            color: '#fff',
-            px: 8,
-            py: 4,
-            borderRadius: '32px',
-            boxShadow: '0 30px 60px rgba(0,0,0,0.6), 0 0 30px rgba(168, 85, 247, 0.4)',
-            border: '3px solid rgba(255,255,255,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            animation: 'wiemLepiejSlideIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            boxShadow: "0 10px 40px rgba(168, 85, 247, 0.6)",
+            animation: "slideDown 0.5s ease-out",
+            border: "2px solid rgba(255,255,255,0.4)"
         }}>
-            <style>{`
-                @keyframes wiemLepiejSlideIn {
-                    from { transform: translate(-50%, -150px) scale(0.5); opacity: 0; }
-                    to { transform: translate(-50%, 0) scale(1); opacity: 1; }
-                }
-            `}</style>
-            <AutoAwesomeIcon sx={{ fontSize: '3.5rem', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.5))' }} />
-            <Box>
-                <Typography variant="h3" fontWeight="1000" sx={{ letterSpacing: '-2px', textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>{wiemLepiejNotify.toUpperCase()}</Typography>
-                <Typography variant="h5" fontWeight="800" sx={{ opacity: 0.9, textTransform: 'uppercase', letterSpacing: '2px' }}>używa "Wiem Lepiej!"</Typography>
-            </Box>
-        </Box>
+            <AutoAwesomeIcon sx={{ fontSize: "28px" }} />
+            <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: "-0.5px" }}>
+                {wiemLepiejNotify} używa &quot;WIEM LEPIEJ!&quot;
+            </Typography>
+        </div>
       )}
 
-      {/* Warstwa tła z pulsowaniem - dla Licytacji */}
-      {isUrgent && (
-        <div 
-          className={isTimeUp ? "" : (isDanger ? "pulse-danger" : "pulse-urgent")}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: isDanger 
-              ? "radial-gradient(circle at center, rgba(239, 68, 68, 0.6) 0%, rgba(239, 68, 68, 0.3) 50%, rgba(239, 68, 68, 0.2) 100%)" 
-              : "radial-gradient(circle at center, rgba(243, 156, 18, 0.5) 0%, rgba(243, 156, 18, 0.2) 50%, rgba(243, 156, 18, 0.05) 100%)",
-            pointerEvents: "none",
-            zIndex: 0,
-            opacity: isTimeUp ? 1 : undefined
-          }} 
-        />
-      )}
-
-      {/* Warstwa tła z losowym kolorem - dla pozostałych pytań */}
-      {!isUrgent && bgTheme && (
-        <div 
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: bgTheme,
-            pointerEvents: "none",
-            zIndex: 0,
-            opacity: 1
-          }} 
-        />
-      )}
-
-      <div className={`question-view ${shakeClass}`} style={{ position: "relative", zIndex: 10 }}>
-        <audio ref={audioTickRef} src="/sounds/tick.mp3" />
-        <audio ref={audioRevealRef} src="/sounds/reveal.mp3" />
-        <audio ref={audioRef} onEnded={() => setIsAudioPlaying(false)} />
-
+      <div 
+        className={`question-view ${category?.type === "auction" ? `auction-mode ${isCracked ? 'is-cracked' : ''}` : ''}`}
+        style={bgTheme ? {
+            backgroundImage: bgTheme,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "fixed",
+            transition: "all 0.5s ease"
+        } : {}}
+      >
         <div className="question-view__header">
-          <div style={{ fontSize: "18px" }}>Kategoria: <span style={{ color: "#fff", fontWeight: "700" }}>{category?.name}</span></div>
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            <div style={{ fontSize: "18px" }}>Pytanie: 1 / {category?.list?.length}</div>
-            
-            {/* Zunifikowane przyciski AUDIO */}
-            {selectedQuestion.sound && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                <div 
-                  className="question-view__audio-btn" 
-                  onClick={() => isAudioPlaying ? setIsAudioPlaying(false) : playSound(selectedQuestion.sound)}
-                  style={{ borderColor: isAudioPlaying ? "#f39c12" : "#2ecc71", color: isAudioPlaying ? "#f39c12" : "#2ecc71" }}
-                >
-                  {isAudioPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
-                </div>
-                <div style={{ display: "flex", gap: "4px" }}>
-                   <IconButton size="small" onClick={() => playSound(selectedQuestion.sound)} sx={{ color: "rgba(255,255,255,0.3)", p: 0.5 }}>
-                    <ReplayIcon fontSize="small" />
-                  </IconButton>
-                </div>
-              </div>
-            )}
-
-            {/* Licznik Licytacji */}
-            {category?.type === "auction" && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                <div 
-                  className="question-view__timer" 
-                  onClick={() => setIsTimerRunning(!isTimerRunning)}
-                  style={{ 
-                    borderColor: isTimerRunning ? (timer <= 6 ? "#ef4444" : "#f39c12") : (timer === 0 ? "#ef4444" : "#2ecc71"), 
-                    color: isTimerRunning ? (timer <= 6 ? "#ef4444" : "#f39c12") : (timer === 0 ? "#ef4444" : "#2ecc71"),
-                    transform: isUrgent && !isTimeUp ? "scale(1.1)" : "scale(1)",
-                    boxShadow: isUrgent ? `0 0 20px ${timer <= 5 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(243, 156, 18, 0.4)'}` : "none",
-                    opacity: isTimeUp ? 1 : (isTimerRunning ? 1 : 0.6)
-                  }}
-                >
-                  {timer}
-                </div>
-                <div style={{ display: "flex", gap: "4px" }}>
-                  <IconButton size="small" onClick={() => setIsTimerRunning(!isTimerRunning)} sx={{ color: isTimerRunning ? "#f39c12" : "#2ecc71", p: 0.5 }}>
-                    {isTimerRunning ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
-                  </IconButton>
-                  <IconButton size="small" onClick={() => { setTimer(questionTimerSeconds); setIsTimerRunning(false); }} sx={{ color: "rgba(255,255,255,0.3)", p: 0.5 }}>
-                    <ReplayIcon fontSize="small" />
-                  </IconButton>
-                </div>
-              </div>
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Typography variant="h6" color="rgba(255,255,255,0.4)" fontWeight="800">
+              {category.name?.toUpperCase()}
+            </Typography>
+            <Typography variant="h6" color="#2ecc71" fontWeight="800">
+              #{selectedQuestion.no}
+            </Typography>
           </div>
+          {shouldShowTimer && (
+            <div 
+              className={`question-view__timer ${isUrgent ? 'urgent' : ''} ${isDanger ? 'danger' : ''}`}
+              onClick={() => {
+                if (timer === 0) setTimer(questionTimerSeconds);
+                else setIsTimerRunning(!isTimerRunning);
+              }}
+              style={{
+                cursor: "pointer",
+                border: isDanger ? "4px solid #ef4444" : isUrgent ? "4px solid #f59e0b" : "4px solid #2ecc71",
+                color: isDanger ? "#ef4444" : isUrgent ? "#f59e0b" : "#2ecc71",
+                animation: isDanger ? "pulse 0.5s infinite" : "none"
+              }}
+            >
+              {timer}
+            </div>
+          )}
+          {selectedQuestion.sound && (
+            <button 
+              className="question-view__audio-btn" 
+              onClick={() => {
+                if (isAudioPlaying) setIsAudioPlaying(false);
+                else playSound(selectedQuestion.sound);
+              }}
+            >
+              {isAudioPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
+            </button>
+          )}
+          {questionContext && (
+            <button
+              type="button"
+              onClick={() => setIsContextOpen((prev) => !prev)}
+              style={{
+                border: "1px solid rgba(192, 132, 252, 0.7)",
+                background: isContextOpen ? "rgba(192, 132, 252, 0.2)" : "rgba(255,255,255,0.05)",
+                color: "#f5d0fe",
+                borderRadius: "999px",
+                padding: "8px 16px",
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                fontSize: "0.72rem"
+              }}
+            >
+              {isContextOpen ? "Ukryj kontekst" : "Pokaż kontekst"}
+            </button>
+          )}
         </div>
 
-        {category?.type === "auction" && (
-          <div style={{ width: "100%", height: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "6px", marginBottom: "20px", overflow: "hidden" }}>
-            <div style={{ width: `${(timer / questionTimerSeconds) * 100}%`, height: "100%", background: timer <= 10 ? (timer <= 5 ? "#ef4444" : "#f39c12") : "#2ecc71", transition: "width 1s linear, background 0.3s ease" }} />
-          </div>
-        )}
-
         <div className="question-view__content">
+          {shouldShowTimer && isTimerRunning && (
+            <Box sx={{ width: "100%", maxWidth: "800px", height: "8px", background: "rgba(255,255,255,0.1)", borderRadius: "4px", overflow: "hidden", mb: 3 }}>
+                <Box sx={{ 
+                    width: `${(timer / questionTimerSeconds) * 100}%`, 
+                    height: "100%", 
+                    background: isDanger ? "#ef4444" : isUrgent ? "#f59e0b" : (category?.type === "auction" ? "#eab308" : "#2ecc71"), 
+                    transition: "width 1s linear, background-color 0.3s" 
+                }} />
+            </Box>
+          )}
+
           {category?.type === "forehead" && !showAnswer && (
-            <div style={{ 
-              width: "100%", 
-              textAlign: "center", 
-              padding: "40px 20px", 
-              background: "rgba(15, 23, 42, 0.9)", 
-              backdropFilter: "blur(10px)",
-              border: "4px solid #ef4444", 
-              borderRadius: "32px", 
-              color: "#fff", 
-              marginBottom: "30px",
-              boxShadow: "0 0 50px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.2)",
-              animation: "pulseBorder 2s infinite ease-in-out"
-            }}>
+            <div style={{ textAlign: "center", marginBottom: "30px", animation: "pulse 1.5s infinite" }}>
               <style>
                 {`
-                  @keyframes pulseBorder {
-                    0% { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.3); }
-                    50% { border-color: #f87171; box-shadow: 0 0 60px rgba(239, 68, 68, 0.5); }
-                    100% { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.3); }
+                  @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.9; }
+                    50% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 20px rgba(239, 68, 68, 0.8); }
+                    100% { transform: scale(1); opacity: 0.9; }
                   }
                 `}
               </style>
@@ -445,10 +438,10 @@ const Question = ({ category, handleGoBack }) => {
                     </Box>
 
                     <button 
-                        onClick={() => setAuctionStage(prev => (prev < 3 ? prev + 1 : 0))}
+                        onClick={() => advanceAuctionStageGame()}
                         style={{ 
                             background: auctionStage > 0 ? "#eab308" : "rgba(234, 179, 8, 0.2)", 
-                            border: "none", 
+                            border: "2px solid #eab308", 
                             color: auctionStage > 0 ? "#000" : "#eab308", 
                             padding: "14px 40px", 
                             borderRadius: "16px", 
@@ -456,8 +449,7 @@ const Question = ({ category, handleGoBack }) => {
                             fontSize: "1.1rem",
                             cursor: "pointer",
                             transition: "all 0.2s",
-                            boxShadow: auctionStage > 0 ? "0 0 20px rgba(234, 179, 8, 0.3)" : "none",
-                            border: "2px solid #eab308"
+                            boxShadow: auctionStage > 0 ? "0 0 20px rgba(234, 179, 8, 0.3)" : "none"
                         }}
                     >
                         {auctionStage === 0 && "PO RAZ PIERWSZY..."}
@@ -483,16 +475,13 @@ const Question = ({ category, handleGoBack }) => {
                             </Typography>
                             <Box sx={{ display: "flex", gap: 1 }}>
                                 <button 
-                                    onClick={() => {
-                                        setAuctionBids(prev => ({ ...prev, [player.name]: (prev[player.name] || 0) + 1 }));
-                                        setAuctionStage(0);
-                                    }}
+                                    onClick={() => changeAuctionBid(player.name, 1)}
                                     style={{ flex: 1, background: "rgba(234, 179, 8, 0.2)", border: "none", color: "#eab308", padding: "8px", borderRadius: "10px", fontWeight: "900", cursor: "pointer" }}
                                 >
                                     +1
                                 </button>
                                 <button 
-                                    onClick={() => setAuctionBids(prev => ({ ...prev, [player.name]: Math.max(0, (prev[player.name] || 0) - 1) }))}
+                                    onClick={() => changeAuctionBid(player.name, -1)}
                                     style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.4)", padding: "8px", borderRadius: "10px", fontWeight: "900", cursor: "pointer" }}
                                 >
                                     -1
@@ -526,7 +515,7 @@ const Question = ({ category, handleGoBack }) => {
                             <Typography variant="h4" sx={{ fontWeight: 900, color: "#fff" }}>BRAK OFERT</Typography>
                         )}
                         <button 
-                            onClick={() => setAuctionStage(0)}
+                            onClick={() => advanceAuctionStageGame()}
                             style={{ marginLeft: "32px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.75rem" }}
                         >
                             Resetuj etap
@@ -539,27 +528,124 @@ const Question = ({ category, handleGoBack }) => {
 
           {selectedQuestion.question && (
             <div className={`question-box-container ${isCracked ? 'is-cracked' : ''} ${crackType}`}>
-              <div className="question-view__box original">{selectedQuestion.question}</div>
+              <div 
+                className="question-view__box original"
+                style={{
+                  fontSize: getQuestionFontSize(selectedQuestion.question),
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                  lineHeight: 1.2
+                }}
+              >
+                {selectedQuestion.question}
+              </div>
               {isCracked && (
                 <>
-                  <div className="question-view__box part-1">{selectedQuestion.question}</div>
-                  <div className="question-view__box part-2">{selectedQuestion.question}</div>
+                  <div 
+                    className="question-view__box part-1"
+                    style={{
+                      fontSize: getQuestionFontSize(selectedQuestion.question),
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {selectedQuestion.question}
+                  </div>
+                  <div 
+                    className="question-view__box part-2"
+                    style={{
+                      fontSize: getQuestionFontSize(selectedQuestion.question),
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {selectedQuestion.question}
+                  </div>
                 </>
               )}
             </div>
           )}
 
-          {(category?.type === "illustrated" || category?.type === "forehead") && selectedQuestion.image && (
-            <div style={{ textAlign: "center", width: "100%" }}>
+          {questionContext && isContextOpen && (
+            <Paper sx={{
+              p: 2.5,
+              mt: 2,
+              background: "rgba(168, 85, 247, 0.08)",
+              border: "1px solid rgba(168, 85, 247, 0.35)",
+              borderRadius: "18px",
+              width: "100%",
+              maxWidth: "900px",
+              mx: "auto"
+            }}>
+              <Typography variant="overline" sx={{ color: "#c084fc", fontWeight: 900, letterSpacing: "2px", display: "block", mb: 1 }}>
+                KONTEKST / CIEKAWOSTKA
+              </Typography>
+              <Typography sx={{ color: "rgba(255,255,255,0.9)", fontSize: "1rem", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                {questionContext}
+              </Typography>
+            </Paper>
+          )}
+
+          {(category?.type === "illustrated" || category?.type === "forehead" || category?.type === "openAnswer") && selectedQuestion.image && (
+            <div style={{ textAlign: "center", width: "100%", marginBottom: "20px" }}>
               <img src={getAssetPath(selectedQuestion.image)} alt="Pytanie" style={{ maxWidth: "100%", maxHeight: hasAnswers ? "30vh" : "45vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer", objectFit: "contain" }} onClick={() => setEnlargedImage(selectedQuestion.image)} />
             </div>
           )}
 
-          {category?.type === "album" && albumImages.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "30px" }}>
-              {hasMultipleImages && <IconButton onClick={() => setCurrentImageIndex(p => (p === 0 ? albumImages.length - 1 : p - 1))} sx={{ color: "#fff", background: "rgba(255,255,255,0.05)", p: 2 }}><ChevronLeftIcon fontSize="large" /></IconButton>}
-              <img src={getAssetPath(albumImages[currentImageIndex])} alt="Album" style={{ maxWidth: "100%", maxHeight: "50vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer" }} onClick={() => setEnlargedImage(albumImages[currentImageIndex])} />
-              {hasMultipleImages && <IconButton onClick={() => setCurrentImageIndex(p => (p === albumImages.length - 1 ? 0 : p + 1))} sx={{ color: "#fff", background: "rgba(255,255,255,0.05)", p: 2 }}><ChevronRightIcon fontSize="large" /></IconButton>}
+          {category?.type === "album" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", width: "100%" }}>
+              {showAnswer && albumAnswerImage ? (
+                <Paper sx={{ 
+                  p: 3, 
+                  textAlign: "center", 
+                  background: "rgba(46, 204, 113, 0.1)", 
+                  border: "3px solid #2ecc71", 
+                  borderRadius: "24px",
+                  boxShadow: "0 0 35px rgba(46, 204, 113, 0.35)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center"
+                }}>
+                  <Typography variant="overline" sx={{ color: "#2ecc71", fontWeight: "900", letterSpacing: "2px", fontSize: "14px", mb: 1.5 }}>
+                    ROZWIĄZANIE / ODPOWIEDŹ
+                  </Typography>
+                  <img 
+                    src={getAssetPath(albumAnswerImage)} 
+                    alt="Rozwiązanie" 
+                    style={{ maxWidth: "100%", maxHeight: "50vh", borderRadius: "16px", cursor: "pointer", objectFit: "contain" }} 
+                    onClick={() => setEnlargedImage(albumAnswerImage)} 
+                  />
+                </Paper>
+              ) : (
+                albumRiddleImages.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "24px" }}>
+                    {hasMultipleRiddleImages && (
+                      <IconButton 
+                        onClick={() => setCurrentImageIndex(p => (p === 0 ? albumRiddleImages.length - 1 : p - 1))} 
+                        sx={{ color: "#fff", background: "rgba(255,255,255,0.08)", p: 2, '&:hover': { background: "rgba(255,255,255,0.2)" } }}
+                      >
+                        <ChevronLeftIcon fontSize="large" />
+                      </IconButton>
+                    )}
+                    <img 
+                      src={getAssetPath(albumRiddleImages[currentImageIndex] || albumRiddleImages[0])} 
+                      alt="Album" 
+                      style={{ maxWidth: "100%", maxHeight: "50vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer", objectFit: "contain" }} 
+                      onClick={() => setEnlargedImage(albumRiddleImages[currentImageIndex] || albumRiddleImages[0])} 
+                    />
+                    {hasMultipleRiddleImages && (
+                      <IconButton 
+                        onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(p => (p === albumRiddleImages.length - 1 ? 0 : p + 1)); }} 
+                        sx={{ color: "#fff", background: "rgba(255,255,255,0.08)", p: 2, '&:hover': { background: "rgba(255,255,255,0.2)" } }}
+                      >
+                        <ChevronRightIcon fontSize="large" />
+                      </IconButton>
+                    )}
+                  </div>
+                )
+              )}
             </div>
           )}
 
@@ -572,12 +658,16 @@ const Question = ({ category, handleGoBack }) => {
                 return (
                   <div 
                     key={index} className={`question-view__answer ${isCorrect ? 'question-view__answer--correct' : ''}`}
-                    onClick={() => { if(!showAnswer) { setSelectedAnswerIndex(index); if(answer === selectedQuestion.correctAnswer?.[0]) setShowAnswer(true); } }}
+                    onClick={() => { if (!showAnswer) setSelectedAnswerIndex(index); }}
                     style={{ 
                       border: isSelected ? "3px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.05)", 
                       background: isWrong ? "rgba(239, 68, 68, 0.1)" : isCorrect ? "rgba(46, 204, 113, 0.1)" : isSelected ? "rgba(59, 130, 246, 0.1)" : "rgba(30, 41, 59, 0.5)",
                       minHeight: (hasAnswers && selectedQuestion.image) ? "60px" : "80px",
-                      padding: (hasAnswers && selectedQuestion.image) ? "12px 24px" : "16px 32px"
+                      padding: (hasAnswers && selectedQuestion.image) ? "12px 20px" : "16px 24px",
+                      fontSize: getAnswerFontSize(answer),
+                      lineHeight: 1.35,
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere"
                     }}
                   >
                     <div className="question-view__answer-letter">{String.fromCharCode(65 + index)}</div>
@@ -588,17 +678,129 @@ const Question = ({ category, handleGoBack }) => {
             </div>
           )}
 
-          {showAnswer && !shouldShowGenericAnswers && selectedQuestion.correctAnswer?.[0] && (
-            <Paper sx={{ p: 4, textAlign: "center", background: "rgba(46, 204, 113, 0.1)", border: "2px solid #2ecc71", borderRadius: "20px" }}>
-              <Typography variant="h3" color="#2ecc71" fontWeight="800">{selectedQuestion.correctAnswer[0]}</Typography>
+          {showAnswer && !shouldShowGenericAnswers && category?.type !== "album" && (selectedQuestion.correctAnswer?.[0] || selectedQuestion.correctAnswerImage) && (
+            <Paper sx={{ 
+              p: 4, 
+              textAlign: "center", 
+              background: "rgba(46, 204, 113, 0.1)", 
+              border: "2px solid #2ecc71", 
+              borderRadius: "20px",
+              mb: 4,
+              width: "100%",
+              maxWidth: "800px",
+              margin: "0 auto 30px auto"
+            }}>
+              <Typography variant="overline" sx={{ color: "#2ecc71", fontWeight: "800", letterSpacing: "2px" }}>POPRAWNA ODPOWIEDŹ</Typography>
+              {selectedQuestion.correctAnswer?.[0] && (
+                <Typography 
+                  variant="h3" 
+                  color="#fff" 
+                  fontWeight="800" 
+                  sx={{ 
+                    mt: 1,
+                    fontSize: (selectedQuestion.correctAnswer[0]?.length > 100) 
+                      ? "1.4rem" 
+                      : (selectedQuestion.correctAnswer[0]?.length > 50) 
+                        ? "1.8rem" 
+                        : "2.5rem",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere"
+                  }}
+                >
+                  {selectedQuestion.correctAnswer[0]}
+                </Typography>
+              )}
+              {selectedQuestion.correctAnswerImage && (
+                <Box sx={{ mt: 2 }}>
+                  <img 
+                    src={getAssetPath(selectedQuestion.correctAnswerImage)} 
+                    alt="Poprawna odpowiedź" 
+                    style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", border: "2px solid rgba(255,255,255,0.1)" }} 
+                  />
+                </Box>
+              )}
             </Paper>
+          )}
+
+          {category?.type === "openAnswer" && (
+            <Box sx={{ width: "100%", mt: 4 }}>
+               <Typography variant="h5" fontWeight="900" sx={{ mb: 3, textAlign: "center", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "2px" }}>
+                Odpowiedzi graczy:
+              </Typography>
+              <Box sx={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+                gap: 3,
+                width: "100%"
+              }}>
+                {gameSettings.players.map((player, idx) => {
+                  const playerAns = Object.entries(playerAnswers).find(([name]) => name.toLowerCase() === player.name.toLowerCase())?.[1];
+                  return (
+                    <Paper key={idx} sx={{ 
+                      p: 2, 
+                      background: playerAns?.isConfirmed ? "rgba(46, 204, 113, 0.05)" : "rgba(255,255,255,0.02)",
+                      border: playerAns?.isConfirmed ? "2px solid #2ecc71" : "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: "20px",
+                      position: "relative",
+                      overflow: "hidden",
+                      minHeight: "120px",
+                      display: "flex",
+                      flexDirection: "column"
+                    }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                        <Typography variant="subtitle1" fontWeight="900" sx={{ color: playerAns?.isConfirmed ? "#2ecc71" : "#fff", opacity: playerAns?.isConfirmed ? 1 : 0.6 }}>
+                          {player.name}
+                        </Typography>
+                        {playerAns?.isConfirmed && (
+                          <Box sx={{ background: "#2ecc71", color: "#000", px: 1, py: 0.5, borderRadius: "6px", fontSize: "10px", fontWeight: "900" }}>ZATWIERDZONE</Box>
+                        )}
+                      </Box>
+                      
+                      <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {playerAns?.answer ? (
+                          shouldShowPlayerAnswers ? (
+                            (playerAns.answer.startsWith("data:image") || playerAns.answer.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || playerAns.answer.startsWith("http")) ? (
+                              <img 
+                                  src={playerAns.answer.startsWith("data:image") ? playerAns.answer : getAssetPath(playerAns.answer)} 
+                                  alt={`Odpowiedź ${player.name}`} 
+                                  style={{ maxWidth: "100%", maxHeight: "150px", borderRadius: "8px", objectFit: "contain", cursor: "pointer" }} 
+                                  onClick={() => setEnlargedImage(playerAns.answer)}
+                              />
+                            ) : (
+                              <Typography 
+                                variant="h6" 
+                                fontWeight="700" 
+                                sx={{ 
+                                  textAlign: "center", 
+                                  wordBreak: "break-word", 
+                                  overflowWrap: "anywhere",
+                                  fontSize: (playerAns.answer?.length > 80) ? "0.95rem" : (playerAns.answer?.length > 40) ? "1.1rem" : "1.25rem",
+                                  cursor: "pointer" 
+                                }}
+                                onClick={() => setEnlargedImage(null)}
+                              >
+                                {playerAns.answer}
+                              </Typography>
+                            )
+                          ) : (
+                            <Typography variant="body2" sx={{ opacity: 0.5, fontWeight: "800", color: "#f39c12" }}>ODPOWIEDŹ UKRYTA</Typography>
+                          )
+                        ) : (
+                          <Typography variant="body2" sx={{ opacity: 0.3, fontStyle: "italic" }}>Oczekiwanie...</Typography>
+                        )}
+                      </Box>
+                    </Paper>
+                  );
+                })}
+              </Box>
+            </Box>
           )}
         </div>
 
         <div className="question-view__footer">
           <button onClick={handleGoBackWithLog} style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#fff", padding: "16px 32px", borderRadius: "12px", cursor: "pointer", fontWeight: "700" }}>← Wróć (Esc)</button>
           <div style={{ display: "flex", gap: "16px" }}>
-            <button disabled={!hasCorrectAnswer} onClick={handleShowAnswerToggle} style={{ background: hasCorrectAnswer ? (showAnswer ? "#ef4444" : "#2ecc71") : "#4b5563", border: "none", color: "#fff", padding: "16px 40px", borderRadius: "12px", cursor: hasCorrectAnswer ? "pointer" : "not-allowed", fontWeight: "800", fontSize: "16px" }}>
+            <button disabled={!shouldShowAnswerButton} onClick={handleShowAnswerToggle} style={{ background: shouldShowAnswerButton ? (showAnswer ? "#ef4444" : "#2ecc71") : "#4b5563", border: "none", color: "#fff", padding: "16px 40px", borderRadius: "12px", cursor: shouldShowAnswerButton ? "pointer" : "not-allowed", fontWeight: "800", fontSize: "16px" }}>
               {showAnswer ? "UKRYJ" : "POKAŻ ODPOWIEDŹ"}
             </button>
             <button onClick={handleGoBackAndUpdate} style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#fff", padding: "16px 32px", borderRadius: "12px", cursor: "pointer", fontWeight: "700" }}>NASTĘPNE →</button>
@@ -608,9 +810,73 @@ const Question = ({ category, handleGoBack }) => {
 
       <Modal open={!!enlargedImage} onClose={() => setEnlargedImage(null)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
         <Paper sx={{ p: 1, background: 'transparent !important', border: 'none !important', boxShadow: 'none !important', outline: 'none', position: 'relative' }}>
-          {hasMultipleImages && <IconButton onClick={(e) => { e.stopPropagation(); const n = currentImageIndex === 0 ? albumImages.length - 1 : currentImageIndex - 1; setCurrentImageIndex(n); setEnlargedImage(albumImages[n]); }} sx={{ position: 'absolute', left: '-60px', top: '50%', color: '#fff', background: 'rgba(0,0,0,0.5)' }}><ChevronLeftIcon fontSize="large" /></IconButton>}
-          <img src={getAssetPath(enlargedImage)} alt="Zoom" style={{ maxWidth: '100%', maxHeight: '95vh', borderRadius: '8px' }} onClick={() => setEnlargedImage(null)} />
-          {hasMultipleImages && <IconButton onClick={(e) => { e.stopPropagation(); const n = currentImageIndex === albumImages.length - 1 ? 0 : currentImageIndex + 1; setCurrentImageIndex(n); setEnlargedImage(albumImages[n]); }} sx={{ position: 'absolute', right: '-60px', top: '50%', color: '#fff', background: 'rgba(0,0,0,0.5)' }}><ChevronRightIcon fontSize="large" /></IconButton>}
+          {category?.type === "album" && hasMultipleRiddleImages && !showAnswer && (
+            <IconButton 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                const n = currentImageIndex === 0 ? albumRiddleImages.length - 1 : currentImageIndex - 1; 
+                setCurrentImageIndex(n); 
+                setEnlargedImage(albumRiddleImages[n]); 
+              }} 
+              sx={{ position: 'absolute', left: '-60px', top: '50%', color: '#fff', background: 'rgba(0,0,0,0.5)', '&:hover': { background: 'rgba(0,0,0,0.8)' } }}
+            >
+              <ChevronLeftIcon fontSize="large" />
+            </IconButton>
+          )}
+          <img 
+            src={getAssetPath(enlargedImage)} 
+            alt="Zoom" 
+            style={{ 
+              maxWidth: '100%', 
+              maxHeight: '92vh', 
+              borderRadius: '12px',
+              border: (category?.type === "album" && showAnswer) ? "3px solid #2ecc71" : "none",
+              boxShadow: (category?.type === "album" && showAnswer) ? "0 0 35px rgba(46, 204, 113, 0.5)" : "0 20px 60px rgba(0,0,0,0.8)"
+            }} 
+            onClick={() => setEnlargedImage(null)} 
+          />
+          {category?.type === "album" && hasMultipleRiddleImages && !showAnswer && (
+            <IconButton 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                const n = currentImageIndex === albumRiddleImages.length - 1 ? 0 : currentImageIndex + 1; 
+                setCurrentImageIndex(n); 
+                setEnlargedImage(albumRiddleImages[n]); 
+              }} 
+              sx={{ position: 'absolute', right: '-60px', top: '50%', color: '#fff', background: 'rgba(0,0,0,0.5)', '&:hover': { background: 'rgba(0,0,0,0.8)' } }}
+            >
+              <ChevronRightIcon fontSize="large" />
+            </IconButton>
+          )}
+          {category?.type === "album" && albumAnswerImage && (
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleShowAnswerToggle();
+              }}
+              style={{
+                position: 'absolute',
+                bottom: '16px',
+                right: '16px',
+                background: showAnswer ? '#ef4444' : '#2ecc71',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
+                zIndex: 10002,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {showAnswer ? "UKRYJ ODPOWIEDŹ" : "POKAŻ ODPOWIEDŹ"}
+            </button>
+          )}
         </Paper>
       </Modal>
     </>
@@ -619,7 +885,6 @@ const Question = ({ category, handleGoBack }) => {
 
 Question.propTypes = {
   category: PropTypes.object.isRequired,
-  handleGoBack: PropTypes.func.isRequired,
 };
 
 export default Question;

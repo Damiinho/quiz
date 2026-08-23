@@ -1,74 +1,61 @@
-import { createContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { createContext, useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { defaultQuizzes } from "../data/defaultQuizzes";
-import {
-  clearSavedGameState,
-  loadCustomQuizzes,
-  loadGameState,
-  saveCustomQuizzes,
-  saveGameState,
-  readJson,
-  writeJson,
+import { 
+  syncStateToCloud, 
+  listenForEvents 
+} from "../utils/cloudSync";
+
+import { 
+  saveGameState, 
+  loadGameState, 
+  saveCustomQuizzes, 
+  loadCustomQuizzes 
 } from "../utils/quizStorage";
-import { syncStateToCloud, listenForEvents, clearBuzzers } from "../utils/cloudSync";
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const navigate = useNavigate();
-  const savedGameState = loadGameState();
-  const [isQuestionActive, setIsQuestionActive] = useState(
-    savedGameState?.isQuestionActive || false
-  );
-  const [selectedCategoryName, setSelectedCategoryName] = useState(
-    savedGameState?.selectedCategoryName || null
-  );
-  const [editingQuiz, setEditingQuiz] = useState(null);
-  const [customQuizzes, setCustomQuizzes] = useState(loadCustomQuizzes);
-  const [gameSettings, setGameSettings] = useState(
-    savedGameState?.gameSettings || {
-      players: [],
-      quiz: {},
-      wiemLepiejLimit: 1
-    }
-  );
-  const [scoreHistory, setScoreHistory] = useState(savedGameState?.scoreHistory || []);
-  const [quizLog, setQuizLog] = useState(savedGameState?.quizLog || []);
-  const [undoPointer, setUndoPointer] = useState(savedGameState?.quizLog?.length ? savedGameState.quizLog.length - 1 : -1);
-  const [gameCode, setGameCode] = useState(savedGameState?.gameCode || null);
-  const [buzzerQueue, setBuzzerQueue] = useState([]);
-  const [auctionBids, setAuctionBids] = useState({}); // { playerName: amount }
-  const [auctionStage, setAuctionStage] = useState(0); // 0: brak, 1: po raz pierwszy, 2: po raz drugi, 3: po raz trzeci
 
-  // Globalne stany aktywnego pytania dla undo/redo
+  // Core State
+  const [customQuizzes, setCustomQuizzes] = useState(loadCustomQuizzes());
+  const quizList = useMemo(() => [...defaultQuizzes, ...customQuizzes], [customQuizzes]);
+  const [editingQuiz, setEditingQuiz] = useState(null);
+  
+  const savedState = loadGameState() || {};
+  const [gameSettings, setGameSettings] = useState(savedState.gameSettings || {
+    players: [],
+    quiz: null,
+    wiemLepiejLimit: 1
+  });
+  const [scoreHistory, setScoreHistory] = useState(savedState.scoreHistory || []);
+  const [quizLog, setQuizLog] = useState(savedState.quizLog || []);
+  const [gameCode, setGameCode] = useState(savedState.gameCode || null);
+  const [isQuestionActive, setIsQuestionActive] = useState(savedState.isQuestionActive || false);
+  const [selectedCategoryName, setSelectedCategoryName] = useState(savedState.selectedCategoryName || null);
+  const [undoPointer, setUndoPointer] = useState(savedState.undoPointer ?? (savedState.quizLog?.length ? savedState.quizLog.length - 1 : -1));
+
+  // Volatile State
+  const [buzzerQueue, setBuzzerQueue] = useState([]);
+  const [auctionBids, setAuctionBids] = useState({});
+  const [playerAnswers, setPlayerAnswers] = useState({});
+  const [auctionStage, setAuctionStage] = useState(0);
+  const [isAuctionTimerRunning, setIsAuctionTimerRunning] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isResultsPinned, setIsResultsPinned] = useState(false);
   const [isLogsPinned, setIsLogsPinned] = useState(false);
-  const [isAuctionTimerRunning, setIsAuctionTimerRunning] = useState(false);
 
-  // Ustawienia wizualne
-  const [appSettings, setAppSettings] = useState(
-    readJson("super-zgadywanka:app-settings", {
-      themeMode: "colorful", 
-      fontSize: 100, 
-      focusMode: false,
-      soundEffects: true,
-      boardScale: "normal",
-      logVisibility: "normal",
-      scoreFormat: "total",
-    })
-  );
-
-  useEffect(() => {
-    writeJson("super-zgadywanka:app-settings", appSettings);
-    document.documentElement.style.setProperty('--app-font-size', `${(appSettings.fontSize / 100) * 16}px`);
-  }, [appSettings]);
-
-  const removeCustomQuiz = useCallback((quizName) => {
-    setCustomQuizzes((prev) => prev.filter(q => q.name !== quizName));
-  }, []);
+  const [appSettings, setAppSettings] = useState({
+    themeMode: "colorful", // colorful | simple
+    fontSize: 100,
+    soundEffects: true,
+    focusMode: false,
+    boardScale: "normal", // compact | normal | large | extraLarge
+    logVisibility: "normal" // normal | hidden
+  });
 
   const generateGameCode = useCallback(() => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -76,208 +63,9 @@ export const AppProvider = ({ children }) => {
     return code;
   }, []);
 
-  // Ref to track undoPointer without triggering re-renders of stable functions
-  const undoPointerRef = useRef(undoPointer);
-  useEffect(() => {
-    undoPointerRef.current = undoPointer;
-  }, [undoPointer]);
-
-  const addToLog = useCallback((action) => {
-    setQuizLog((prev) => {
-      const baseLog = prev.slice(0, undoPointerRef.current + 1);
-      const newLog = [
-        ...baseLog,
-        { ...action, id: Date.now(), timestamp: new Date().toLocaleTimeString(), undone: false }
-      ];
-      return newLog.slice(-100);
-    });
-    setUndoPointer((prev) => (prev < 99 ? prev + 1 : 99));
-  }, []); // Stable!
-
-  const toggleWiemLepiej = useCallback((playerIndex) => {
-    setGameSettings((prev) => {
-      const updatedPlayers = [...prev.players];
-      const player = updatedPlayers[playerIndex];
-      if (!player) return prev;
-      
-      const nextUsed = (player.wiemLepiejUsed || 0) > 0 ? 0 : 1;
-      updatedPlayers[playerIndex] = { ...player, wiemLepiejUsed: nextUsed };
-
-      // We handle logging in a separate effect or after update
-      return { ...prev, players: updatedPlayers };
-    });
+  const toggleWiemLepiej = useCallback(() => {
+    setGameSettings(prev => ({ ...prev, wiemLepiejLimit: prev.wiemLepiejLimit > 0 ? 0 : 1 }));
   }, []);
-
-  // Sync toggleWiemLepiej with logs
-  const prevGameSettingsRef = useRef(gameSettings);
-  useEffect(() => {
-    gameSettings.players.forEach((player, idx) => {
-        const prevPlayer = prevGameSettingsRef.current.players?.[idx];
-        if (player.wiemLepiejUsed !== prevPlayer?.wiemLepiejUsed) {
-            addToLog({
-                type: "WIEM_LEPIEJ_USE",
-                playerIndex: idx,
-                playerName: player.name,
-                description: player.wiemLepiejUsed > 0 ? `${player.name} używa "Wiem Lepiej!"` : `Cofnięto użycie "Wiem Lepiej!" dla ${player.name}`
-            });
-        }
-    });
-    prevGameSettingsRef.current = gameSettings;
-  }, [gameSettings, addToLog]);
-
-  const startNewQuiz = useCallback((quiz) => {
-    setQuizLog([]);
-    setUndoPointer(-1);
-    setGameSettings(prev => ({
-      ...prev,
-      quiz: quiz,
-      players: prev.players.map(p => ({ ...p, points: 0, wiemLepiejUsed: 0 })),
-      wiemLepiejLimit: prev.wiemLepiejLimit || 1
-    }));
-    
-    setGameCode(null);
-
-    const startAction = {
-      type: "START_QUIZ",
-      description: `Rozpoczęto quiz: ${quiz.name}`,
-      id: Date.now(),
-      timestamp: new Date().toLocaleTimeString(),
-      undone: false
-    };
-    setQuizLog([startAction]);
-    setUndoPointer(0);
-  }, []);
-
-  const performAction = useCallback((action, isUndo) => {
-    if (action.type === "POINTS_CHANGE") {
-      setGameSettings((prev) => {
-        const updatedPlayers = [...prev.players];
-        if (updatedPlayers[action.playerIndex]) {
-            updatedPlayers[action.playerIndex].points += (isUndo ? -action.change : action.change);
-        }
-        return { ...prev, players: updatedPlayers };
-      });
-    } else if (action.type === "WIEM_LEPIEJ_USE") {
-      setGameSettings((prev) => {
-        const updatedPlayers = [...prev.players];
-        if (updatedPlayers[action.playerIndex]) {
-          updatedPlayers[action.playerIndex].wiemLepiejUsed = (updatedPlayers[action.playerIndex].wiemLepiejUsed || 0) + (isUndo ? -1 : 1);
-        }
-        return { ...prev, players: updatedPlayers };
-      });
-    } else if (action.type === "QUESTION_DONE") {
-      setGameSettings((prev) => {
-        const newQuiz = {
-          ...prev.quiz,
-          categories: prev.quiz.categories?.map(cat => {
-            if (cat.name !== action.categoryName) return cat;
-            return {
-              ...cat,
-              list: cat.list?.map(q => {
-                if (q.no === action.questionNo && q.question === action.questionText) {
-                  return { ...q, done: !isUndo };
-                }
-                return q;
-              })
-            };
-          })
-        };
-        
-        if (isUndo) {
-          setSelectedCategoryName(action.categoryName);
-          setIsQuestionActive(true);
-        } else {
-          setIsQuestionActive(false);
-          setSelectedCategoryName(null);
-        }
-        
-        return { ...prev, quiz: newQuiz };
-      });
-    } else if (action.type === "QUESTION_OPENED" || action.type === "QUESTION_CLOSED") {
-      const shouldBeActive = (action.type === "QUESTION_OPENED" && !isUndo) || (action.type === "QUESTION_CLOSED" && isUndo);
-      if (shouldBeActive) {
-        setSelectedCategoryName(action.categoryName);
-        setIsQuestionActive(true);
-      } else {
-        setIsQuestionActive(false);
-        setSelectedCategoryName(null);
-      }
-    } else if (action.type === "SHOW_ANSWER") {
-      setShowAnswer(!isUndo);
-    } else if (action.type === "SOUND_PLAY") {
-      setIsAudioPlaying(!isUndo);
-    } else if (action.type === "START_QUIZ") {
-      navigate(isUndo ? "/kategorie" : "/gracze");
-    }
-  }, [navigate]);
-
-  const undoAction = useCallback(() => {
-    if (undoPointer < 0) return;
-    const action = quizLog[undoPointer];
-    performAction(action, true);
-    setQuizLog(prev => prev.map((item, i) => i === undoPointer ? { ...item, undone: true } : item));
-    setUndoPointer(prev => prev - 1);
-  }, [undoPointer, quizLog, performAction]);
-
-  const redoAction = useCallback(() => {
-    if (undoPointer >= quizLog.length - 1) return;
-    const nextPointer = undoPointer + 1;
-    const action = quizLog[nextPointer];
-    performAction(action, false);
-    setQuizLog(prev => prev.map((item, i) => i === nextPointer ? { ...item, undone: false } : item));
-    setUndoPointer(nextPointer);
-  }, [undoPointer, quizLog, performAction]);
-
-  const jumpToLogIndex = useCallback((targetIndex) => {
-    if (targetIndex === undoPointer) return;
-
-    if (targetIndex < undoPointer) {
-      for (let i = undoPointer; i > targetIndex; i--) {
-        performAction(quizLog[i], true);
-      }
-      setQuizLog(prev => prev.map((item, i) => (i > targetIndex ? { ...item, undone: true } : { ...item, undone: false })));
-    } else {
-      for (let i = undoPointer + 1; i <= targetIndex; i++) {
-        performAction(quizLog[i], false);
-      }
-      setQuizLog(prev => prev.map((item, i) => (i <= targetIndex ? { ...item, undone: false } : item)));
-    }
-    setUndoPointer(targetIndex);
-  }, [undoPointer, quizLog, performAction]);
-
-  const quizList = useMemo(() => [...defaultQuizzes, ...customQuizzes], [customQuizzes]);
-
-  const addCustomQuiz = useCallback((quiz) => {
-    setCustomQuizzes((prevQuizzes) => [...prevQuizzes, quiz]);
-  }, []);
-
-  const updateCustomQuiz = useCallback((quizIndex, quiz) => {
-    setCustomQuizzes((prevQuizzes) =>
-      prevQuizzes.map((currentQuiz, index) => (index === quizIndex ? quiz : currentQuiz))
-    );
-  }, []);
-
-  const resetSavedGame = useCallback(() => {
-    if (gameCode) clearBuzzers(gameCode);
-    clearSavedGameState();
-    setIsQuestionActive(false);
-    setSelectedCategoryName(null);
-    setGameSettings({ players: [], quiz: {} });
-    setQuizLog([]);
-    setUndoPointer(-1);
-    setGameCode(null);
-    setBuzzerQueue([]);
-    setAuctionBids({});
-  }, [gameCode]);
-
-  useEffect(() => {
-    if (!isQuestionActive) {
-        setBuzzerQueue([]);
-        setAuctionBids({});
-        setAuctionStage(0);
-        setIsAuctionTimerRunning(false);
-    }
-  }, [isQuestionActive]);
 
   useEffect(() => {
     saveCustomQuizzes(customQuizzes);
@@ -291,25 +79,32 @@ export const AppProvider = ({ children }) => {
       quizLog,
       gameCode,
       selectedCategoryName,
+      undoPointer,
     });
 
     if (gameCode) {
+      const activeCategory = gameSettings.quiz?.categories?.find(c => c.name === selectedCategoryName);
+      const activeQuestion = activeCategory?.list?.find(q => !q.done);
+
+      // Zwiększony debounce do 500ms i wysyłanie tylko niezbędnych danych
       const timeoutId = setTimeout(() => {
         syncStateToCloud(gameCode, {
           isQuestionActive,
-          players: gameSettings.players,
+          players: gameSettings.players.map(p => ({ name: p.name, points: p.points, wiemLepiejUsed: p.wiemLepiejUsed })),
           wiemLepiejLimit: gameSettings.wiemLepiejLimit,
-          isAuction: gameSettings.quiz?.categories?.find(c => c.name === selectedCategoryName)?.type === "auction",
+          isAuction: activeCategory?.type === "auction",
+          isWriting: activeCategory?.type === "openAnswer",
+          inputMethod: activeQuestion?.inputMethod || "typing",
           isBiddingClosed: isAuctionTimerRunning || auctionStage === 3,
           auctionBids: auctionBids,
           auctionStage: auctionStage,
           currentQuestion: isQuestionActive ? selectedCategoryName : null
         });
-      }, 100);
+      }, 500);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isQuestionActive, gameSettings, scoreHistory, gameCode, selectedCategoryName, quizLog, auctionBids, isAuctionTimerRunning, auctionStage]);
+  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, selectedCategoryName, undoPointer, auctionBids, isAuctionTimerRunning, auctionStage]);
 
   useEffect(() => {
     let eventSource = null;
@@ -323,6 +118,11 @@ export const AppProvider = ({ children }) => {
         } else if (eventData.type === "BID") {
           setAuctionBids(prev => ({ ...prev, [eventData.player]: eventData.amount }));
           setAuctionStage(0);
+        } else if (eventData.type === "ANSWER") {
+          setPlayerAnswers(prev => ({ 
+            ...prev, 
+            [eventData.player]: { answer: eventData.answer, isConfirmed: eventData.isConfirmed } 
+          }));
         } else if (eventData.type === "WIEM_LEPIEJ") {
           setGameSettings(prev => {
             const playerIndex = prev.players.findIndex(p => p.name.toLowerCase() === eventData.player.toLowerCase());
@@ -354,6 +154,347 @@ export const AppProvider = ({ children }) => {
     return () => { if (eventSource) eventSource.close(); };
   }, [gameCode]);
 
+  const cloneSnapshot = useCallback((state) => {
+    if (!state) return null;
+    return {
+      gameSettings: JSON.parse(JSON.stringify(state.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 })),
+      scoreHistory: JSON.parse(JSON.stringify(state.scoreHistory || [])),
+      isQuestionActive: Boolean(state.isQuestionActive),
+      selectedCategoryName: state.selectedCategoryName || null,
+      showAnswer: Boolean(state.showAnswer),
+      isAudioPlaying: false,
+      buzzerQueue: JSON.parse(JSON.stringify(state.buzzerQueue || [])),
+      auctionBids: JSON.parse(JSON.stringify(state.auctionBids || {})),
+      playerAnswers: JSON.parse(JSON.stringify(state.playerAnswers || {})),
+      auctionStage: state.auctionStage || 0,
+      isAuctionTimerRunning: Boolean(state.isAuctionTimerRunning),
+    };
+  }, []);
+
+  const getGameSnapshot = useCallback((overrides = {}) => {
+    const base = {
+      gameSettings,
+      scoreHistory,
+      isQuestionActive,
+      selectedCategoryName,
+      showAnswer,
+      isAudioPlaying: false,
+      buzzerQueue,
+      auctionBids,
+      playerAnswers,
+      auctionStage,
+      isAuctionTimerRunning,
+      ...overrides,
+    };
+    return cloneSnapshot(base);
+  }, [
+    gameSettings,
+    scoreHistory,
+    isQuestionActive,
+    selectedCategoryName,
+    showAnswer,
+    buzzerQueue,
+    auctionBids,
+    playerAnswers,
+    auctionStage,
+    isAuctionTimerRunning,
+    cloneSnapshot
+  ]);
+
+  const applyGameSnapshot = useCallback((snapshot) => {
+    if (!snapshot) return;
+    setGameSettings(snapshot.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 });
+    setScoreHistory(snapshot.scoreHistory || []);
+    setIsQuestionActive(Boolean(snapshot.isQuestionActive));
+    setSelectedCategoryName(snapshot.selectedCategoryName || null);
+    setShowAnswer(Boolean(snapshot.showAnswer));
+    setIsAudioPlaying(false);
+    setBuzzerQueue(snapshot.buzzerQueue || []);
+    setAuctionBids(snapshot.auctionBids || {});
+    setPlayerAnswers(snapshot.playerAnswers || {});
+    setAuctionStage(snapshot.auctionStage || 0);
+    setIsAuctionTimerRunning(Boolean(snapshot.isAuctionTimerRunning));
+  }, []);
+
+  const addToLog = useCallback((entry, snapshots = {}) => {
+    const before = cloneSnapshot(snapshots.before || getGameSnapshot());
+    const after = cloneSnapshot(snapshots.after || getGameSnapshot());
+    const newEntry = {
+      ...entry,
+      before,
+      after,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    };
+    setQuizLog(prev => {
+      const newLog = prev.slice(0, undoPointer + 1);
+      return [...newLog, newEntry];
+    });
+    setUndoPointer(prev => prev + 1);
+  }, [cloneSnapshot, getGameSnapshot, undoPointer]);
+
+  // Atomowe akcje gry z automatycznym i pewnym zapisem migawek
+  const openCategory = useCallback((categoryName) => {
+    const before = getGameSnapshot();
+    const after = getGameSnapshot({
+      isQuestionActive: true,
+      selectedCategoryName: categoryName,
+      showAnswer: false,
+      playerAnswers: {}
+    });
+    setIsQuestionActive(true);
+    setSelectedCategoryName(categoryName);
+    setShowAnswer(false);
+    setPlayerAnswers({});
+    addToLog({ 
+      type: "QUESTION_OPENED", 
+      categoryName,
+      description: `Otwarto kategorię: ${categoryName}` 
+    }, { before, after });
+  }, [getGameSnapshot, addToLog]);
+
+  const closeCategory = useCallback((categoryName) => {
+    const catName = categoryName || selectedCategoryName;
+    const before = getGameSnapshot();
+    const after = getGameSnapshot({
+      isQuestionActive: false,
+      selectedCategoryName: null,
+      showAnswer: false,
+      playerAnswers: {}
+    });
+    setIsQuestionActive(false);
+    setSelectedCategoryName(null);
+    setShowAnswer(false);
+    setPlayerAnswers({});
+    addToLog({
+      type: "QUESTION_CLOSED",
+      categoryName: catName,
+      description: `Zamknięto kategorię: ${catName || 'pytanie'}`
+    }, { before, after });
+  }, [getGameSnapshot, selectedCategoryName, addToLog]);
+
+  const finishQuestion = useCallback((categoryName, selectedQuestion) => {
+    if (!selectedQuestion) return;
+    const before = getGameSnapshot();
+    const updatedQuiz = {
+      ...gameSettings.quiz,
+      categories: (gameSettings.quiz?.categories || []).map((c) => {
+        if (c.name !== categoryName) return c;
+        return {
+          ...c,
+          list: (c.list || []).map((q) => {
+            const isMatch = (q.no != null && q.no === selectedQuestion.no) || q.question === selectedQuestion.question;
+            return isMatch ? { ...q, done: true } : q;
+          })
+        };
+      })
+    };
+    const nextGameSettings = { ...gameSettings, quiz: updatedQuiz };
+    const after = getGameSnapshot({
+      gameSettings: nextGameSettings,
+      isQuestionActive: false,
+      selectedCategoryName: null,
+      showAnswer: false,
+      playerAnswers: {}
+    });
+    setGameSettings(nextGameSettings);
+    setIsQuestionActive(false);
+    setSelectedCategoryName(null);
+    setShowAnswer(false);
+    setPlayerAnswers({});
+    addToLog({
+      type: "QUESTION_DONE",
+      categoryName,
+      questionNo: selectedQuestion.no,
+      questionText: selectedQuestion.question,
+      description: `Zużyto: ${selectedQuestion.question || 'Pytanie ' + selectedQuestion.no}`
+    }, { before, after });
+  }, [getGameSnapshot, gameSettings, addToLog]);
+
+  const toggleAnswer = useCallback(() => {
+    const nextShow = !showAnswer;
+    const before = getGameSnapshot();
+    const after = getGameSnapshot({ showAnswer: nextShow });
+    setShowAnswer(nextShow);
+    addToLog({
+      type: "SHOW_ANSWER",
+      description: nextShow ? "Pokazano odpowiedź" : "Ukryto odpowiedź"
+    }, { before, after });
+  }, [getGameSnapshot, showAnswer, addToLog]);
+
+  const changePlayerPoints = useCallback((playerIndex, delta) => {
+    if (!gameSettings.players[playerIndex]) return;
+    const before = getGameSnapshot();
+    const updatedPlayers = gameSettings.players.map((p, idx) =>
+      idx === playerIndex ? { ...p, points: p.points + delta } : p
+    );
+    const nextGameSettings = { ...gameSettings, players: updatedPlayers };
+    const after = getGameSnapshot({ gameSettings: nextGameSettings });
+    setGameSettings(nextGameSettings);
+    addToLog({
+      type: "POINTS_CHANGE",
+      playerIndex,
+      change: delta,
+      description: `${delta > 0 ? '+' : ''}${delta} pkt dla ${updatedPlayers[playerIndex].name}`
+    }, { before, after });
+  }, [getGameSnapshot, gameSettings, addToLog]);
+
+  const togglePlayerWiemLepiej = useCallback((playerIndex) => {
+    if (!gameSettings.players[playerIndex]) return;
+    const before = getGameSnapshot();
+    const player = gameSettings.players[playerIndex];
+    const currentlyUsed = (player.wiemLepiejUsed || 0) >= (gameSettings.wiemLepiejLimit || 1);
+    const updatedPlayers = gameSettings.players.map((p, idx) =>
+      idx === playerIndex ? { ...p, wiemLepiejUsed: currentlyUsed ? 0 : (gameSettings.wiemLepiejLimit || 1) } : p
+    );
+    const nextGameSettings = { ...gameSettings, players: updatedPlayers };
+    const after = getGameSnapshot({ gameSettings: nextGameSettings });
+    setGameSettings(nextGameSettings);
+    addToLog({
+      type: "WIEM_LEPIEJ",
+      playerIndex,
+      description: `${player.name} - ${currentlyUsed ? "przywrócono" : "użyto"} 'Wiem Lepiej!'`
+    }, { before, after });
+  }, [getGameSnapshot, gameSettings, addToLog]);
+
+  const addPlayerInGame = useCallback((name) => {
+    if (!name.trim()) return;
+    const before = getGameSnapshot();
+    const nextGameSettings = {
+      ...gameSettings,
+      players: [...gameSettings.players, { name: name.trim(), points: 0, wiemLepiejUsed: 0 }]
+    };
+    const after = getGameSnapshot({ gameSettings: nextGameSettings });
+    setGameSettings(nextGameSettings);
+    addToLog({
+      type: "PLAYER_ADDED",
+      description: `Dodano gracza: ${name.trim()}`
+    }, { before, after });
+  }, [getGameSnapshot, gameSettings, addToLog]);
+
+  const removePlayerInGame = useCallback((playerIndex) => {
+    const player = gameSettings.players[playerIndex];
+    if (!player) return;
+    const before = getGameSnapshot();
+    const nextGameSettings = {
+      ...gameSettings,
+      players: gameSettings.players.filter((_, i) => i !== playerIndex)
+    };
+    const after = getGameSnapshot({ gameSettings: nextGameSettings });
+    setGameSettings(nextGameSettings);
+    addToLog({
+      type: "PLAYER_REMOVED",
+      description: `Usunięto gracza: ${player.name}`
+    }, { before, after });
+  }, [getGameSnapshot, gameSettings, addToLog]);
+
+  const changeAuctionBid = useCallback((playerName, delta) => {
+    const before = getGameSnapshot();
+    const newBid = Math.max(0, (auctionBids[playerName] || 0) + delta);
+    const nextBids = { ...auctionBids, [playerName]: newBid };
+    const after = getGameSnapshot({ auctionBids: nextBids, auctionStage: 0 });
+    setAuctionBids(nextBids);
+    setAuctionStage(0);
+    addToLog({
+      type: "AUCTION_BID",
+      description: `Oferta ${playerName}: ${newBid}`
+    }, { before, after });
+  }, [getGameSnapshot, auctionBids, addToLog]);
+
+  const advanceAuctionStageGame = useCallback(() => {
+    const nextStage = auctionStage < 3 ? auctionStage + 1 : 0;
+    const before = getGameSnapshot();
+    const after = getGameSnapshot({ auctionStage: nextStage });
+    setAuctionStage(nextStage);
+    const stageLabels = ["Reset etapu", "Po raz pierwszy...", "Po raz drugi...", "Po raz trzeci (koniec)!"];
+    addToLog({
+      type: "AUCTION_STAGE",
+      description: `Licytacja: ${stageLabels[nextStage]}`
+    }, { before, after });
+  }, [getGameSnapshot, auctionStage, addToLog]);
+
+  const undoAction = useCallback(() => {
+    if (undoPointer >= 0 && quizLog[undoPointer]) {
+      applyGameSnapshot(quizLog[undoPointer].before);
+      setUndoPointer(prev => prev - 1);
+    }
+  }, [applyGameSnapshot, quizLog, undoPointer]);
+
+  const redoAction = useCallback(() => {
+    if (undoPointer < quizLog.length - 1 && quizLog[undoPointer + 1]) {
+      applyGameSnapshot(quizLog[undoPointer + 1].after);
+      setUndoPointer(prev => prev + 1);
+    }
+  }, [applyGameSnapshot, quizLog, undoPointer]);
+
+  const jumpToLogIndex = useCallback((index) => {
+    if (index >= -1 && index < quizLog.length) {
+      const snapshot = index === -1 ? quizLog[0]?.before : quizLog[index]?.after;
+      if (snapshot) {
+        applyGameSnapshot(snapshot);
+        setUndoPointer(index);
+      }
+    }
+  }, [applyGameSnapshot, quizLog]);
+
+  const resetSavedGame = useCallback(() => {
+    setGameSettings({ players: [], quiz: null, wiemLepiejLimit: 1 });
+    setScoreHistory([]);
+    setQuizLog([]);
+    setGameCode(null);
+    setIsQuestionActive(false);
+    setSelectedCategoryName(null);
+    setUndoPointer(-1);
+    setBuzzerQueue([]);
+    setAuctionBids({});
+    setPlayerAnswers({});
+    setAuctionStage(0);
+    setIsAuctionTimerRunning(false);
+    setShowAnswer(false);
+  }, []);
+
+  const startNewQuiz = useCallback((quiz) => {
+    setGameSettings(prev => ({ ...prev, quiz }));
+    setScoreHistory([]);
+    setQuizLog([]);
+    setIsQuestionActive(false);
+    setSelectedCategoryName(null);
+    setUndoPointer(-1);
+    setBuzzerQueue([]);
+    setAuctionBids({});
+    setPlayerAnswers({});
+    setAuctionStage(0);
+    setIsAuctionTimerRunning(false);
+    setShowAnswer(false);
+  }, []);
+
+  const addCustomQuiz = useCallback((quiz) => {
+    setCustomQuizzes(prev => [...prev, quiz]);
+  }, []);
+
+  const removeCustomQuiz = useCallback((quizName) => {
+    setCustomQuizzes(prev => prev.filter(q => q.name !== quizName));
+  }, []);
+
+  const updateCustomQuiz = useCallback((index, updatedQuiz) => {
+    setCustomQuizzes(prev => {
+      const newQuizzes = [...prev];
+      newQuizzes[index] = updatedQuiz;
+      return newQuizzes;
+    });
+  }, []);
+
+  const loadDownloadedState = useCallback((state) => {
+    setGameSettings(state.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 });
+    setScoreHistory(state.scoreHistory || []);
+    setQuizLog(state.quizLog || []);
+    setGameCode(state.gameCode || null);
+    setIsQuestionActive(state.isQuestionActive || false);
+    setSelectedCategoryName(state.selectedCategoryName || null);
+    setUndoPointer(state.undoPointer ?? (state.quizLog?.length ? state.quizLog.length - 1 : -1));
+    navigate("/gra");
+  }, [navigate]);
+
   const providerValue = useMemo(() => ({
     gameSettings,
     setGameSettings,
@@ -367,6 +508,8 @@ export const AppProvider = ({ children }) => {
     setBuzzerQueue,
     auctionBids,
     setAuctionBids,
+    playerAnswers,
+    setPlayerAnswers,
     auctionStage,
     setAuctionStage,
     isAuctionTimerRunning,
@@ -374,22 +517,36 @@ export const AppProvider = ({ children }) => {
     quizList,
     customQuizzes,
     setCustomQuizzes,
-    addCustomQuiz,
-    updateCustomQuiz,
     editingQuiz,
     setEditingQuiz,
-    resetSavedGame,
-    startNewQuiz,
     isQuestionActive,
     setIsQuestionActive,
     selectedCategoryName,
     setSelectedCategoryName,
     quizLog,
+    setQuizLog,
+    addToLog,
+    getGameSnapshot,
+    openCategory,
+    closeCategory,
+    finishQuestion,
+    toggleAnswer,
+    changePlayerPoints,
+    togglePlayerWiemLepiej,
+    addPlayerInGame,
+    removePlayerInGame,
+    changeAuctionBid,
+    advanceAuctionStageGame,
     undoAction,
     redoAction,
     jumpToLogIndex,
     undoPointer,
-    addToLog,
+    resetSavedGame,
+    startNewQuiz,
+    addCustomQuiz,
+    removeCustomQuiz,
+    updateCustomQuiz,
+    loadDownloadedState,
     showAnswer,
     setShowAnswer,
     isAudioPlaying,
@@ -400,13 +557,12 @@ export const AppProvider = ({ children }) => {
     setIsLogsPinned,
     appSettings,
     setAppSettings,
-    removeCustomQuiz,
-    loadDownloadedState: (state) => {
-      setIsQuestionActive(state.isQuestionActive || false);
-      setGameSettings(state.gameSettings || { players: [], quiz: {} });
+    loadGameFromState: (state) => {
+      setGameSettings(state.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 });
       setScoreHistory(state.scoreHistory || []);
       setQuizLog(state.quizLog || []);
       setGameCode(state.gameCode || null);
+      setIsQuestionActive(state.isQuestionActive || false);
       setSelectedCategoryName(state.selectedCategoryName || null);
       setUndoPointer(state.undoPointer ?? (state.quizLog?.length ? state.quizLog.length - 1 : -1));
       navigate("/gra");
@@ -426,7 +582,12 @@ export const AppProvider = ({ children }) => {
     auctionBids, auctionStage, isAuctionTimerRunning, quizList, customQuizzes, 
     editingQuiz, isQuestionActive, selectedCategoryName, quizLog, undoAction, 
     redoAction, jumpToLogIndex, undoPointer, addToLog, showAnswer, isAudioPlaying, 
-    isResultsPinned, isLogsPinned, appSettings, navigate
+    isResultsPinned, isLogsPinned, appSettings, navigate, playerAnswers,
+    resetSavedGame, startNewQuiz, addCustomQuiz, removeCustomQuiz, updateCustomQuiz, 
+    loadDownloadedState, setPlayerAnswers, getGameSnapshot,
+    openCategory, closeCategory, finishQuestion, toggleAnswer, changePlayerPoints,
+    togglePlayerWiemLepiej, addPlayerInGame, removePlayerInGame, changeAuctionBid,
+    advanceAuctionStageGame
   ]);
 
   return (

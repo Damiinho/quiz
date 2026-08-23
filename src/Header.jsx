@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "./contexts/AppContext";
-import { Menu, MenuItem, Switch, FormControlLabel, Slider, Box, Typography, Divider, IconButton, Select } from "@mui/material";
+import { Menu, MenuItem, Switch, Slider, Box, Typography, IconButton, Select } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HomeIcon from "@mui/icons-material/Home";
 import RefreshIcon from "@mui/icons-material/Refresh";

@@ -10,8 +10,13 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { AppContext } from "../contexts/AppContext";
-import { downloadJson, makeSerializableQuiz } from "../utils/quizStorage";
+import { downloadJson, makeSerializableQuiz, readQuizFile } from "../utils/quizStorage";
 import Question from "./Game/Question";
 
 const categoryTypes = [
@@ -21,14 +26,18 @@ const categoryTypes = [
   { value: "auction", label: "Licytacja" },
   { value: "duel", label: "Pojedynek" },
   { value: "album", label: "Album" },
+  { value: "openAnswer", label: "Napisz odpowiedź" },
 ];
 
 const emptyQuestionForm = {
   question: "",
+  context: "",
   answerMode: "choices",
   answers: ["", "", "", ""],
   correctAnswerIndex: 0,
   correctAnswer: "",
+  correctAnswerImage: "",
+  inputMethod: "typing",
   image: "",
   sound: "",
   images: "",
@@ -36,6 +45,22 @@ const emptyQuestionForm = {
 };
 
 const getFilledAnswers = (answers = []) => answers.filter(answer => answer.trim());
+
+const moveArrayItem = (items, fromIndex, toIndex) => {
+  if (!Array.isArray(items) || fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= items.length || toIndex >= items.length) {
+    return items;
+  }
+
+  const updatedItems = [...items];
+  const [movedItem] = updatedItems.splice(fromIndex, 1);
+  updatedItems.splice(toIndex, 0, movedItem);
+  return updatedItems;
+};
+
+const cloneQuestion = (question) => {
+  if (!question) return null;
+  return JSON.parse(JSON.stringify(question));
+};
 
 const stringToHslColor = (str, s = 70, l = 60) => {
   let hash = 0;
@@ -49,7 +74,7 @@ const stringToHslColor = (str, s = 70, l = 60) => {
 
 const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   const navigate = useNavigate();
-  const { addCustomQuiz, updateCustomQuiz, setEditingQuiz } = useContext(AppContext);
+  const { addCustomQuiz, updateCustomQuiz, setEditingQuiz, quizList } = useContext(AppContext);
   const [activeStep, setActiveStep] = useState(0); 
   const [quizName, setQuizName] = useState(initialQuiz?.name || "Nowy quiz");
   const [randomizeQuestions, setRandomizeQuestions] = useState(initialQuiz?.randomizeQuestions || false);
@@ -62,13 +87,27 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   const [questionForm, setQuestionForm] = useState(emptyQuestionForm);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
   const [quizImage, setQuizImage] = useState(initialQuiz?.image || null);
+  const [selectedLibraryCategory, setSelectedLibraryCategory] = useState("");
   const [isLivePreviewOpen, setIsLivePreviewOpen] = useState(false);
   
   const fileInputRef = useRef(null);
+  const categoryImportInputRef = useRef(null);
+  const questionFormRef = useRef(null);
   const steps = ["1. Informacje", "2. Kategorie", "3. Pytania", "4. Podgląd"];
 
   const selectedCategory = categories[selectedCategoryIndex];
   const selectedType = selectedCategory?.type || "standard";
+  const libraryCategories = useMemo(() =>
+    quizList.flatMap((quiz) =>
+      (quiz.categories || []).map((category, index) => ({
+        ...category,
+        quizName: quiz.name,
+        sourceCategoryIndex: index,
+        sourceKey: `${quiz.name}::${category.name}`,
+      }))
+    ),
+    [quizList]
+  );
 
   const handleDeleteCategory = (index) => {
     setCategories(prev => {
@@ -80,10 +119,123 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     });
   };
 
+  const handleMoveCategory = (index, direction) => {
+    if (index < 0 || index >= categories.length) return;
+
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+    setCategories(prev => moveArrayItem(prev, index, targetIndex));
+    setSelectedCategoryIndex((current) => {
+      if (current === index) return targetIndex;
+      if (current === targetIndex) return index;
+      return current;
+    });
+  };
+
+  const handleMoveQuestion = (questionIndex, direction) => {
+    if (!selectedCategory || questionIndex < 0 || questionIndex >= (selectedCategory.list || []).length) return;
+
+    const targetIndex = questionIndex + direction;
+    if (targetIndex < 0 || targetIndex >= (selectedCategory.list || []).length) return;
+
+    setCategories(prev => prev.map((category, categoryIndex) => {
+      if (categoryIndex !== selectedCategoryIndex) return category;
+      return { ...category, list: moveArrayItem(category.list || [], questionIndex, targetIndex) };
+    }));
+  };
+
+  const handleDuplicateQuestion = (questionIndex) => {
+    if (!selectedCategory || questionIndex < 0 || questionIndex >= (selectedCategory.list || []).length) return;
+
+    const sourceQuestion = selectedCategory.list[questionIndex];
+    const duplicatedQuestion = cloneQuestion(sourceQuestion);
+    const lastNo = selectedCategory.list.reduce((max, question) => Math.max(max, Number(question.no) || 0), 0);
+
+    if (duplicatedQuestion) {
+      duplicatedQuestion.no = lastNo + 1;
+      duplicatedQuestion.question = duplicatedQuestion.question || "";
+    }
+
+    setCategories(prev => prev.map((category, categoryIndex) => {
+      if (categoryIndex !== selectedCategoryIndex) return category;
+      const nextList = [...(category.list || [])];
+      nextList.splice(questionIndex + 1, 0, duplicatedQuestion);
+      return { ...category, list: nextList };
+    }));
+  };
+
+  const handleExportCategory = () => {
+    if (!selectedCategory) return;
+    downloadJson({ ...selectedCategory, list: selectedCategory.list || [] }, `${selectedCategory.name}.json`);
+  };
+
+  const handleImportCategory = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await readQuizFile(file);
+      const importedCategory = Array.isArray(data?.categories) ? data.categories[0] : data;
+
+      if (!importedCategory || !Array.isArray(importedCategory.list) || !importedCategory.name) {
+        throw new Error("Nieprawidłowy plik kategorii.");
+      }
+
+      const normalizedCategory = {
+        ...importedCategory,
+        type: importedCategory.type || "standard",
+        list: (importedCategory.list || []).map((question, index) => ({ ...question, no: question.no ?? index + 1 }))
+      };
+
+      setCategories(prev => {
+        const nextCategories = [...prev];
+        const insertIndex = Math.max(0, (selectedCategoryIndex ?? nextCategories.length - 1) + 1);
+        nextCategories.splice(insertIndex, 0, normalizedCategory);
+        return nextCategories;
+      });
+      setSelectedCategoryIndex((prev) => (prev == null ? 0 : prev + 1));
+      alert(`Zaimportowano kategorię: ${normalizedCategory.name}`);
+    } catch (error) {
+      alert(error.message || "Błąd importu kategorii.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleImportCategoryFromLibrary = () => {
+    if (!selectedLibraryCategory) return;
+
+    const categoryToImport = libraryCategories.find((category) => category.sourceKey === selectedLibraryCategory);
+    if (!categoryToImport) return;
+
+    const normalizedCategory = {
+      ...categoryToImport,
+      name: categoryToImport.name,
+      type: categoryToImport.type || "standard",
+      list: (categoryToImport.list || []).map((question, index) => ({ ...question, no: question.no ?? index + 1 }))
+    };
+
+    setCategories(prev => {
+      const nextCategories = [...prev];
+      const insertIndex = Math.max(0, (selectedCategoryIndex ?? nextCategories.length - 1) + 1);
+      nextCategories.splice(insertIndex, 0, normalizedCategory);
+      return nextCategories;
+    });
+    setSelectedCategoryIndex((prev) => (prev == null ? 0 : prev + 1));
+    setSelectedLibraryCategory("");
+    alert(`Wczytano kategorię: ${normalizedCategory.name}`);
+  };
+
   const previewQuestion = useMemo(() => {
     const q = { ...questionForm, no: 99, done: false };
     if (selectedType === "album") {
-      q.images = typeof questionForm.images === 'string' ? questionForm.images.split('\n').filter(s => s.trim()) : [];
+      const riddleImgs = typeof questionForm.images === 'string' 
+        ? questionForm.images.split('\n').map(s => s.trim()).filter(Boolean) 
+        : [];
+      const ansImg = questionForm.correctAnswerImage?.trim();
+      q.images = ansImg ? [...riddleImgs, ansImg] : riddleImgs;
+      q.correctAnswerImage = ansImg || (riddleImgs.length > 1 ? riddleImgs[riddleImgs.length - 1] : "");
     }
     if (questionForm.answerMode === "choices" && (selectedType === "standard" || selectedType === "illustrated")) {
       const filledAnswers = getFilledAnswers(questionForm.answers);
@@ -107,7 +259,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     const newCategory = {
       type: "standard",
       ...categoryForm,
-      list: editingCategoryIndex !== null ? categories[editingCategoryIndex].list : []
+      list: editingCategoryIndex !== null ? (categories[editingCategoryIndex]?.list || []) : []
     };
     if (editingCategoryIndex !== null) {
       setCategories(prev => prev.map((c, i) => i === editingCategoryIndex ? newCategory : c));
@@ -121,36 +273,118 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   const handleSaveQuestion = () => {
     if (selectedCategoryIndex === null || !selectedCategory) return;
     
+    const existingList = selectedCategory.list || [];
+    const questionNo = editingQuestionIndex !== null 
+      ? (existingList[editingQuestionIndex]?.no ?? (editingQuestionIndex + 1)) 
+      : existingList.length + 1;
+
     const newQuestion = { 
         ...questionForm, 
-        no: editingQuestionIndex !== null ? selectedCategory.list[editingQuestionIndex].no : selectedCategory.list.length + 1 
+        no: questionNo
     };
 
+    if (questionForm.context?.trim()) {
+      newQuestion.context = questionForm.context.trim();
+    } else {
+      delete newQuestion.context;
+    }
+
     if (selectedType === "album") {
-        newQuestion.images = typeof questionForm.images === 'string' ? questionForm.images.split('\n').filter(s => s.trim()) : [];
+      const riddleImgs = typeof questionForm.images === 'string' 
+        ? questionForm.images.split('\n').map(s => s.trim()).filter(Boolean) 
+        : [];
+      const ansImg = questionForm.correctAnswerImage?.trim();
+      newQuestion.images = ansImg ? [...riddleImgs, ansImg] : riddleImgs;
+      newQuestion.correctAnswerImage = ansImg || (riddleImgs.length > 1 ? riddleImgs[riddleImgs.length - 1] : "");
     }
 
     if (selectedType === "forehead") {
         newQuestion.question = "";
     }
-    if (selectedType !== "auction") {
+    if (!['auction', 'openAnswer'].includes(selectedType)) {
         delete newQuestion.timerSeconds;
+    }
+    if (selectedType !== "openAnswer" && selectedType !== "album") {
+        delete newQuestion.correctAnswerImage;
+    }
+    if (selectedType !== "openAnswer") {
+        delete newQuestion.inputMethod;
     }
 
     if (questionForm.answerMode === "choices" && (selectedType === "standard" || selectedType === "illustrated")) {
         const filledAnswers = getFilledAnswers(questionForm.answers);
-        newQuestion.answers = filledAnswers;
+        newQuestion.answers = filledAnswers.length > 0 ? filledAnswers : ["", ""];
         newQuestion.correctAnswer = [questionForm.answers[questionForm.correctAnswerIndex] || filledAnswers[0] || ""];
     } else {
-        newQuestion.correctAnswer = [questionForm.correctAnswer];
+        newQuestion.correctAnswer = [questionForm.correctAnswer || ""];
         delete newQuestion.answers;
     }
     
     const newList = editingQuestionIndex !== null 
-        ? selectedCategory.list.map((q, i) => i === editingQuestionIndex ? newQuestion : q)
-        : [...selectedCategory.list, newQuestion];
+        ? existingList.map((q, i) => i === editingQuestionIndex ? newQuestion : q)
+        : [...existingList, newQuestion];
 
     setCategories(prev => prev.map((c, i) => i === selectedCategoryIndex ? { ...c, list: newList } : c));
+    setQuestionForm(emptyQuestionForm);
+    setEditingQuestionIndex(null);
+  };
+
+  const handleStartEditQuestion = (q, index) => {
+    let imagesText = "";
+    let answerImg = q.correctAnswerImage || "";
+
+    if (selectedType === "album") {
+      if (Array.isArray(q.images)) {
+        if (q.correctAnswerImage) {
+          imagesText = q.images.filter(img => img !== q.correctAnswerImage).join('\n');
+          answerImg = q.correctAnswerImage;
+        } else if (q.images.length > 1) {
+          imagesText = q.images.slice(0, -1).join('\n');
+          answerImg = q.images[q.images.length - 1];
+        } else {
+          imagesText = q.images.join('\n');
+          answerImg = "";
+        }
+      } else {
+        imagesText = q.images || "";
+      }
+    }
+
+    const cAnswer = Array.isArray(q.correctAnswer) ? (q.correctAnswer[0] ?? "") : (q.correctAnswer ?? "");
+    let safeAnswers = ["", "", "", ""];
+    let safeAnswerIndex = 0;
+    const isChoicesMode = (selectedType === "standard" || selectedType === "illustrated") && Array.isArray(q.answers) && q.answers.length > 0;
+
+    if (isChoicesMode) {
+      safeAnswers = q.answers.length >= 2 ? [...q.answers] : [...q.answers, ""];
+      const foundIdx = safeAnswers.findIndex(a => a === cAnswer);
+      safeAnswerIndex = foundIdx >= 0 ? foundIdx : 0;
+    }
+
+    setQuestionForm({
+      ...emptyQuestionForm,
+      ...q,
+      question: typeof q.question === "string" ? q.question : "",
+      context: q.context || "",
+      answers: safeAnswers,
+      correctAnswer: cAnswer,
+      correctAnswerIndex: safeAnswerIndex,
+      correctAnswerImage: answerImg,
+      images: imagesText,
+      image: q.image || "",
+      sound: q.sound || "",
+      timerSeconds: q.timerSeconds || 30,
+      inputMethod: q.inputMethod || "typing",
+      answerMode: isChoicesMode ? "choices" : "open"
+    });
+    setEditingQuestionIndex(index);
+
+    if (questionFormRef.current) {
+      questionFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleCancelEditQuestion = () => {
     setQuestionForm(emptyQuestionForm);
     setEditingQuestionIndex(null);
   };
@@ -299,11 +533,69 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                             </div>
                         </div>
                         <div className="players-view__item-actions">
+                             <IconButton onClick={(e) => { e.stopPropagation(); handleMoveCategory(i, -1); }} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} disabled={i === 0} title="Przenieś wyżej"><ArrowUpwardIcon fontSize="small" /></IconButton>
+                             <IconButton onClick={(e) => { e.stopPropagation(); handleMoveCategory(i, 1); }} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} disabled={i === categories.length - 1} title="Przenieś niżej"><ArrowDownwardIcon fontSize="small" /></IconButton>
                              <IconButton onClick={(e) => { e.stopPropagation(); setCategoryForm({ type: "standard", ...cat }); setEditingCategoryIndex(i); }} size="small" sx={{ color: "rgba(255,255,255,0.3)" }}><EditIcon fontSize="small" /></IconButton>
                              <IconButton onClick={(e) => { e.stopPropagation(); handleDeleteCategory(i); }} size="small" sx={{ color: "#ef4444" }}><DeleteIcon fontSize="small" /></IconButton>
                         </div>
                     </div>
                 ))}
+            </div>
+            <div style={{
+              background: "rgba(15, 23, 42, 0.72)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "18px",
+              padding: "16px 18px",
+              marginTop: "20px"
+            }}>
+              <div style={{ fontSize: "0.73rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(148, 163, 184, 0.9)", marginBottom: "12px" }}>
+                Zarządzanie kategorią
+              </div>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <button className="editor-view__btn editor-view__btn--outline" onClick={handleExportCategory} disabled={!selectedCategory}>
+                  <FileDownloadIcon fontSize="small" /> EKSPORTUJ KATEGORIĘ
+                </button>
+                <button className="editor-view__btn editor-view__btn--outline" onClick={() => categoryImportInputRef.current?.click()}>
+                  <FileUploadIcon fontSize="small" /> IMPORTUJ KATEGORIĘ
+                </button>
+                <input ref={categoryImportInputRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={handleImportCategory} />
+              </div>
+            </div>
+            <div style={{
+              background: "rgba(15, 23, 42, 0.72)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "18px",
+              padding: "16px 18px",
+              marginTop: "18px"
+            }}>
+              <div style={{ fontSize: "0.73rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(148, 163, 184, 0.9)", marginBottom: "12px" }}>
+                Wczytaj z bazy quizów
+              </div>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                <select
+                  value={selectedLibraryCategory}
+                  onChange={(e) => setSelectedLibraryCategory(e.target.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: "260px",
+                    background: "rgba(15, 23, 42, 0.9)",
+                    color: "#fff",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: "12px",
+                    padding: "12px 16px",
+                  }}
+                >
+                  <option value="">Wybierz kategorię z istniejącej bazy...</option>
+                  {libraryCategories.map((category) => (
+                    <option key={category.sourceKey} value={category.sourceKey}>
+                      {category.quizName} / {category.name}
+                    </option>
+                  ))}
+                </select>
+                <button className="editor-view__btn" onClick={handleImportCategoryFromLibrary} disabled={!selectedLibraryCategory}>
+                  WCZYTAJ Z BAZY
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -322,13 +614,59 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                 </div>
                 <div>
                     {selectedCategoryIndex !== null && selectedCategory && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <div ref={questionFormRef} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                            
+                            {editingQuestionIndex !== null && (
+                              <Box sx={{ 
+                                background: "rgba(46, 204, 113, 0.15)", 
+                                border: "1px solid #2ecc71", 
+                                borderRadius: "14px", 
+                                p: 2, 
+                                display: "flex", 
+                                justifyContent: "space-between", 
+                                alignItems: "center",
+                                animation: "fadeIn 0.2s ease"
+                              }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                  <EditIcon sx={{ color: "#2ecc71", fontSize: "20px" }} />
+                                  <Typography variant="body2" sx={{ fontWeight: 800, color: "#fff" }}>
+                                    Edytujesz pytanie #{editingQuestionIndex + 1}
+                                  </Typography>
+                                </Box>
+                                <button 
+                                  onClick={handleCancelEditQuestion}
+                                  style={{
+                                    background: "rgba(255,255,255,0.1)",
+                                    border: "none",
+                                    color: "#fff",
+                                    padding: "6px 16px",
+                                    borderRadius: "8px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  ANULUJ EDYCJĘ
+                                </button>
+                              </Box>
+                            )}
+
                             {selectedType !== "album" && selectedType !== "forehead" && (
                                 <div className="editor-view__input-group">
                                     <label>Treść pytania</label>
                                     <textarea rows={3} value={questionForm.question} onChange={e => setQuestionForm({...questionForm, question: e.target.value})} placeholder="Wpisz treść pytania..." style={{ fontSize: "18px" }} />
                                 </div>
                             )}
+
+                            <div className="editor-view__input-group">
+                                <label>Kontekst / ciekawostka (opcjonalnie)</label>
+                                <textarea
+                                    rows={3}
+                                    value={questionForm.context || ""}
+                                    onChange={e => setQuestionForm({ ...questionForm, context: e.target.value })}
+                                    placeholder="Dodatkowy kontekst lub ciekawostka dla prowadzącego..."
+                                />
+                            </div>
 
                             {(selectedType === "standard" || selectedType === "illustrated") && (
                                 <div className="editor-view__input-group">
@@ -377,22 +715,38 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                                 </div>
                             )}
 
-                            {(questionForm.answerMode === "open" || selectedType === "forehead" || selectedType === "auction" || selectedType === "duel") && (
+                            {(questionForm.answerMode === "open" || selectedType === "forehead" || selectedType === "auction" || selectedType === "duel" || selectedType === "openAnswer") && (
                                 <div className="editor-view__input-group">
-                                    <label>Poprawna odpowiedź</label>
+                                    <label>Poprawna odpowiedź (tekstowa)</label>
                                     <input value={questionForm.correctAnswer} onChange={e => setQuestionForm({...questionForm, correctAnswer: e.target.value})} placeholder="Wpisz treść poprawnej odpowiedzi..." />
                                 </div>
                             )}
 
-                            {selectedType === "auction" && (
+                            {selectedType === "openAnswer" && (
+                                <>
+                                    <div className="editor-view__input-group">
+                                        <label>Sposób wprowadzania odpowiedzi przez uczestników</label>
+                                        <select value={questionForm.inputMethod} onChange={e => setQuestionForm({...questionForm, inputMethod: e.target.value})} style={{ maxWidth: "300px" }}>
+                                            <option value="typing">Klawiatura (pisanie)</option>
+                                            <option value="drawing">Panel do rysowania</option>
+                                        </select>
+                                    </div>
+                                    <div className="editor-view__input-group">
+                                        <label>Poprawna odpowiedź (obrazkowa - opcjonalnie)</label>
+                                        <input value={questionForm.correctAnswerImage} onChange={e => setQuestionForm({...questionForm, correctAnswerImage: e.target.value})} placeholder="images/... lub https://..." />
+                                    </div>
+                                </>
+                            )}
+
+                            {(selectedType === "auction" || selectedType === "openAnswer") && (
                                 <div className="editor-view__input-group">
-                                    <label>Czas licytacji (sekundy)</label>
+                                    <label>{selectedType === "auction" ? "Czas licytacji (sekundy)" : "Czas na odpowiedź (sekundy)"}</label>
                                     <input
                                         type="number"
-                                        min="5"
-                                        step="5"
+                                        min="1"
+                                        step="1"
                                         value={questionForm.timerSeconds}
-                                        onChange={e => setQuestionForm({...questionForm, timerSeconds: Math.max(5, Number(e.target.value) || 30)})}
+                                        onChange={e => setQuestionForm({...questionForm, timerSeconds: Math.max(1, Number(e.target.value) || 30)})}
                                     />
                                 </div>
                             )}
@@ -405,10 +759,16 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                             )}
 
                             {selectedType === "album" && (
-                                <div className="editor-view__input-group">
-                                    <label>Ścieżki do obrazków lub linki (jeden adres w nowej linii)</label>
-                                    <textarea rows={6} value={questionForm.images} onChange={e => setQuestionForm({...questionForm, images: e.target.value})} placeholder="images/find/1.jpg&#10;https://example.com/image.png" />
-                                </div>
+                                <>
+                                  <div className="editor-view__input-group">
+                                      <label>Zdjęcia zagadki (jedno w nowej linii)</label>
+                                      <textarea rows={5} value={questionForm.images} onChange={e => setQuestionForm({...questionForm, images: e.target.value})} placeholder="images/find/1.jpg&#10;https://example.com/image1.png" />
+                                  </div>
+                                  <div className="editor-view__input-group">
+                                      <label>Zdjęcie odpowiedzi / rozwiązanie (np. images/find/1a.jpg lub link)</label>
+                                      <input value={questionForm.correctAnswerImage} onChange={e => setQuestionForm({...questionForm, correctAnswerImage: e.target.value})} placeholder="images/find/1a.jpg lub https://..." />
+                                  </div>
+                                </>
                             )}
 
                             <div className="editor-view__input-group">
@@ -427,24 +787,39 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
 
                             <div className="players-view__list" style={{ marginTop: "32px", maxHeight: "300px", overflowY: "auto", paddingRight: "10px" }}>
                                 {selectedCategory.list?.map((q, i) => (
-                                    <div key={i} className="players-view__item" style={{ background: "rgba(255,255,255,0.02)" }}>
-                                        <div className="players-view__item-name" style={{ fontSize: "14px", flex: 1 }}>{i+1}. {q.question || (selectedType === "album" ? "Album zdjęć" : "Pytanie")}</div>
+                                    <div 
+                                      key={i} 
+                                      className="players-view__item" 
+                                      style={{ 
+                                        background: editingQuestionIndex === i ? "rgba(46, 204, 113, 0.1)" : "rgba(255,255,255,0.02)",
+                                        border: editingQuestionIndex === i ? "1px solid #2ecc71" : "1px solid rgba(255,255,255,0.05)"
+                                      }}
+                                    >
+                                        <div className="players-view__item-name" style={{ fontSize: "14px", flex: 1 }}>
+                                          {i+1}. {q.question || (selectedType === "album" ? `Album (${(q.images?.length || 0)} zdjęć)` : `Pytanie ${i+1}`)}
+                                        </div>
                                         <div className="players-view__item-actions">
-                                            <IconButton onClick={() => { 
-                                                setQuestionForm({
-                                                    ...emptyQuestionForm,
-                                                    ...q,
-                                                    images: q.images?.join('\n') || "",
-                                                    correctAnswer: q.correctAnswer?.[0] || "",
-                                                    correctAnswerIndex: q.answers?.findIndex(a => a === q.correctAnswer?.[0]) ?? 0,
-                                                    answerMode: selectedType !== "forehead" && q.answers?.length ? "choices" : "open"
-                                                }); 
-                                                setEditingQuestionIndex(i); 
-                                            }} size="small" sx={{ color: "rgba(255,255,255,0.3)" }}><EditIcon fontSize="small" /></IconButton>
+                                            <IconButton onClick={() => handleMoveQuestion(i, -1)} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} disabled={i === 0} title="Przenieś pytanie wyżej">
+                                              <ArrowUpwardIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton onClick={() => handleMoveQuestion(i, 1)} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} disabled={i === (selectedCategory.list || []).length - 1} title="Przenieś pytanie niżej">
+                                              <ArrowDownwardIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton onClick={() => handleDuplicateQuestion(i)} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} title="Duplikuj pytanie">
+                                              <ContentCopyIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton onClick={() => handleStartEditQuestion(q, i)} size="small" sx={{ color: editingQuestionIndex === i ? "#2ecc71" : "rgba(255,255,255,0.4)" }} title="Edytuj pytanie">
+                                              <EditIcon fontSize="small" />
+                                            </IconButton>
                                             <IconButton onClick={() => {
-                                                const newList = selectedCategory.list.filter((_, idx) => idx !== i);
+                                                const newList = (selectedCategory.list || []).filter((_, idx) => idx !== i);
                                                 setCategories(prev => prev.map((c, idx) => idx === selectedCategoryIndex ? { ...c, list: newList } : c));
-                                            }} size="small" sx={{ color: "#ef4444" }}><DeleteIcon fontSize="small" /></IconButton>
+                                                if (editingQuestionIndex === i) {
+                                                  handleCancelEditQuestion();
+                                                }
+                                            }} size="small" sx={{ color: "#ef4444" }} title="Usuń pytanie">
+                                              <DeleteIcon fontSize="small" />
+                                            </IconButton>
                                         </div>
                                     </div>
                                 ))}

@@ -443,7 +443,8 @@ body {
     gap: 0.75rem;
     cursor: pointer;
     padding: 0.75rem 0;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    transform: translateY(0);
 
     &--active {
       color: $primary-green;
@@ -452,6 +453,7 @@ body {
 
     &:hover:not(.editor-view__step--active) {
         color: rgba(255,255,255,0.5);
+        transform: translateY(-1px);
     }
 
     span {
@@ -513,9 +515,15 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.625rem;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    transform: translateY(0);
+    box-shadow: 0 0 transparent;
 
-    &:hover:not(:disabled) { transform: translateY(-2px); background: lighten($primary-green, 5%); box-shadow: 0 0.625rem 1.25rem rgba(46, 204, 113, 0.2); }
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      background: lighten($primary-green, 5%);
+      box-shadow: 0 0.625rem 1.25rem rgba(46, 204, 113, 0.2);
+    }
     &:active { transform: translateY(0); }
     &:disabled { opacity: 0.3; cursor: not-allowed; }
 
@@ -529,7 +537,11 @@ body {
         background: none;
         border: 2px solid rgba(255,255,255,0.1);
         color: #fff;
-        &:hover { border-color: $primary-green; background: rgba($primary-green, 0.05); }
+        &:hover {
+          border-color: $primary-green;
+          background: rgba($primary-green, 0.05);
+          transform: translateY(-2px);
+        }
     }
   }
 }

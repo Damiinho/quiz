@@ -99,7 +99,7 @@ const Players = () => {
 
       <div className="players-view__score-setting" style={{ marginTop: "12px", justifyContent: "space-between" }}>
         <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 800 }}>Opcja "Wiem Lepiej!"</div>
+            <div style={{ fontWeight: 800 }}>Opcja wiem lepiej</div>
             <div style={{ fontSize: '12px', opacity: 0.6 }}>Pozwala graczom raz na grę zgłosić chęć odpowiedzi poza kolejką.</div>
         </div>
         <div className="players-view__score-setting-controls">

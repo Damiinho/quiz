@@ -1,4 +1,4 @@
-import { useContext, useCallback, useMemo, useState } from "react";
+import { useContext, useCallback, useMemo, useState, useEffect } from "react";
 import { AppContext } from "../contexts/AppContext";
 import { Typography, Box } from "@mui/material";
 import Question from "./Game/Question";
@@ -70,10 +70,11 @@ const Game = () => {
   const {
     gameSettings,
     isQuestionActive,
-    setIsQuestionActive,
     selectedCategoryName,
-    setSelectedCategoryName,
-    addToLog,
+    openCategory,
+    closeCategory,
+    undoAction,
+    redoAction,
     dashboardBg,
     appSettings,
     buzzerQueue,
@@ -82,24 +83,37 @@ const Game = () => {
     generateGameCode
   } = useContext(AppContext);
 
+  // Globalne skróty klawiszowe dla Undo / Redo w trakcie gry
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redoAction();
+        } else {
+          undoAction();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redoAction();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undoAction, redoAction]);
+
   const getUnusedQuestionsCount = (category) =>
     category.list?.filter((question) => question && !question.done).length || 0;
 
   const handleCategorySelect = useCallback((category) => {
     if (!category.list || category.list.length === 0) return;
-    setSelectedCategoryName(category.name);
-    setIsQuestionActive(true);
-    addToLog({ 
-      type: "QUESTION_OPENED", 
-      categoryName: category.name,
-      description: `Otwarto kategorię: ${category.name}` 
-    });
-  }, [setSelectedCategoryName, setIsQuestionActive, addToLog]);
+    openCategory(category.name);
+  }, [openCategory]);
 
   const handleGoBack = useCallback(() => {
-    setIsQuestionActive(false);
-    setSelectedCategoryName(null);
-  }, [setIsQuestionActive, setSelectedCategoryName]);
+    closeCategory();
+  }, [closeCategory]);
 
   const currentCategory = useMemo(() => {
     if (!selectedCategoryName || !gameSettings.quiz?.categories) return null;

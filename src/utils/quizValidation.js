@@ -5,6 +5,7 @@ const SUPPORTED_CATEGORY_TYPES = [
   "auction",
   "duel",
   "album",
+  "openAnswer",
 ];
 
 const hasText = (value) => typeof value === "string" && value.trim().length > 0;

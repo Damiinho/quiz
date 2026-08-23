@@ -124,6 +124,32 @@ export const submitBid = async (gameCode, playerName, amount) => {
 };
 
 /**
+ * Submits a player answer (text or drawing).
+ */
+export const submitAnswer = async (gameCode, playerName, answer, isConfirmed = false) => {
+  if (!gameCode) return;
+  try {
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "ANSWER",
+        player: playerName,
+        answer: answer, // text or base64 image
+        isConfirmed: isConfirmed,
+        time: Date.now(),
+      }),
+      headers: {
+        "Title": "PlayerAnswer",
+        "Tags": "pencil"
+      }
+    });
+  } catch (error) {
+    console.error("Submit answer error:", error);
+  }
+};
+
+/**
  * Listens for game state changes.
  */
 export const listenForGameState = (gameCode, onStateChange) => {
@@ -154,7 +180,7 @@ export const listenForGameState = (gameCode, onStateChange) => {
 };
 
 /**
- * Listens for buzzer hits and joins.
+ * Listens for events (buzzers, joins, etc).
  */
 export const listenForEvents = (gameCode, onEvent) => {
   if (!gameCode) return null;
@@ -182,7 +208,7 @@ export const listenForEvents = (gameCode, onEvent) => {
   return eventSource;
 };
 
-export const clearBuzzers = async (gameCode) => {
+export const clearBuzzers = async () => {
   // ntfy.sh doesn't store state like a DB, so "clearing" isn't strictly necessary
   // but we can send a clear signal if needed.
 };
