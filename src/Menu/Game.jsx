@@ -27,11 +27,46 @@ const getDynamicFontSize = (text, baseSize) => {
   }
 
   const length = text.length;
-  if (length < 8) return `${maxVal * 1.8}rem`;
-  if (length < 12) return `${maxVal * 1.3}rem`;
-  if (length < 18) return `${maxVal * 1.0}rem`;
-  return `${maxVal * 0.8}rem`;
+  if (length < 8) return `${maxVal * 1.15}rem`;
+  if (length < 12) return `${maxVal * 1.0}rem`;
+  if (length < 18) return `${maxVal * 0.95}rem`;
+  if (length < 26) return `${maxVal * 1.15}rem`;
+  return `${maxVal * 0.95}rem`;
 };
+
+const getCategoryLengthClass = (name = "") => {
+  const normalizedName = String(name).trim();
+  const length = normalizedName.length;
+  const words = normalizedName ? normalizedName.split(/\s+/) : [];
+  const longestWord = words.reduce((longest, word) => Math.max(longest, word.length), 0);
+  const sizeClass = length > 26 ? "verylong" : length > 18 ? "long" : length > 12 ? "medium" : "short";
+  const heightClass = words.length > 1 && length > 18 ? "tall" : "regular";
+  const wordClass = longestWord > 10 && words.length > 1
+    ? "longwordmulti"
+    : longestWord > 10
+      ? "extrawideword"
+      : longestWord > 8
+        ? "wideword"
+        : "compactwords";
+  const shortNameClass = length <= 8 ? "tiny" : "standard";
+  const textSizeClass = length <= 8 ? "text-compact" : length <= 12 ? "text-medium" : length <= 18 ? "text-large" : "text-dense";
+  const rowClass = length <= 8 ? "low" : words.length > 1 && length <= 18 ? "mid" : length > 26 ? "high" : "base";
+  return `${sizeClass} ${wordClass} ${shortNameClass} ${textSizeClass} quiz-card--${heightClass} quiz-card--row-${rowClass}`;
+};
+
+const getCategoryLayoutGroup = (name = "") => {
+  const normalizedName = String(name).trim();
+  const words = normalizedName ? normalizedName.split(/\s+/) : [];
+  if (words.length > 1 && normalizedName.length > 18) return 0;
+  if (normalizedName.length > 26) return 1;
+  if (normalizedName.length > 12) return 2;
+  return 3;
+};
+
+const getCategoryLayoutSeed = (name = "") => String(name).split("").reduce(
+  (seed, character) => ((seed * 31) + character.charCodeAt(0)) >>> 0,
+  7
+);
 
 const boardScaleSettings = {
   compact: {
@@ -124,12 +159,20 @@ const Game = () => {
   const shouldHidePanels = appSettings?.focusMode && isQuestionActive;
   const boardScale = boardScaleSettings[appSettings?.boardScale] || boardScaleSettings.normal;
   const shouldShowLog = appSettings?.logVisibility !== "hidden";
+  const orderedCategories = useMemo(() => {
+    const categories = gameSettings.quiz?.categories || [];
+    return [...categories].sort((first, second) => {
+      const groupDifference = getCategoryLayoutGroup(first.name) - getCategoryLayoutGroup(second.name);
+      if (groupDifference !== 0) return groupDifference;
+      return getCategoryLayoutSeed(first.name) - getCategoryLayoutSeed(second.name);
+    });
+  }, [gameSettings.quiz?.categories]);
 
   const firstBuzzer = buzzerQueue.length > 0 ? buzzerQueue[0] : null;
   const otherBuzzers = buzzerQueue.length > 1 ? buzzerQueue.slice(1) : [];
 
   return (
-    <div style={{ width: "100%", maxWidth: isQuestionActive ? "none" : boardScale.maxWidth, margin: "0 auto" }}>
+    <div className={isQuestionActive ? "game-shell game-shell--question" : "game-shell game-shell--categories"} style={{ width: "100%", maxWidth: isQuestionActive ? "none" : "min(100%, 1400px)", margin: "0 auto" }}>
       <Ranking open={isRankingOpen} onClose={() => setIsRankingOpen(false)} />
       
       {/* Buzzer Notification Overlay */}
@@ -313,8 +356,8 @@ const Game = () => {
       {isQuestionActive && currentCategory ? (
         <Question category={currentCategory} handleGoBack={handleGoBack} />
       ) : (
-        <>
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+        <div className="category-screen">
+          <div className="category-screen__header" style={{ textAlign: "center" }}>
             <h1 
               style={{ 
                 fontSize: "3.5rem", 
@@ -356,10 +399,10 @@ const Game = () => {
             style={{ 
               display: "grid", 
               gridTemplateColumns: boardScale.gridTemplate,
-              gap: "1.5rem"
+              gap: "1rem"
             }}
           >
-            {gameSettings.quiz?.categories?.map((category, index) => {
+            {orderedCategories.map((category, index) => {
               const unusedQuestionsCount = getUnusedQuestionsCount(category);
               const isActive = unusedQuestionsCount > 0;
               const cardBg = getCategoryCardBackground(index);
@@ -368,7 +411,7 @@ const Game = () => {
               return (
                 <div 
                   key={index} 
-                  className="quiz-card" 
+                  className={`quiz-card quiz-card--${getCategoryLengthClass(category.name)}`} 
                   onClick={() => isActive && handleCategorySelect(category)}
                   style={{ 
                     opacity: isActive ? 1 : 0.4, 
@@ -377,11 +420,9 @@ const Game = () => {
                     background: cardBg,
                     backgroundColor: cardBg,
                     backdropFilter: "blur(8px)",
-                    minHeight: boardScale.cardMinHeight,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    minHeight: "clamp(6.5rem, 18vh, 11rem)",
+                    display: "grid",
+                    placeItems: "center",
                     textAlign: "center",
                     padding: boardScale.cardPadding,
                     borderRadius: "24px",
@@ -412,7 +453,7 @@ const Game = () => {
                   >
                     {category.name}
                   </h3>
-                  <div style={{ marginTop: "1rem" }}>
+                  <div className="quiz-card__info-wrap">
                     <p className="quiz-card__info" style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px" }}>
                       POZOSTAŁO: {unusedQuestionsCount}
                     </p>
@@ -425,7 +466,7 @@ const Game = () => {
             })}
           </div>
 
-          <div style={{ textAlign: "center", marginTop: "60px" }}>
+          <div className="category-screen__ranking" style={{ textAlign: "center" }}>
             <button 
               onClick={() => setIsRankingOpen(true)}
               style={{ 
@@ -453,7 +494,7 @@ const Game = () => {
               RANKING GRACZY
             </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
