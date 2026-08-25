@@ -129,7 +129,7 @@ const Game = () => {
   const otherBuzzers = buzzerQueue.length > 1 ? buzzerQueue.slice(1) : [];
 
   return (
-    <div style={{ width: "100%", maxWidth: boardScale.maxWidth, margin: "0 auto" }}>
+    <div style={{ width: "100%", maxWidth: isQuestionActive ? "none" : boardScale.maxWidth, margin: "0 auto" }}>
       <Ranking open={isRankingOpen} onClose={() => setIsRankingOpen(false)} />
       
       {/* Buzzer Notification Overlay */}
