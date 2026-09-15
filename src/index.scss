@@ -331,9 +331,11 @@ body {
 
     &__info-wrap {
       position: absolute;
-      right: 1rem;
-      bottom: 0.75rem;
+      right: 0.75rem;
+      bottom: 0.35rem;
       margin: 0 !important;
+      max-width: none;
+      width: max-content;
     }
 
     &__info { margin: 0; }
@@ -350,10 +352,10 @@ body {
       justify-self: center;
       align-self: center;
       margin: 0 auto;
-      padding: 0 0.25rem;
-      overflow-wrap: normal;
-      word-break: normal;
-      hyphens: none;
+      padding: 0 0.25rem 0.8rem;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      hyphens: auto;
       line-height: 0.95 !important;
       letter-spacing: 0 !important;
       font-size: inherit;
@@ -364,46 +366,72 @@ body {
   &__ranking { flex-shrink: 0; margin-top: 1.25rem !important; }
 }
 
+.category-screen .quiz-card--tiny { grid-column: span 5 !important; justify-self: center; }
+.category-screen .quiz-card--compact { grid-column: span 6 !important; }
 .category-screen .quiz-card--short { grid-column: span 6 !important; }
 .category-screen .quiz-card--short.wideword { grid-column: span 7 !important; }
 .category-screen .quiz-card--short.extrawideword { grid-column: span 7 !important; }
-.category-screen .quiz-card--short.longwordmulti { grid-column: span 12 !important; }
+.category-screen .quiz-card--short.longwordmulti { grid-column: span 9 !important; }
+.category-screen .quiz-card--short.ultrawideword { grid-column: span 10 !important; }
 .category-screen .quiz-card--medium { grid-column: span 7 !important; }
-.category-screen .quiz-card--medium.compactwords { grid-column: span 9 !important; }
+.category-screen .quiz-card--medium.compactwords { grid-column: span 8 !important; }
 .category-screen .quiz-card--medium.wideword { grid-column: span 9 !important; }
+.category-screen .quiz-card--medium.extrawideword { grid-column: span 8 !important; }
+.category-screen .quiz-card--medium.longwordmulti { grid-column: span 8 !important; }
+.category-screen .quiz-card--medium.ultrawideword { grid-column: span 8 !important; }
 .category-screen .quiz-card--long { grid-column: span 9 !important; }
+.category-screen .quiz-card--long.wideword { grid-column: span 10 !important; }
+.category-screen .quiz-card--long.longwordmulti { grid-column: span 11 !important; }
 .category-screen .quiz-card--verylong { grid-column: span 12 !important; }
-.category-screen .quiz-card--tall { grid-row: span 5 !important; }
+.category-screen .quiz-card--tall { grid-row: span 4 !important; }
 .category-screen .quiz-card--short { min-height: 5rem !important; }
 .category-screen .quiz-card--medium { min-height: 8rem !important; }
 .category-screen .quiz-card--tall { min-height: 10rem !important; }
 .category-screen .quiz-card.quiz-card--medium { min-height: 8rem !important; }
 .category-screen .quiz-card.quiz-card--short { min-height: 5rem !important; }
 .category-screen .quiz-card.quiz-card--tall { min-height: 10rem !important; }
+.category-screen .quiz-card--taller {
+  min-height: 0 !important;
+}
 
 .category-screen .quiz-card--row-low { grid-row: span 2 !important; }
-.category-screen .quiz-card--row-mid { grid-row: span 4 !important; }
+.category-screen .quiz-card--row-mid { grid-row: span 3 !important; }
 .category-screen .quiz-card--row-base { grid-row: span 3 !important; }
 .category-screen .quiz-card--row-high { grid-row: span 4 !important; }
-.category-screen .quiz-card--tall { grid-row: span 5 !important; }
+.category-screen .quiz-card--tall { grid-row: span 4 !important; }
 
 .category-screen .quiz-card--short .quiz-card__title { max-width: 100%; font-size: clamp(1rem, 1.5vw, 1.5rem) !important; }
 .category-screen .quiz-card--short.compactwords .quiz-card__title { max-width: 9rem; font-size: clamp(1rem, 1.5vw, 1.5rem) !important; }
 .category-screen .quiz-card--short.tiny .quiz-card__title { max-width: 100%; font-size: clamp(1.35rem, 2vw, 2.1rem) !important; }
-.category-screen .quiz-card--short.wideword .quiz-card__title { max-width: 100%; font-size: clamp(1.2rem, 1.75vw, 1.75rem) !important; }
-.category-screen .quiz-card--short.extrawideword .quiz-card__title { max-width: 100%; font-size: clamp(0.95rem, 1.25vw, 1.25rem) !important; }
-.category-screen .quiz-card--short.longwordmulti .quiz-card__title { max-width: 100%; font-size: clamp(1.2rem, 1.7vw, 1.7rem) !important; white-space: normal; }
+.category-screen .quiz-card--short.wideword .quiz-card__title { max-width: 88%; font-size: clamp(1.05rem, 1.55vw, 1.6rem) !important; }
+.category-screen .quiz-card--short.extrawideword .quiz-card__title,
+.category-screen .quiz-card--short.longwordmulti .quiz-card__title,
+.category-screen .quiz-card--short.ultrawideword .quiz-card__title { max-width: 100%; font-size: clamp(0.82rem, 1.1vw, 1.25rem) !important; padding-bottom: 0.55rem !important; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 .category-screen .quiz-card--medium .quiz-card__title { max-width: 100%; font-size: clamp(1.05rem, 1.7vw, 1.8rem) !important; }
 .category-screen .quiz-card--medium.compactwords .quiz-card__title { max-width: 14rem; font-size: clamp(1.2rem, 1.95vw, 1.95rem) !important; justify-self: center; align-self: center; margin: 0 auto; text-align: center; }
 .category-screen .quiz-card--medium.compactwords .quiz-card__title { justify-self: center; align-self: center; margin: 0 auto; text-align: center; }
-.category-screen .quiz-card--medium.wideword .quiz-card__title { max-width: 100%; font-size: clamp(1.05rem, 1.55vw, 1.55rem) !important; }
+.category-screen .quiz-card--medium.wideword .quiz-card__title { max-width: 84%; font-size: clamp(1rem, 1.4vw, 1.45rem) !important; }
+.category-screen .quiz-card--medium.extrawideword .quiz-card__title,
+.category-screen .quiz-card--medium.longwordmulti .quiz-card__title,
+.category-screen .quiz-card--medium.ultrawideword .quiz-card__title { max-width: 100%; font-size: clamp(0.8rem, 1.1vw, 1.35rem) !important; padding-bottom: 0.7rem !important; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+.category-screen .quiz-card--medium.extrawideword,
+.category-screen .quiz-card--medium.longwordmulti,
+.category-screen .quiz-card--medium.ultrawideword { grid-column: span 8 !important; min-height: 9rem !important; }
 .category-screen .quiz-card--long .quiz-card__title { max-width: 18rem; font-size: clamp(1.1rem, 1.9vw, 2rem) !important; }
 .category-screen .quiz-card--verylong .quiz-card__title { max-width: 20rem; font-size: clamp(1rem, 1.6vw, 1.6rem) !important; }
+.category-screen .quiz-card--tiny .quiz-card__title { max-width: 100%; font-size: clamp(1rem, 1.7vw, 1.7rem) !important; }
+
+.category-screen .quiz-card.wide-name-card { padding-bottom: 0.8rem !important; }
+.category-screen .quiz-card.wide-name-card .quiz-card__title { padding-bottom: 0.2rem !important; }
+.category-screen .quiz-card.wide-name-card .quiz-card__info-wrap { right: 0.75rem; bottom: 0.3rem; }
+.category-screen .quiz-card.wide-name-card { grid-column: span 8 !important; }
+.category-screen .quiz-card.wide-name-card .quiz-card__title { max-width: 100%; }
+.category-screen .quiz-card__info { white-space: nowrap; max-width: none; }
 .category-screen .quiz-card--tall .quiz-card__title { font-size: clamp(1.2rem, 2.5vw, 2.5rem) !important; }
 .category-screen .quiz-card--verylong.quiz-card--tall .quiz-card__title { font-size: clamp(1.25rem, 2vw, 2rem) !important; }
 .category-screen .quiz-card--short.wideword.text-medium .quiz-card__title { font-size: clamp(1.35rem, 2vw, 2rem) !important; }
 .category-screen .quiz-card--short.extrawideword.text-medium .quiz-card__title { font-size: clamp(0.95rem, 1.25vw, 1.25rem) !important; }
-.category-screen .quiz-card.text-compact .quiz-card__title { font-size: clamp(1.35rem, 2vw, 2.1rem) !important; }
+.category-screen .quiz-card.text-compact .quiz-card__title { font-size: clamp(1.15rem, 1.75vw, 1.75rem) !important; }
 .category-screen .quiz-card.text-medium .quiz-card__title { font-size: clamp(1.2rem, 1.8vw, 1.8rem) !important; }
 .category-screen .quiz-card.text-large .quiz-card__title { font-size: clamp(1.25rem, 2vw, 2rem) !important; }
 .category-screen .quiz-card.text-dense .quiz-card__title { font-size: clamp(1.1rem, 1.65vw, 1.65rem) !important; }

@@ -5,7 +5,6 @@ import Question from "./Game/Question";
 import Results from "./Game/Results";
 import QuizLog from "./Game/QuizLog";
 import Ranking from "./Ranking";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const getCategoryCardBackground = (index) => {
   const colors = [
@@ -38,20 +37,61 @@ const getCategoryLengthClass = (name = "") => {
   const normalizedName = String(name).trim();
   const length = normalizedName.length;
   const words = normalizedName ? normalizedName.split(/\s+/) : [];
-  const longestWord = words.reduce((longest, word) => Math.max(longest, word.length), 0);
-  const sizeClass = length > 26 ? "verylong" : length > 18 ? "long" : length > 12 ? "medium" : "short";
-  const heightClass = words.length > 1 && length > 18 ? "tall" : "regular";
-  const wordClass = longestWord > 10 && words.length > 1
-    ? "longwordmulti"
-    : longestWord > 10
-      ? "extrawideword"
-      : longestWord > 8
-        ? "wideword"
-        : "compactwords";
+  const wordCount = words.length;
+  const longestWord = words.reduce(
+    (longest, word) => Math.max(longest, word.length),
+    0
+  );
+
+  let sizeClass = "short";
+  if (length <= 8) sizeClass = "tiny";
+  else if (length <= 12) sizeClass = "compact";
+  else if (length <= 16) sizeClass = "short";
+  else if (length <= 22) sizeClass = "medium";
+  else if (length <= 28) sizeClass = "long";
+  else sizeClass = "verylong";
+
+  const heightClass =
+    wordCount >= 3 && length > 18 ? "tall"
+    : "regular";
+
+  let wordClass = "compactwords";
+  if (longestWord > 15) wordClass = wordCount > 1 ? "ultrawideword" : "extrawideword";
+  else if (longestWord > 11) wordClass = wordCount > 1 ? "longwordmulti" : "extrawideword";
+  else if (longestWord > 8) wordClass = "wideword";
+
   const shortNameClass = length <= 8 ? "tiny" : "standard";
-  const textSizeClass = length <= 8 ? "text-compact" : length <= 12 ? "text-medium" : length <= 18 ? "text-large" : "text-dense";
-  const rowClass = length <= 8 ? "low" : words.length > 1 && length <= 18 ? "mid" : length > 26 ? "high" : "base";
-  return `${sizeClass} ${wordClass} ${shortNameClass} ${textSizeClass} quiz-card--${heightClass} quiz-card--row-${rowClass}`;
+  const textSizeClass =
+    length <= 8 ? "text-compact"
+    : length <= 12 ? "text-medium"
+    : length <= 18 ? "text-large"
+    : "text-dense";
+
+  let rowClass = "low";
+  if (length <= 8) rowClass = "low";
+  else if (wordCount > 1 && length <= 18) rowClass = "mid";
+  else if (length > 26) rowClass = "high";
+  else if (wordCount === 1 && length <= 16) rowClass = "low";
+  else rowClass = "base";
+
+  const specialHeightClass =
+    (wordCount === 2 && longestWord > 10) || (wordCount >= 3 && length > 18)
+      ? "quiz-card--taller"
+      : "";
+
+  const detailClass =
+    wordCount >= 3 ? "multiline"
+    : wordCount === 2 ? "twowords"
+    : "singleline";
+
+  const needsExtraWidth =
+    longestWord >= 7 ||
+    length >= 18 ||
+    (wordCount >= 2 && longestWord >= 9 && length >= 14);
+
+  const extraWidthClass = needsExtraWidth ? "wide-name-card" : "";
+
+  return `${sizeClass} ${wordClass} ${shortNameClass} ${textSizeClass} ${detailClass} quiz-card--${heightClass} ${specialHeightClass} ${extraWidthClass} quiz-card--row-${rowClass}`;
 };
 
 const getCategoryLayoutGroup = (name = "") => {
@@ -67,6 +107,21 @@ const getCategoryLayoutSeed = (name = "") => String(name).split("").reduce(
   (seed, character) => ((seed * 31) + character.charCodeAt(0)) >>> 0,
   7
 );
+
+// const getSpecificCategoryClass = (name = "") => {
+//   const normalized = String(name).trim().toUpperCase();
+
+//   if (normalized.includes("BIOMECHANIKA CHODU")) return "card-fix-biomechanika";
+//   if (normalized.includes("MIEJSCOWOŚCI") || normalized.includes("MIEJSCOWOSCI")) return "card-fix-miejscowosci";
+//   if (normalized.includes("KRÓL LEW") || normalized.includes("KROL LEW")) return "card-fix-krol-lew";
+//   if (normalized.includes("CHMURY")) return "card-fix-chmury";
+//   if (normalized.includes("PRAWO O RUCHU DROGOWYM")) return "card-fix-prawo-ruch";
+//   if (normalized.includes("PAŃSTWA MIASTA") || normalized.includes("PANSTWA MIASTA")) return "card-fix-country";
+//   if (normalized.includes("IMIONA ŚWIATA") || normalized.includes("IMIONA SWIATA")) return "card-fix-country";
+//   if (normalized.includes("LUDZIE ULICY")) return "card-fix-urban";
+
+//   return "";
+// };
 
 const boardScaleSettings = {
   compact: {
@@ -397,8 +452,7 @@ const Game = () => {
           <div 
             className="quiz-grid"
             style={{ 
-              display: "grid", 
-              gridTemplateColumns: boardScale.gridTemplate,
+              display: "grid",
               gap: "1rem"
             }}
           >
@@ -411,7 +465,7 @@ const Game = () => {
               return (
                 <div 
                   key={index} 
-                  className={`quiz-card quiz-card--${getCategoryLengthClass(category.name)}`} 
+                  className={`quiz-card quiz-card--${getCategoryLengthClass(category.name)}`.trim()} 
                   onClick={() => isActive && handleCategorySelect(category)}
                   style={{ 
                     opacity: isActive ? 1 : 0.4, 
@@ -457,9 +511,6 @@ const Game = () => {
                     <p className="quiz-card__info" style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px" }}>
                       POZOSTAŁO: {unusedQuestionsCount}
                     </p>
-                  </div>
-                  <div className="quiz-card__dots" style={{ top: "auto", bottom: "15px", right: "15px", color: "rgba(255,255,255,0.5)" }}>
-                    <ChevronRightIcon />
                   </div>
                 </div>
               );
