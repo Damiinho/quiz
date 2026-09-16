@@ -6,7 +6,8 @@ import Results from "./Game/Results";
 import QuizLog from "./Game/QuizLog";
 import Ranking from "./Ranking";
 
-const getCategoryCardBackground = (index) => {
+const getCategoryCardBackground = (index, accent) => {
+  if (accent) return `color-mix(in srgb, ${accent} 45%, transparent)`;
   const colors = [
     "rgba(46, 204, 113, 0.45)", // Green
     "rgba(168, 85, 247, 0.45)", // Purple
@@ -108,6 +109,17 @@ const getCategoryLayoutSeed = (name = "") => String(name).split("").reduce(
   7
 );
 
+const shuffleCategories = (categories, shuffleVersion = 0) => {
+  const shuffled = [...categories];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  if (shuffled.length === 0) return shuffled;
+  const rotation = shuffleVersion % shuffled.length;
+  return [...shuffled.slice(rotation), ...shuffled.slice(0, rotation)];
+};
+
 // const getSpecificCategoryClass = (name = "") => {
 //   const normalized = String(name).trim().toUpperCase();
 
@@ -157,6 +169,7 @@ const boardScaleSettings = {
 
 const Game = () => {
   const [isRankingOpen, setIsRankingOpen] = useState(false);
+  const [categoryShuffleVersion, setCategoryShuffleVersion] = useState(0);
   const {
     gameSettings,
     isQuestionActive,
@@ -205,6 +218,11 @@ const Game = () => {
     closeCategory();
   }, [closeCategory]);
 
+  useEffect(() => {
+    if (!isQuestionActive) return;
+    return () => setCategoryShuffleVersion((version) => version + 1);
+  }, [isQuestionActive]);
+
   const currentCategory = useMemo(() => {
     if (!selectedCategoryName || !gameSettings.quiz?.categories) return null;
     const category = gameSettings.quiz.categories.find(c => c.name === selectedCategoryName);
@@ -216,12 +234,13 @@ const Game = () => {
   const shouldShowLog = appSettings?.logVisibility !== "hidden";
   const orderedCategories = useMemo(() => {
     const categories = gameSettings.quiz?.categories || [];
-    return [...categories].sort((first, second) => {
+    const groupedCategories = [...categories].sort((first, second) => {
       const groupDifference = getCategoryLayoutGroup(first.name) - getCategoryLayoutGroup(second.name);
       if (groupDifference !== 0) return groupDifference;
       return getCategoryLayoutSeed(first.name) - getCategoryLayoutSeed(second.name);
     });
-  }, [gameSettings.quiz?.categories]);
+    return shuffleCategories(groupedCategories, categoryShuffleVersion);
+  }, [categoryShuffleVersion, gameSettings.quiz?.categories]);
 
   const firstBuzzer = buzzerQueue.length > 0 ? buzzerQueue[0] : null;
   const otherBuzzers = buzzerQueue.length > 1 ? buzzerQueue.slice(1) : [];
@@ -232,7 +251,7 @@ const Game = () => {
       
       {/* Buzzer Notification Overlay */}
       {firstBuzzer && (
-        <div style={{
+        <div className="game-buzzer-overlay" style={{
           position: "fixed",
           top: "50%",
           left: "50%",
@@ -267,7 +286,7 @@ const Game = () => {
               }
             `}
           </style>
-          <div style={{ 
+          <div className="game-buzzer-overlay__glow" style={{ 
             animation: "pulseRed 2s infinite ease-in-out", 
             position: "absolute", 
             top: 0, left: 0, right: 0, bottom: 0, 
@@ -300,7 +319,7 @@ const Game = () => {
 
           {/* Kolejne osoby w kolejce - Sekcja rozszerzająca się */}
           {otherBuzzers.length > 0 && (
-            <Box sx={{ 
+            <Box className="game-buzzer-overlay__queue" sx={{ 
               mt: 1, 
               mb: 4, 
               width: "100%",
@@ -336,6 +355,7 @@ const Game = () => {
           
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", mt: otherBuzzers.length === 0 ? 2 : 0 }}>
             <button
+              className="game-buzzer-overlay__primary"
                 onClick={() => setBuzzerQueue(prev => prev.slice(1))}
                 style={{
                 background: "#ef4444",
@@ -459,7 +479,7 @@ const Game = () => {
             {orderedCategories.map((category, index) => {
               const unusedQuestionsCount = getUnusedQuestionsCount(category);
               const isActive = unusedQuestionsCount > 0;
-              const cardBg = getCategoryCardBackground(index);
+              const cardBg = getCategoryCardBackground(index, category.accent);
               const dynamicSize = getDynamicFontSize(category.name, boardScale.titleSize);
 
               return (

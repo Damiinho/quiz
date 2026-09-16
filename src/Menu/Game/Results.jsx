@@ -95,6 +95,7 @@ export const Results = () => {
   return (
     <div
       ref={containerRef}
+      className="game-results-panel game-panel"
       style={{
         position: "fixed",
         top: "20px",

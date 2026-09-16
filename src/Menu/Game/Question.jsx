@@ -34,6 +34,25 @@ const getHiddenQuestionFontSize = (text = "") => {
   return "clamp(1.5rem, 3vw, 2.35rem)";
 };
 
+const shuffleAnswers = (answers) => {
+  const shuffled = [...answers];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
+const getCategoryAccent = (name = "") => {
+  const accents = ["#2ecc71", "#a855f7", "#3b82f6", "#ef4444", "#eab308", "#6366f1"];
+  const seed = String(name).split("").reduce((total, character) => total + character.charCodeAt(0), 0);
+  return accents[seed % accents.length];
+};
+
+const getQuestionAccent = (category) => category?.accent || getCategoryAccent(category?.name);
+
+const getCategoryBackground = (accent) => `radial-gradient(circle at 50% 12%, ${accent}99 0%, ${accent}45 44%, rgba(15, 23, 42, 0.08) 100%), linear-gradient(135deg, ${accent}26, rgba(15, 23, 42, 0.32))`;
+
 const Question = ({ category }) => {
   const { 
     gameSettings, 
@@ -70,7 +89,13 @@ const Question = ({ category }) => {
     return unanswered[0];
   }, [category]);
 
+  const shuffledAnswers = useMemo(
+    () => shuffleAnswers(selectedQuestion?.answers || []),
+    [selectedQuestion]
+  );
+
   const questionContext = selectedQuestion?.context?.trim();
+  const questionAccent = getQuestionAccent(category);
 
   useEffect(() => {
     setIsContextOpen(false);
@@ -135,25 +160,13 @@ const Question = ({ category }) => {
     const cracks = ["crack-h", "crack-v", "crack-d1"];
     setCrackType(cracks[Math.floor(Math.random() * cracks.length)]);
 
-    // Losowanie tematu tła (tylko dla pytań nie-licytacyjnych)
+    // Tło pytania korzysta z tego samego akcentu co karta kategorii.
     if (category?.type !== "auction") {
-        const themes = [
-            "radial-gradient(circle at center, rgba(16, 185, 129, 0.6) 0%, rgba(16, 185, 129, 0.3) 50%, rgba(16, 185, 129, 0.15) 100%)", // Emerald
-            "radial-gradient(circle at center, rgba(59, 130, 246, 0.6) 0%, rgba(59, 130, 246, 0.3) 50%, rgba(59, 130, 246, 0.15) 100%)", // Blue
-            "radial-gradient(circle at center, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.3) 50%, rgba(139, 92, 246, 0.15) 100%)", // Purple
-            "radial-gradient(circle at center, rgba(236, 72, 153, 0.6) 0%, rgba(236, 72, 153, 0.3) 50%, rgba(236, 72, 153, 0.15) 100%)", // Pink
-            "radial-gradient(circle at center, rgba(245, 158, 11, 0.6) 0%, rgba(245, 158, 11, 0.3) 50%, rgba(245, 158, 11, 0.15) 100%)", // Amber
-            "radial-gradient(circle at center, rgba(6, 182, 212, 0.6) 0%, rgba(6, 182, 212, 0.3) 50%, rgba(6, 182, 212, 0.15) 100%)", // Cyan
-            "radial-gradient(circle at center, rgba(132, 204, 22, 0.6) 0%, rgba(132, 204, 22, 0.3) 50%, rgba(132, 204, 22, 0.15) 100%)", // Lime
-            "radial-gradient(circle at center, rgba(99, 102, 241, 0.6) 0%, rgba(99, 102, 241, 0.3) 50%, rgba(99, 102, 241, 0.15) 100%)", // Indigo
-            "radial-gradient(circle at center, rgba(244, 63, 94, 0.6) 0%, rgba(244, 63, 94, 0.3) 50%, rgba(244, 63, 94, 0.15) 100%)", // Rose
-            "radial-gradient(circle at center, rgba(255, 120, 0, 0.6) 0%, rgba(255, 120, 0, 0.3) 50%, rgba(255, 120, 0, 0.15) 100%)", // Orange
-        ];
-        setBgTheme(themes[Math.floor(Math.random() * themes.length)]);
+      setBgTheme(getCategoryBackground(questionAccent));
     } else {
         setBgTheme(null);
     }
-  }, [selectedQuestion, category?.type]);
+  }, [selectedQuestion, category?.type, questionAccent]);
 
   const playEffect = useCallback((type) => {
     if (appSettings?.soundEffects === false) return;
@@ -345,15 +358,18 @@ const Question = ({ category }) => {
 
       <div 
         className={`question-view ${category?.type === "auction" ? `auction-mode ${isCracked ? 'is-cracked' : ''}` : ''}`}
-        style={bgTheme ? {
+        style={{
+          ...(bgTheme ? {
             backgroundImage: bgTheme,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundAttachment: "fixed",
-            transition: "all 0.5s ease"
-        } : {}}
+            backgroundAttachment: "fixed"
+          } : {}),
+          transition: "all 0.5s ease",
+          "--question-accent": category?.type === "auction" ? "#eab308" : questionAccent
+        }}
       >
-        <div className="question-view__header">
+        <div className="question-view__header game-panel">
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Typography variant="h6" color="rgba(255,255,255,0.4)" fontWeight="800">
               {category.name?.toUpperCase()}
@@ -394,18 +410,7 @@ const Question = ({ category }) => {
             <button
               type="button"
               onClick={() => setIsContextOpen((prev) => !prev)}
-              style={{
-                border: "1px solid rgba(192, 132, 252, 0.7)",
-                background: isContextOpen ? "rgba(192, 132, 252, 0.2)" : "rgba(255,255,255,0.05)",
-                color: "#f5d0fe",
-                borderRadius: "999px",
-                padding: "8px 16px",
-                fontWeight: 800,
-                letterSpacing: "0.06em",
-                cursor: "pointer",
-                textTransform: "uppercase",
-                fontSize: "0.72rem"
-              }}
+              className={`question-view__context-btn ${isContextOpen ? "is-open" : ""}`}
             >
               {isContextOpen ? "Ukryj kontekst" : "Pokaż kontekst"}
             </button>
@@ -603,30 +608,12 @@ const Question = ({ category }) => {
                 <button
                   type="button"
                   onClick={() => setShowHiddenQuestion(true)}
-                  style={{
-                    position: "relative",
-                    overflow: "hidden",
-                    background: "linear-gradient(135deg, rgba(147, 51, 234, 0.8), rgba(59, 130, 246, 0.7), rgba(14, 165, 233, 0.7))",
-                    border: "1px solid rgba(216, 180, 254, 0.8)",
-                    color: "#fff",
-                    borderRadius: "999px",
-                    padding: "14px 30px",
-                    fontWeight: 900,
-                    letterSpacing: "0.12em",
-                    cursor: "pointer",
-                    textTransform: "uppercase",
-                    fontSize: "0.72rem",
-                    boxShadow: "0 0 0 rgba(168, 85, 247, 0.4), 0 0 28px rgba(168, 85, 247, 0.5), 0 10px 30px rgba(14, 165, 233, 0.25)",
-                    animation: "pulseReveal 1.8s ease-in-out infinite",
-                    margin: "0 auto",
-                    textShadow: "0 0 16px rgba(255,255,255,0.8)"
-                  }}
+                  className="question-view__reveal-btn"
                 >
-                  <span style={{ position: "absolute", inset: "-30% -10%", background: "linear-gradient(110deg, rgba(255,255,255,0) 25%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 75%)", transform: "translateX(-130%) skewX(-18deg)", animation: "spotlightSweep 2.8s ease-in-out infinite" }} />
-                  <span style={{ position: "relative", zIndex: 1 }}>Pokaż dalej</span>
+                  <span>Pokaż dalej</span>
                 </button>
               ) : (
-                <Paper sx={{
+                <Paper className="question-view__hidden-card" sx={{
                   p: 3,
                   background: "linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.88), rgba(14, 165, 233, 0.14))",
                   border: "1px solid rgba(125, 211, 252, 0.7)",
@@ -655,17 +642,7 @@ const Question = ({ category }) => {
                     <button
                       type="button"
                       onClick={() => setShowHiddenQuestion(false)}
-                      style={{
-                        marginTop: "16px",
-                        background: "rgba(15, 118, 110, 0.35)",
-                        border: "1px solid rgba(45, 212, 191, 0.8)",
-                        color: "#ccfbf1",
-                        borderRadius: "12px",
-                        padding: "8px 16px",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        boxShadow: "0 8px 24px rgba(45, 212, 191, 0.18)"
-                      }}
+                      className="question-view__secondary-btn"
                     >
                       Ukryj
                     </button>
@@ -676,7 +653,7 @@ const Question = ({ category }) => {
           )}
 
           {questionContext && isContextOpen && (
-            <Paper sx={{
+            <Paper className="question-view__context-card" sx={{
               p: 2.5,
               mt: 2,
               background: "rgba(168, 85, 247, 0.08)",
@@ -697,7 +674,7 @@ const Question = ({ category }) => {
 
           {(category?.type === "illustrated" || category?.type === "forehead" || category?.type === "openAnswer") && selectedQuestion.image && (
             <div style={{ textAlign: "center", width: "100%", marginBottom: "20px" }}>
-              <img src={getAssetPath(selectedQuestion.image)} alt="Pytanie" style={{ maxWidth: "100%", maxHeight: hasAnswers ? "30vh" : "45vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer", objectFit: "contain" }} onClick={() => setEnlargedImage(selectedQuestion.image)} />
+              <img src={getAssetPath(selectedQuestion.image)} alt="Ilustracja pytania" loading="lazy" decoding="async" style={{ maxWidth: "100%", maxHeight: hasAnswers ? "30vh" : "45vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer", objectFit: "contain" }} onClick={() => setEnlargedImage(selectedQuestion.image)} />
             </div>
           )}
 
@@ -736,7 +713,7 @@ const Question = ({ category }) => {
                         <ChevronLeftIcon fontSize="large" />
                       </IconButton>
                     )}
-                    <img 
+                    <img loading="lazy" decoding="async"
                       src={getAssetPath(albumRiddleImages[currentImageIndex] || albumRiddleImages[0])} 
                       alt="Album" 
                       style={{ maxWidth: "100%", maxHeight: "50vh", borderRadius: "20px", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: "pointer", objectFit: "contain" }} 
@@ -758,13 +735,14 @@ const Question = ({ category }) => {
 
           {shouldShowGenericAnswers && (
             <div className="question-view__answers">
-              {selectedQuestion.answers.map((answer, index) => {
+              {shuffledAnswers.map((answer, index) => {
                 const isCorrect = showAnswer && answer === selectedQuestion.correctAnswer?.[0];
                 const isSelected = selectedAnswerIndex === index;
                 const isWrong = isSelected && !isCorrect && showAnswer;
                 return (
                   <div 
-                    key={index} className={`question-view__answer ${isCorrect ? 'question-view__answer--correct' : ''}`}
+                    key={index}
+                    className={`question-view__answer ${isCorrect ? 'question-view__answer--correct' : ''} ${isSelected ? 'question-view__answer--selected' : ''} ${isWrong ? 'question-view__answer--wrong' : ''}`}
                     onClick={() => { if (!showAnswer) setSelectedAnswerIndex(index); }}
                     style={{ 
                       border: isSelected ? "3px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.05)", 
@@ -819,7 +797,7 @@ const Question = ({ category }) => {
               )}
               {selectedQuestion.correctAnswerImage && (
                 <Box sx={{ mt: 2 }}>
-                  <img 
+                    <img loading="lazy" decoding="async"
                     src={getAssetPath(selectedQuestion.correctAnswerImage)} 
                     alt="Poprawna odpowiedź" 
                     style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", border: "2px solid rgba(255,255,255,0.1)" }} 
@@ -867,7 +845,7 @@ const Question = ({ category }) => {
                         {playerAns?.answer ? (
                           shouldShowPlayerAnswers ? (
                             (playerAns.answer.startsWith("data:image") || playerAns.answer.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || playerAns.answer.startsWith("http")) ? (
-                              <img 
+                              <img loading="lazy" decoding="async"
                                   src={playerAns.answer.startsWith("data:image") ? playerAns.answer : getAssetPath(playerAns.answer)} 
                                   alt={`Odpowiedź ${player.name}`} 
                                   style={{ maxWidth: "100%", maxHeight: "150px", borderRadius: "8px", objectFit: "contain", cursor: "pointer" }} 
@@ -904,7 +882,7 @@ const Question = ({ category }) => {
           )}
         </div>
 
-        <div className="question-view__footer">
+        <div className="question-view__footer game-panel">
           <button onClick={handleGoBackWithLog} style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#fff", padding: "16px 32px", borderRadius: "12px", cursor: "pointer", fontWeight: "700" }}>← Wróć (Esc)</button>
           <div style={{ display: "flex", gap: "16px" }}>
             <button disabled={!shouldShowAnswerButton} onClick={handleShowAnswerToggle} style={{ background: shouldShowAnswerButton ? (showAnswer ? "#ef4444" : "#2ecc71") : "#4b5563", border: "none", color: "#fff", padding: "16px 40px", borderRadius: "12px", cursor: shouldShowAnswerButton ? "pointer" : "not-allowed", fontWeight: "800", fontSize: "16px" }}>
@@ -930,7 +908,7 @@ const Question = ({ category }) => {
               <ChevronLeftIcon fontSize="large" />
             </IconButton>
           )}
-          <img 
+                              <img loading="lazy" decoding="async"
             src={getAssetPath(enlargedImage)} 
             alt="Zoom" 
             style={{ 

@@ -11,6 +11,45 @@ $text-muted: #94a3b8;
 
 :root {
   --app-font-size: 16px;
+  --ui-radius: 4px;
+  --ui-border: rgba(255, 255, 255, 0.12);
+  --ui-surface: rgba(15, 23, 42, 0.72);
+  --ui-surface-strong: rgba(15, 23, 42, 0.9);
+  --ui-success: #2ecc71;
+  --ui-danger: #ef4444;
+  --ui-warning: #eab308;
+  --ui-info: #3b82f6;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ui-info);
+  outline-offset: 3px;
+}
+
+.route-loading,
+.route-error {
+  width: min(100%, 36rem);
+  margin: auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  text-align: center;
+  background: var(--ui-surface-strong);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  color: #fff;
+}
+
+.route-error button {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--ui-success);
+  border: 0;
+  color: #06140b;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 html {
@@ -115,6 +154,10 @@ body {
     flex-direction: column;
     align-items: center;
   }
+    &__answer {
+      grid-column: span 12;
+      min-height: 0 !important;
+    }
 
   &__welcome {
     font-size: 0.9375rem;
@@ -160,7 +203,7 @@ body {
     font-size: 1.125rem;
     font-weight: 800;
     padding: 1.05rem 4.75rem;
-    border-radius: 1rem;
+    border-radius: var(--ui-radius);
     border: 1px solid rgba(167, 243, 208, 0.7);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -180,7 +223,7 @@ body {
     color: #2ecc71;
     border: 2px solid rgba(46, 204, 113, 0.9);
     padding: 0.875rem 2.5rem;
-    border-radius: 0.75rem;
+    border-radius: var(--ui-radius);
     font-weight: 800;
     cursor: pointer;
     font-size: 0.875rem;
@@ -208,7 +251,7 @@ body {
     color: $text-white;
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
+    border-radius: var(--ui-radius);
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -236,7 +279,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: #fff;
     padding: 1.5rem;
-    border-radius: 1rem;
+    border-radius: var(--ui-radius);
     font-size: 1.125rem;
     font-weight: 700;
     cursor: pointer;
@@ -462,9 +505,136 @@ body {
   .category-screen .quiz-card__dots { display: none; }
 }
 
+// Wspólny, bardziej planszowy język krawędzi całej aplikacji.
+button,
+input,
+select,
+textarea,
+.MuiPaper-root,
+.MuiButtonBase-root,
+.MuiOutlinedInput-root,
+.MuiSelect-select,
+.choice-screen__btn,
+.quiz-card,
+.players-view,
+.players-view__item,
+.question-view__header,
+.question-view__footer,
+.question-view__answer,
+.question-view__box,
+.question-view__hidden-card,
+.question-view__context-card,
+.question-view__reveal-btn,
+.question-view__context-btn,
+.question-view__secondary-btn {
+  border-radius: var(--ui-radius) !important;
+}
+
+[style*="border-radius"] {
+  border-radius: var(--ui-radius) !important;
+}
+
+.quiz-log-panel {
+  width: min(360px, calc(100vw - 32px)) !important;
+}
+
+.quiz-log-panel__header {
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.quiz-log-panel__identity {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.quiz-log-panel__identity .MuiTypography-root {
+  white-space: nowrap;
+}
+
+.quiz-log-panel__actions {
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.game-panel {
+  border-color: var(--ui-border) !important;
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.24) !important;
+}
+
+.game-buzzer-overlay {
+  width: min(560px, calc(100vw - 32px)) !important;
+  min-width: 0 !important;
+  padding: clamp(1.5rem, 5vw, 2.5rem) !important;
+  border-radius: var(--ui-radius) !important;
+}
+
+.game-buzzer-overlay__glow,
+.game-buzzer-overlay__queue,
+.game-buzzer-overlay__primary {
+  border-radius: var(--ui-radius) !important;
+}
+
+.game-buzzer-overlay__primary {
+  min-height: 3.5rem;
+}
+
+.game-results-panel,
+.quiz-log-panel {
+  max-width: calc(100vw - 32px);
+}
+
+.ranking-panel {
+  width: min(450px, calc(100vw - 32px)) !important;
+  padding: clamp(1.25rem, 4vw, 2.5rem) !important;
+}
+
+.question-view__header,
+.question-view__footer {
+  gap: 0.75rem;
+}
+
+.question-view__header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.question-view__footer > div {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.question-view__answer--selected {
+  border-color: var(--ui-info) !important;
+  background: rgba(59, 130, 246, 0.16) !important;
+  box-shadow: 0 0 1.25rem rgba(59, 130, 246, 0.14);
+}
+
+.question-view__answer--wrong {
+  border-color: var(--ui-danger) !important;
+  background: rgba(239, 68, 68, 0.14) !important;
+}
+
+.question-view__answer--correct {
+  border-color: var(--ui-success) !important;
+  background: rgba(46, 204, 113, 0.16) !important;
+}
+
+.question-view__timer,
+.question-view__audio-btn {
+  border-radius: 50% !important;
+}
+
+.quiz-card__icon {
+  border-radius: var(--ui-radius) !important;
+}
+
 .quiz-card {
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.8));
-  border-radius: 1.25rem;
+  border-radius: var(--ui-radius);
   padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
@@ -499,7 +669,7 @@ body {
   &__icon {
     width: 3rem;
     height: 3rem;
-    border-radius: 0.75rem;
+    border-radius: var(--ui-radius);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -532,7 +702,7 @@ body {
   width: 100%;
   max-width: 37.5rem;
   background: $bg-card;
-  border-radius: 1.5rem;
+  border-radius: var(--ui-radius);
   padding: 2rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   text-align: left;
@@ -555,7 +725,7 @@ body {
       flex: 1;
       background: rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 0.75rem;
+      border-radius: var(--ui-radius);
       padding: 0.875rem 1.25rem;
       color: #fff;
       font-size: 0.9375rem;
@@ -567,7 +737,7 @@ body {
       background: $primary-green;
       color: #000;
       border: none;
-      border-radius: 0.75rem;
+      border-radius: var(--ui-radius);
       padding: 0 2rem;
       font-weight: 800;
       cursor: pointer;
@@ -583,7 +753,7 @@ body {
     align-items: center;
     background: rgba(0,0,0,0.15);
     padding: 1rem 1.25rem;
-    border-radius: 1rem;
+    border-radius: var(--ui-radius);
     margin-bottom: 2rem;
     font-size: 0.875rem;
     font-weight: 600;
@@ -597,7 +767,7 @@ body {
       button {
         width: 2.25rem;
         height: 2.25rem;
-        border-radius: 0.625rem;
+        border-radius: var(--ui-radius);
         border: 1px solid rgba(255,255,255,0.1);
         background: rgba(255,255,255,0.05);
         color: #fff;
@@ -624,7 +794,7 @@ body {
 
   &__item {
     background: rgba(0, 0, 0, 0.15);
-    border-radius: 1rem;
+    border-radius: var(--ui-radius);
     padding: 1rem 1.25rem;
     display: flex;
     justify-content: space-between;
@@ -644,7 +814,7 @@ body {
     &-avatar {
       width: 2.75rem;
       height: 2.75rem;
-      border-radius: 0.75rem;
+      border-radius: var(--ui-radius);
       background: rgba($primary-green, 0.1);
       color: $primary-green;
       display: flex;
@@ -675,7 +845,7 @@ body {
   max-width: 75rem;
   background: rgba($bg-card, 0.6);
   backdrop-filter: blur(20px);
-  border-radius: 1.5rem;
+  border-radius: var(--ui-radius);
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
@@ -745,7 +915,7 @@ body {
       width: 100%;
       background: rgba(0,0,0,0.25);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 0.75rem;
+      border-radius: var(--ui-radius);
       padding: 1rem 1.25rem;
       color: #fff;
       font-size: 0.9375rem;
@@ -761,7 +931,7 @@ body {
     background: $primary-green;
     color: #000;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: var(--ui-radius);
     padding: 0 2rem;
     height: 3rem;
     font-weight: 800;
@@ -802,6 +972,54 @@ body {
   }
 }
 
+.editor-view__accent-picker {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  height: 3rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s ease, background 0.2s ease;
+
+  &:hover,
+  &:focus-within {
+    border-color: var(--ui-info);
+    background: var(--ui-surface-strong);
+  }
+
+  input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+
+.editor-view__accent-swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.editor-view__accent-auto {
+  width: 3rem;
+  min-width: 3rem;
+  height: 3rem;
+  padding: 0 !important;
+}
+
 // Ekran Pytania
 .question-view {
   width: 100%;
@@ -813,7 +1031,7 @@ body {
   padding: 1.25rem 2.5rem;
   position: relative;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(15, 23, 42, 0.82));
-  border-radius: 2rem;
+  border-radius: 0;
   overflow: hidden;
 
   &::before {
@@ -850,7 +1068,7 @@ body {
     background: rgba(15, 23, 42, 0.35);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 1rem;
+    border-radius: 0;
     padding: 0.75rem 1rem;
   }
 
@@ -876,7 +1094,7 @@ body {
     z-index: 10;
     background: rgba(15, 23, 42, 0.3);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 1rem;
+    border-radius: 0;
     padding: 0.75rem 1rem;
   }
 
@@ -906,10 +1124,10 @@ body {
   }
 
   &__box {
-    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(236, 252, 245, 0.96));
+    background: linear-gradient(135deg, rgba(255,255,255,0.99), rgba(245,247,255,0.96));
     color: #000;
-    padding: 2.5rem;
-    border-radius: 1.5rem;
+    padding: clamp(1.5rem, 4vw, 2.75rem);
+    border-radius: 0.25rem;
     font-size: clamp(1.5rem, 4vw, 3.25rem);
     font-weight: 800;
     text-align: center;
@@ -922,12 +1140,25 @@ body {
     justify-content: center;
     position: relative;
     border: 1px solid rgba(15, 23, 42, 0.08);
+    border-top: 0.45rem solid var(--question-accent, #2ecc71);
+    overflow: hidden;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -30% auto -30% -35%;
+      width: 24%;
+      background: linear-gradient(105deg, transparent, rgba(255,255,255,0.28), transparent);
+      transform: translateX(-180%) skewX(-18deg);
+      animation: questionTileShine 6s ease-in-out infinite;
+      pointer-events: none;
+    }
   }
 
   &__answers {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
+    gap: 0.9rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     max-width: 68.75rem;
     margin: 0 auto;
@@ -935,18 +1166,33 @@ body {
 
   &__answer {
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.9));
-    padding: 1rem 2rem;
-    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.2rem;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 1.5rem;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-left: 0.35rem solid color-mix(in srgb, var(--question-accent, #2ecc71) 75%, white);
+    animation: answerTileIn 0.45s both;
     transition: all 0.2s;
     font-size: clamp(0.875rem, 1.5vw, 1.375rem);
     min-height: 5rem;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: -40% auto -40% -30%;
+      width: 22%;
+      background: linear-gradient(105deg, transparent, rgba(255,255,255,0.18), transparent);
+      transform: translateX(-180%) skewX(-18deg);
+      animation: answerTileShine 7s ease-in-out infinite;
+      pointer-events: none;
+    }
 
     &:hover {
       background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.95));
@@ -957,8 +1203,9 @@ body {
     &-letter {
       width: 2.25rem;
       height: 2.25rem;
-      background: rgba(255,255,255,0.05);
-      border-radius: 0.625rem;
+      background: color-mix(in srgb, var(--question-accent, #2ecc71) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--question-accent, #2ecc71) 45%, transparent);
+      border-radius: 0.25rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -971,6 +1218,103 @@ body {
       border-color: $primary-green !important;
       box-shadow: 0 0 1.875rem rgba($primary-green, 0.2);
     }
+
+    @for $answer-index from 1 through 6 {
+      &:nth-child(#{$answer-index}) { animation-delay: #{$answer-index * 70}ms; }
+    }
+
+  }
+}
+
+.question-view__reveal-btn,
+.question-view__context-btn,
+.question-view__secondary-btn {
+  border: 1px solid color-mix(in srgb, var(--question-accent, #2ecc71) 65%, white);
+  background: color-mix(in srgb, var(--question-accent, #2ecc71) 22%, rgba(15, 23, 42, 0.72));
+  color: #fff;
+  border-radius: 0.25rem;
+  padding: 0.8rem 1.25rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--question-accent, #2ecc71) 18%, transparent);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-0.15rem);
+    background: color-mix(in srgb, var(--question-accent, #2ecc71) 38%, rgba(15, 23, 42, 0.72));
+    box-shadow: 0 0.8rem 1.8rem color-mix(in srgb, var(--question-accent, #2ecc71) 28%, transparent);
+  }
+}
+
+.question-view__reveal-btn {
+  position: relative;
+  overflow: hidden;
+  min-width: 12rem;
+  animation: answerTileIn 0.45s both;
+}
+
+.question-view__context-btn {
+  &.is-open {
+    background: color-mix(in srgb, var(--question-accent, #2ecc71) 42%, rgba(15, 23, 42, 0.72));
+  }
+}
+
+.question-view__hidden-card,
+.question-view__context-card {
+  width: 100%;
+  max-width: 56.25rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--question-accent, #2ecc71) 22%, rgba(15, 23, 42, 0.9)), rgba(15, 23, 42, 0.88)) !important;
+  border: 1px solid color-mix(in srgb, var(--question-accent, #2ecc71) 62%, transparent) !important;
+  border-left: 0.35rem solid var(--question-accent, #2ecc71) !important;
+  border-radius: 0.25rem !important;
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.25) !important;
+  animation: answerTileIn 0.4s both;
+}
+
+.question-view__hidden-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.question-view__hidden-card::before,
+.question-view__context-card::before {
+  content: "";
+  display: block;
+  height: 0.25rem;
+  margin: -1.5rem -1.5rem 1.25rem;
+  background: var(--question-accent, #2ecc71);
+}
+
+@keyframes questionTileShine {
+  0%, 35% { transform: translateX(-180%) skewX(-18deg); }
+  65%, 100% { transform: translateX(620%) skewX(-18deg); }
+}
+
+@keyframes answerTileShine {
+  0%, 45% { transform: translateX(-180%) skewX(-18deg); }
+  72%, 100% { transform: translateX(620%) skewX(-18deg); }
+}
+
+@keyframes answerTileIn {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.question-view__answer--long,
+.question-view__answer--verylong {
+  grid-column: span 2;
+}
+
+@media (max-width: 700px) {
+  .question-view__answer {
+    grid-column: span 12;
   }
 }
 
@@ -1040,7 +1384,7 @@ body {
 .MuiPaper-root {
   background-color: $bg-card !important;
   color: $text-white !important;
-  border-radius: 1rem !important;
+  border-radius: var(--ui-radius) !important;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -1048,7 +1392,7 @@ body {
   .MuiOutlinedInput-root {
     background: rgba(0,0,0,0.2);
     color: #fff;
-    border-radius: 0.5rem;
+    border-radius: var(--ui-radius);
     & fieldset { border-color: rgba(255,255,255,0.1); }
     &:hover fieldset { border-color: rgba(255,255,255,0.2); }
     &.Mui-focused fieldset { border-color: $primary-green; }
@@ -1059,7 +1403,58 @@ body {
 .MuiButton-root {
     text-transform: none !important;
     font-weight: 700 !important;
-    border-radius: 0.5rem !important;
+    border-radius: var(--ui-radius) !important;
+}
+
+@media (max-width: 700px) {
+  .quiz-log-panel,
+  .game-results-panel {
+    position: fixed !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .quiz-log-panel { top: 1rem !important; }
+  .game-results-panel { top: 5.75rem !important; }
+
+  .question-view {
+    height: calc(100vh - 6.5rem);
+    padding: 0.75rem;
+  }
+
+  .question-view__header,
+  .question-view__footer {
+    padding: 0.65rem;
+  }
+
+  .question-view__header {
+    justify-content: flex-start;
+  }
+
+  .question-view__context-btn {
+    margin-left: auto;
+  }
+
+  .question-view__footer,
+  .question-view__footer > div {
+    width: 100%;
+  }
+
+  .question-view__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .question-view__footer > div {
+    justify-content: stretch;
+  }
+
+  .question-view__footer button {
+    flex: 1 1 100%;
+    min-height: 2.75rem;
+  }
 }
 
 @keyframes pulse-bg {
@@ -1122,7 +1517,7 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.625rem;
+  border-radius: var(--ui-radius);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);

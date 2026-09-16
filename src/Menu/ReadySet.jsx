@@ -9,6 +9,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import { downloadJson, readQuizFile } from "../utils/quizStorage";
 
 const ReadySet = () => {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ const ReadySet = () => {
   const handleDownloadQuiz = (quiz) => {
     const targetQuiz = quiz || selectedQuizDetail;
     if (targetQuiz) {
-      import("../utils/quizStorage").then(m => m.downloadJson(targetQuiz, `${targetQuiz.name}.json`));
+      downloadJson(targetQuiz, `${targetQuiz.name}.json`);
     }
   };
 
@@ -158,8 +159,7 @@ const ReadySet = () => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    import("../utils/quizStorage").then(m => {
-        m.readQuizFile(file).then(data => {
+    readQuizFile(file).then(data => {
             if (data.quizLog && data.gameSettings) {
                 loadDownloadedState(data);
                 alert(`Pomyślnie wczytano stan rozgrywki dla: ${data.gameSettings.quiz.name}`);
@@ -170,7 +170,6 @@ const ReadySet = () => {
                 alert("Nieprawidłowy format pliku JSON.");
             }
         }).catch(err => alert("Błąd podczas wczytywania pliku: " + err.message));
-    });
     // Reset input value to allow uploading same file again
     event.target.value = '';
   };
@@ -338,7 +337,7 @@ const ReadySet = () => {
             <div key={index} className="quiz-card" onClick={() => handleQuizSelect(quiz)}>
                 {quiz.image ? (
                   <div className="quiz-card__icon" style={{ padding: 0, overflow: 'hidden' }}>
-                    <img src={quiz.image} alt={quiz.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={quiz.image} alt={quiz.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                 ) : (
                   <div className="quiz-card__icon" style={{ background: getBgColor(index) }}>

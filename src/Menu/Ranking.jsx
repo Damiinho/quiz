@@ -32,7 +32,7 @@ const Ranking = ({ open, onClose }) => {
         }
       }}
     >
-      <Paper sx={{ 
+      <Paper className="ranking-panel game-panel" sx={{ 
         width: '450px', 
         maxWidth: '90vw', 
         background: 'rgba(30, 41, 59, 0.95) !important', 

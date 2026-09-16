@@ -15,6 +15,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import FormatColorResetIcon from "@mui/icons-material/FormatColorReset";
 import { AppContext } from "../contexts/AppContext";
 import { downloadJson, makeSerializableQuiz, readQuizFile } from "../utils/quizStorage";
 import Question from "./Game/Question";
@@ -82,7 +83,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   const [categories, setCategories] = useState(
     () => initialQuiz?.categories?.map(category => ({ type: "standard", ...category })) || []
   );
-  const [categoryForm, setCategoryForm] = useState({ name: "", type: "standard" });
+  const [categoryForm, setCategoryForm] = useState({ name: "", type: "standard", accent: "" });
   const [editingCategoryIndex, setEditingCategoryIndex] = useState(null);
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [questionForm, setQuestionForm] = useState(emptyQuestionForm);
@@ -268,7 +269,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     } else {
       setCategories(prev => [...prev, newCategory]);
     }
-    setCategoryForm({ name: "", type: "standard" });
+    setCategoryForm({ name: "", type: "standard", accent: "" });
   };
 
   const handleSaveQuestion = () => {
@@ -481,7 +482,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                 <div style={{ width: "100%", aspectRatio: "16/9", background: "rgba(0,0,0,0.2)", borderRadius: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "2px dashed rgba(255,255,255,0.1)", overflow: "hidden", position: "relative" }}>
                     {quizImage ? (
                         <>
-                            <img src={quizImage} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img src={quizImage} alt="Podgląd okładki quizu" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             <IconButton 
                                 onClick={(e) => { e.stopPropagation(); setQuizImage(null); }} 
                                 sx={{ position: "absolute", top: 10, right: 10, background: "rgba(239, 68, 68, 0.8)", color: "#fff", '&:hover': { background: "#ef4444" } }}
@@ -526,6 +527,31 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
               >
                 {categoryTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
+              <label
+                className={`editor-view__accent-picker ${categoryForm.accent ? "editor-view__accent-picker--selected" : ""}`}
+                title="Wybierz kolor akcentu kategorii"
+              >
+                {categoryForm.accent ? (
+                  <span className="editor-view__accent-swatch" style={{ backgroundColor: categoryForm.accent }} />
+                ) : (
+                  <span className="editor-view__accent-auto-label">KOLOR</span>
+                )}
+                <input
+                  type="color"
+                  aria-label="Kolor akcentu kategorii"
+                  value={categoryForm.accent || "#000000"}
+                  onChange={e => setCategoryForm({ ...categoryForm, accent: e.target.value })}
+                />
+              </label>
+              <button
+                type="button"
+                className="editor-view__btn editor-view__btn--outline editor-view__accent-auto"
+                onClick={() => setCategoryForm({ ...categoryForm, accent: "" })}
+                title="Losuj kolor automatycznie"
+                aria-label="Przywróć automatyczny kolor kategorii"
+              >
+                <FormatColorResetIcon fontSize="small" />
+              </button>
               <button className="editor-view__btn" style={{ padding: "0 40px" }} onClick={handleSaveCategory}>{editingCategoryIndex !== null ? 'ZAPISZ' : 'DODAJ'}</button>
             </div>
 
@@ -542,7 +568,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                         <div className="players-view__item-actions">
                              <IconButton onClick={(e) => { e.stopPropagation(); handleMoveCategory(i, -1); }} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} disabled={i === 0} title="Przenieś wyżej"><ArrowUpwardIcon fontSize="small" /></IconButton>
                              <IconButton onClick={(e) => { e.stopPropagation(); handleMoveCategory(i, 1); }} size="small" sx={{ color: "rgba(255,255,255,0.7)" }} disabled={i === categories.length - 1} title="Przenieś niżej"><ArrowDownwardIcon fontSize="small" /></IconButton>
-                             <IconButton onClick={(e) => { e.stopPropagation(); setCategoryForm({ type: "standard", ...cat }); setEditingCategoryIndex(i); }} size="small" sx={{ color: "rgba(255,255,255,0.3)" }}><EditIcon fontSize="small" /></IconButton>
+                             <IconButton onClick={(e) => { e.stopPropagation(); setCategoryForm({ type: "standard", accent: "", ...cat }); setEditingCategoryIndex(i); }} size="small" sx={{ color: "rgba(255,255,255,0.3)" }} title="Edytuj kategorię"><EditIcon fontSize="small" /></IconButton>
                              <IconButton onClick={(e) => { e.stopPropagation(); handleDeleteCategory(i); }} size="small" sx={{ color: "#ef4444" }}><DeleteIcon fontSize="small" /></IconButton>
                         </div>
                     </div>

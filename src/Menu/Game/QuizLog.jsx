@@ -88,11 +88,12 @@ export const QuizLog = () => {
   return (
     <div
       ref={containerRef}
+      className="quiz-log-panel game-panel"
       style={{
         position: "fixed",
         top: "20px",
         left: "380px",
-        width: "300px",
+        width: "360px",
         backgroundColor: "rgba(255, 255, 255, 0.05)",
         backdropFilter: "blur(12px)",
         border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -105,6 +106,7 @@ export const QuizLog = () => {
       }}
     >
       <div
+        className="quiz-log-panel__header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -113,7 +115,7 @@ export const QuizLog = () => {
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="quiz-log-panel__identity" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Typography variant="h6" sx={{ fontWeight: "800", fontSize: "16px", letterSpacing: "-0.5px" }}>
             HISTORIA
           </Typography>
@@ -160,7 +162,7 @@ export const QuizLog = () => {
             </IconButton>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "4px" }}>
+        <div className="quiz-log-panel__actions" style={{ display: "flex", gap: "4px" }}>
           <IconButton
             size="small"
             onClick={handleDownloadState}

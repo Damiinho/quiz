@@ -1,5 +1,6 @@
 const GAME_STATE_KEY = "super-zgadywanka:game-state";
 const CUSTOM_QUIZZES_KEY = "super-zgadywanka:custom-quizzes";
+const APP_SETTINGS_KEY = "super-zgadywanka:app-settings";
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
 
@@ -72,6 +73,10 @@ export const loadCustomQuizzes = () => readJson(CUSTOM_QUIZZES_KEY, []);
 export const saveCustomQuizzes = (quizzes) => {
   writeJson(CUSTOM_QUIZZES_KEY, quizzes.map(makeSerializableQuiz));
 };
+
+export const loadAppSettings = () => readJson(APP_SETTINGS_KEY, {});
+
+export const saveAppSettings = (settings) => writeJson(APP_SETTINGS_KEY, settings);
 
 export const downloadJson = (data, filename) => {
   const blob = new Blob([JSON.stringify(data, null, 2)], {

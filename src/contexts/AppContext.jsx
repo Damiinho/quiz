@@ -11,7 +11,9 @@ import {
   saveGameState, 
   loadGameState, 
   saveCustomQuizzes, 
-  loadCustomQuizzes 
+  loadCustomQuizzes,
+  loadAppSettings,
+  saveAppSettings
 } from "../utils/quizStorage";
 
 export const AppContext = createContext();
@@ -48,14 +50,18 @@ export const AppProvider = ({ children }) => {
   const [isResultsPinned, setIsResultsPinned] = useState(false);
   const [isLogsPinned, setIsLogsPinned] = useState(false);
 
-  const [appSettings, setAppSettings] = useState({
+  const defaultAppSettings = {
     themeMode: "colorful", // colorful | simple
     fontSize: 100,
     soundEffects: true,
     focusMode: false,
     boardScale: "normal", // compact | normal | large | extraLarge
     logVisibility: "normal" // normal | hidden
-  });
+  };
+  const [appSettings, setAppSettings] = useState(() => ({
+    ...defaultAppSettings,
+    ...loadAppSettings()
+  }));
 
   const generateGameCode = useCallback(() => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -70,6 +76,11 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     saveCustomQuizzes(customQuizzes);
   }, [customQuizzes]);
+
+  useEffect(() => {
+    saveAppSettings(appSettings);
+    document.documentElement.style.setProperty("--app-font-size", `${appSettings.fontSize}%`);
+  }, [appSettings]);
 
   useEffect(() => {
     saveGameState({
