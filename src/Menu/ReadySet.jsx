@@ -10,6 +10,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { downloadJson, readQuizFile } from "../utils/quizStorage";
+import { validateQuiz } from "../utils/quizValidation";
 
 const ReadySet = () => {
   const navigate = useNavigate();
@@ -156,22 +157,33 @@ const ReadySet = () => {
     }));
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-    readQuizFile(file).then(data => {
-            if (data.quizLog && data.gameSettings) {
-                loadDownloadedState(data);
-                alert(`Pomyślnie wczytano stan rozgrywki dla: ${data.gameSettings.quiz.name}`);
-            } else if (data.categories) {
-                addCustomQuiz(data);
-                alert(`Pomyślnie zaimportowano quiz: ${data.name}`);
-            } else {
-                alert("Nieprawidłowy format pliku JSON.");
-            }
-        }).catch(err => alert("Błąd podczas wczytywania pliku: " + err.message));
-    // Reset input value to allow uploading same file again
-    event.target.value = '';
+
+    try {
+      const data = await readQuizFile(file);
+
+      if (data?.quizLog && data.gameSettings) {
+        const quizIssues = validateQuiz(data.gameSettings.quiz);
+        if (!Array.isArray(data.gameSettings.players) || quizIssues.length > 0) {
+          throw new Error(quizIssues[0] || "Nieprawidłowy stan rozgrywki.");
+        }
+        loadDownloadedState(data);
+        alert(`Pomyślnie wczytano stan rozgrywki dla: ${data.gameSettings.quiz.name}`);
+      } else {
+        const issues = validateQuiz(data);
+        if (issues.length > 0) {
+          throw new Error(issues[0]);
+        }
+        addCustomQuiz(data);
+        alert(`Pomyślnie zaimportowano quiz: ${data.name}`);
+      }
+    } catch (error) {
+      alert(`Błąd podczas wczytywania pliku: ${error.message}`);
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const getIcon = (index) => {

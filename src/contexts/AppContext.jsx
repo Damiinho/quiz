@@ -22,11 +22,11 @@ export const AppProvider = ({ children }) => {
   const navigate = useNavigate();
 
   // Core State
-  const [customQuizzes, setCustomQuizzes] = useState(loadCustomQuizzes());
+  const [customQuizzes, setCustomQuizzes] = useState(loadCustomQuizzes);
   const quizList = useMemo(() => [...defaultQuizzes, ...customQuizzes], [customQuizzes]);
   const [editingQuiz, setEditingQuiz] = useState(null);
   
-  const savedState = loadGameState() || {};
+  const [savedState] = useState(() => loadGameState() || {});
   const [gameSettings, setGameSettings] = useState(savedState.gameSettings || {
     players: [],
     quiz: null,
@@ -37,18 +37,20 @@ export const AppProvider = ({ children }) => {
   const [gameCode, setGameCode] = useState(savedState.gameCode || null);
   const [isQuestionActive, setIsQuestionActive] = useState(savedState.isQuestionActive || false);
   const [selectedCategoryName, setSelectedCategoryName] = useState(savedState.selectedCategoryName || null);
+  const [wheelRoundState, setWheelRoundState] = useState(savedState.wheelRoundState || null);
   const [undoPointer, setUndoPointer] = useState(savedState.undoPointer ?? (savedState.quizLog?.length ? savedState.quizLog.length - 1 : -1));
 
   // Volatile State
-  const [buzzerQueue, setBuzzerQueue] = useState([]);
-  const [auctionBids, setAuctionBids] = useState({});
-  const [playerAnswers, setPlayerAnswers] = useState({});
-  const [auctionStage, setAuctionStage] = useState(0);
-  const [isAuctionTimerRunning, setIsAuctionTimerRunning] = useState(false);
-  const [showAnswer, setShowAnswer] = useState(false);
+  const [buzzerQueue, setBuzzerQueue] = useState(savedState.buzzerQueue || []);
+  const [auctionBids, setAuctionBids] = useState(savedState.auctionBids || {});
+  const [playerAnswers, setPlayerAnswers] = useState(savedState.playerAnswers || {});
+  const [auctionStage, setAuctionStage] = useState(savedState.auctionStage || 0);
+  const [isAuctionTimerRunning, setIsAuctionTimerRunning] = useState(savedState.isAuctionTimerRunning || false);
+  const [showAnswer, setShowAnswer] = useState(savedState.showAnswer || false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isResultsPinned, setIsResultsPinned] = useState(false);
   const [isLogsPinned, setIsLogsPinned] = useState(false);
+  const [wheelControlEvent, setWheelControlEvent] = useState(null);
 
   const defaultAppSettings = {
     themeMode: "colorful", // colorful | simple
@@ -90,7 +92,14 @@ export const AppProvider = ({ children }) => {
       quizLog,
       gameCode,
       selectedCategoryName,
+      wheelRoundState,
       undoPointer,
+      buzzerQueue,
+      auctionBids,
+      playerAnswers,
+      auctionStage,
+      isAuctionTimerRunning,
+      showAnswer,
     });
 
     if (gameCode) {
@@ -104,6 +113,7 @@ export const AppProvider = ({ children }) => {
           players: gameSettings.players.map(p => ({ name: p.name, points: p.points, wiemLepiejUsed: p.wiemLepiejUsed })),
           wiemLepiejLimit: gameSettings.wiemLepiejLimit,
           isAuction: activeCategory?.type === "auction",
+          isWheel: activeCategory?.type === "wheel",
           isWriting: activeCategory?.type === "openAnswer",
           inputMethod: activeQuestion?.inputMethod || "typing",
           isBiddingClosed: isAuctionTimerRunning || auctionStage === 3,
@@ -115,7 +125,7 @@ export const AppProvider = ({ children }) => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, selectedCategoryName, undoPointer, auctionBids, isAuctionTimerRunning, auctionStage]);
+  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, selectedCategoryName, wheelRoundState, undoPointer, buzzerQueue, auctionBids, playerAnswers, auctionStage, isAuctionTimerRunning, showAnswer]);
 
   useEffect(() => {
     let eventSource = null;
@@ -134,6 +144,8 @@ export const AppProvider = ({ children }) => {
             ...prev, 
             [eventData.player]: { answer: eventData.answer, isConfirmed: eventData.isConfirmed } 
           }));
+        } else if (eventData.type === "WHEEL_CONTROL") {
+          setWheelControlEvent({ ...eventData, id: `${eventData.player}-${eventData.action}-${eventData.time}` });
         } else if (eventData.type === "WIEM_LEPIEJ") {
           setGameSettings(prev => {
             const playerIndex = prev.players.findIndex(p => p.name.toLowerCase() === eventData.player.toLowerCase());
@@ -172,6 +184,7 @@ export const AppProvider = ({ children }) => {
       scoreHistory: JSON.parse(JSON.stringify(state.scoreHistory || [])),
       isQuestionActive: Boolean(state.isQuestionActive),
       selectedCategoryName: state.selectedCategoryName || null,
+      wheelRoundState: state.wheelRoundState ? JSON.parse(JSON.stringify(state.wheelRoundState)) : null,
       showAnswer: Boolean(state.showAnswer),
       isAudioPlaying: false,
       buzzerQueue: JSON.parse(JSON.stringify(state.buzzerQueue || [])),
@@ -188,6 +201,7 @@ export const AppProvider = ({ children }) => {
       scoreHistory,
       isQuestionActive,
       selectedCategoryName,
+      wheelRoundState,
       showAnswer,
       isAudioPlaying: false,
       buzzerQueue,
@@ -203,6 +217,7 @@ export const AppProvider = ({ children }) => {
     scoreHistory,
     isQuestionActive,
     selectedCategoryName,
+    wheelRoundState,
     showAnswer,
     buzzerQueue,
     auctionBids,
@@ -218,6 +233,7 @@ export const AppProvider = ({ children }) => {
     setScoreHistory(snapshot.scoreHistory || []);
     setIsQuestionActive(Boolean(snapshot.isQuestionActive));
     setSelectedCategoryName(snapshot.selectedCategoryName || null);
+    setWheelRoundState(snapshot.wheelRoundState || null);
     setShowAnswer(Boolean(snapshot.showAnswer));
     setIsAudioPlaying(false);
     setBuzzerQueue(snapshot.buzzerQueue || []);
@@ -243,6 +259,22 @@ export const AppProvider = ({ children }) => {
     });
     setUndoPointer(prev => prev + 1);
   }, [cloneSnapshot, getGameSnapshot, undoPointer]);
+
+  const recordWheelRoundAction = useCallback((nextWheelRoundState, description, pointsChange = null) => {
+    const before = getGameSnapshot();
+    const nextGameSettings = pointsChange && gameSettings.players[pointsChange.playerIndex]
+      ? {
+        ...gameSettings,
+        players: gameSettings.players.map((player, index) => index === pointsChange.playerIndex
+          ? { ...player, points: player.points + pointsChange.delta }
+          : player),
+      }
+      : gameSettings;
+    const after = getGameSnapshot({ wheelRoundState: nextWheelRoundState, gameSettings: nextGameSettings });
+    if (nextGameSettings !== gameSettings) setGameSettings(nextGameSettings);
+    setWheelRoundState(nextWheelRoundState);
+    addToLog({ type: "WHEEL_ROUND_ACTION", description }, { before, after });
+  }, [addToLog, gameSettings, getGameSnapshot]);
 
   // Atomowe akcje gry z automatycznym i pewnym zapisem migawek
   const openCategory = useCallback((categoryName) => {
@@ -305,12 +337,14 @@ export const AppProvider = ({ children }) => {
       gameSettings: nextGameSettings,
       isQuestionActive: false,
       selectedCategoryName: null,
+      wheelRoundState: null,
       showAnswer: false,
       playerAnswers: {}
     });
     setGameSettings(nextGameSettings);
     setIsQuestionActive(false);
     setSelectedCategoryName(null);
+    setWheelRoundState(null);
     setShowAnswer(false);
     setPlayerAnswers({});
     addToLog({
@@ -455,6 +489,7 @@ export const AppProvider = ({ children }) => {
     setGameCode(null);
     setIsQuestionActive(false);
     setSelectedCategoryName(null);
+    setWheelRoundState(null);
     setUndoPointer(-1);
     setBuzzerQueue([]);
     setAuctionBids({});
@@ -470,6 +505,7 @@ export const AppProvider = ({ children }) => {
     setQuizLog([]);
     setIsQuestionActive(false);
     setSelectedCategoryName(null);
+    setWheelRoundState(null);
     setUndoPointer(-1);
     setBuzzerQueue([]);
     setAuctionBids({});
@@ -502,7 +538,14 @@ export const AppProvider = ({ children }) => {
     setGameCode(state.gameCode || null);
     setIsQuestionActive(state.isQuestionActive || false);
     setSelectedCategoryName(state.selectedCategoryName || null);
+    setWheelRoundState(state.wheelRoundState || null);
     setUndoPointer(state.undoPointer ?? (state.quizLog?.length ? state.quizLog.length - 1 : -1));
+    setBuzzerQueue(state.buzzerQueue || []);
+    setAuctionBids(state.auctionBids || {});
+    setPlayerAnswers(state.playerAnswers || {});
+    setAuctionStage(state.auctionStage || 0);
+    setIsAuctionTimerRunning(Boolean(state.isAuctionTimerRunning));
+    setShowAnswer(Boolean(state.showAnswer));
     navigate("/gra");
   }, [navigate]);
 
@@ -534,9 +577,12 @@ export const AppProvider = ({ children }) => {
     setIsQuestionActive,
     selectedCategoryName,
     setSelectedCategoryName,
+    wheelRoundState,
+    setWheelRoundState,
     quizLog,
     setQuizLog,
     addToLog,
+    recordWheelRoundAction,
     getGameSnapshot,
     openCategory,
     closeCategory,
@@ -566,6 +612,7 @@ export const AppProvider = ({ children }) => {
     setIsResultsPinned,
     isLogsPinned,
     setIsLogsPinned,
+    wheelControlEvent,
     appSettings,
     setAppSettings,
     loadGameFromState: (state) => {
@@ -575,7 +622,14 @@ export const AppProvider = ({ children }) => {
       setGameCode(state.gameCode || null);
       setIsQuestionActive(state.isQuestionActive || false);
       setSelectedCategoryName(state.selectedCategoryName || null);
+      setWheelRoundState(state.wheelRoundState || null);
       setUndoPointer(state.undoPointer ?? (state.quizLog?.length ? state.quizLog.length - 1 : -1));
+      setBuzzerQueue(state.buzzerQueue || []);
+      setAuctionBids(state.auctionBids || {});
+      setPlayerAnswers(state.playerAnswers || {});
+      setAuctionStage(state.auctionStage || 0);
+      setIsAuctionTimerRunning(Boolean(state.isAuctionTimerRunning));
+      setShowAnswer(Boolean(state.showAnswer));
       navigate("/gra");
     },
     getDownloadableState: () => ({
@@ -585,7 +639,14 @@ export const AppProvider = ({ children }) => {
       quizLog,
       gameCode,
       selectedCategoryName,
+      wheelRoundState,
       undoPointer,
+      buzzerQueue,
+      auctionBids,
+      playerAnswers,
+      auctionStage,
+      isAuctionTimerRunning,
+      showAnswer,
       timestamp: new Date().toISOString()
     }),
   }), [
@@ -593,7 +654,7 @@ export const AppProvider = ({ children }) => {
     auctionBids, auctionStage, isAuctionTimerRunning, quizList, customQuizzes, 
     editingQuiz, isQuestionActive, selectedCategoryName, quizLog, undoAction, 
     redoAction, jumpToLogIndex, undoPointer, addToLog, showAnswer, isAudioPlaying, 
-    isResultsPinned, isLogsPinned, appSettings, navigate, playerAnswers,
+    isResultsPinned, isLogsPinned, wheelControlEvent, appSettings, navigate, playerAnswers, wheelRoundState, recordWheelRoundAction,
     resetSavedGame, startNewQuiz, addCustomQuiz, removeCustomQuiz, updateCustomQuiz, 
     loadDownloadedState, setPlayerAnswers, getGameSnapshot,
     openCategory, closeCategory, finishQuestion, toggleAnswer, changePlayerPoints,

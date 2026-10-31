@@ -149,6 +149,25 @@ export const submitAnswer = async (gameCode, playerName, answer, isConfirmed = f
   }
 };
 
+export const sendWheelControl = async (gameCode, playerName, action) => {
+  if (!gameCode || !playerName || !action) return;
+  try {
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "WHEEL_CONTROL",
+        player: playerName,
+        action,
+        time: Date.now(),
+      }),
+      headers: { "Title": "WheelControl", "Tags": "game" }
+    });
+  } catch (error) {
+    console.error("Wheel control error:", error);
+  }
+};
+
 /**
  * Listens for game state changes.
  */

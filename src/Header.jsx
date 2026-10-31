@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "./contexts/AppContext";
-import { Menu, MenuItem, Switch, Slider, Box, Typography, IconButton, Select } from "@mui/material";
+import { Menu, Switch, Box, Typography, IconButton } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HomeIcon from "@mui/icons-material/Home";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -40,10 +40,6 @@ const Header = () => {
 
   const handleThemeChange = (event) => {
     setAppSettings(prev => ({ ...prev, themeMode: event.target.checked ? "colorful" : "simple" }));
-  };
-
-  const handleFontSizeChange = (event, newValue) => {
-    setAppSettings(prev => ({ ...prev, fontSize: newValue }));
   };
 
   const handleQuickSettingChange = (key, value) => {
@@ -121,6 +117,9 @@ const Header = () => {
       <div style={{ position: 'absolute', right: '20px', top: '20px' }}>
         <IconButton 
           onClick={handleSettingsClick}
+          aria-label="Otwórz szybkie ustawienia"
+          aria-haspopup="true"
+          aria-expanded={open}
           sx={{ 
             color: '#fff', 
             background: 'rgba(255,255,255,0.05)', 
@@ -153,49 +152,15 @@ const Header = () => {
       >
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 900, mb: 2, letterSpacing: "-0.5px", color: "#2ecc71" }}>
-            USTAWIENIA
+            SZYBKIE USTAWIENIA
           </Typography>
 
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="caption" sx={{ fontWeight: 800, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1px", mb: 1, display: "block" }}>
-              Wizualne
-            </Typography>
-            <Box sx={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", p: 1.5, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Motyw kolorowy</Typography>
-                <Switch 
-                  size="small"
-                  checked={appSettings.themeMode === "colorful"} 
-                  onChange={handleThemeChange}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': { color: '#2ecc71' },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#2ecc71' }
-                  }}
-                />
+                <Switch size="small" checked={appSettings.themeMode === "colorful"} onChange={handleThemeChange} />
               </div>
-              <div>
-                <Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", mb: 0.5 }}>
-                  Wielkość interfejsu ({appSettings.fontSize}%)
-                </Typography>
-                <Slider
-                  value={appSettings.fontSize}
-                  onChange={handleFontSizeChange}
-                  min={70}
-                  max={150}
-                  step={5}
-                  size="small"
-                  sx={{ color: "#2ecc71" }}
-                />
-              </div>
-            </Box>
-          </Box>
-
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ fontWeight: 800, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1px", mb: 1, display: "block" }}>
-              Rozgrywka
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", p: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Tryb skupienia</Typography>
                 <Switch
                   size="small"
@@ -203,7 +168,7 @@ const Header = () => {
                   onChange={(event) => handleQuickSettingChange("focusMode", event.target.checked)}
                 />
               </div>
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", p: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Dźwięki</Typography>
                 <Switch
                   size="small"
@@ -211,44 +176,6 @@ const Header = () => {
                   onChange={(event) => handleQuickSettingChange("soundEffects", event.target.checked)}
                 />
               </div>
-              
-              <Select
-                size="small"
-                fullWidth
-                value={appSettings.boardScale || "normal"}
-                onChange={(event) => handleQuickSettingChange("boardScale", event.target.value)}
-                sx={{ 
-                  mt: 1, 
-                  color: "#fff", 
-                  fontSize: "0.8rem", 
-                  background: "rgba(255,255,255,0.05)", 
-                  borderRadius: "12px",
-                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
-                }}
-              >
-                <MenuItem value="compact">Skala: Kompaktowa</MenuItem>
-                <MenuItem value="normal">Skala: Normalna</MenuItem>
-                <MenuItem value="large">Skala: Duża</MenuItem>
-                <MenuItem value="extraLarge">Skala: Bardzo duża</MenuItem>
-              </Select>
-
-              <Select
-                size="small"
-                fullWidth
-                value={appSettings.logVisibility || "normal"}
-                onChange={(event) => handleQuickSettingChange("logVisibility", event.target.value)}
-                sx={{ 
-                  color: "#fff", 
-                  fontSize: "0.8rem", 
-                  background: "rgba(255,255,255,0.05)", 
-                  borderRadius: "12px",
-                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
-                }}
-              >
-                <MenuItem value="normal">Logi: Widoczne</MenuItem>
-                <MenuItem value="hidden">Logi: Ukryte</MenuItem>
-              </Select>
-            </Box>
           </Box>
         </Box>
         

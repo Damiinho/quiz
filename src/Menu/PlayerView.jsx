@@ -7,7 +7,7 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SendIcon from "@mui/icons-material/Send";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer } from "../utils/cloudSync";
+import { listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl } from "../utils/cloudSync";
 
 const DrawingCanvas = ({ onUpdate, initialValue }) => {
   const canvasRef = useRef(null);
@@ -215,6 +215,12 @@ const PlayerView = () => {
     }
   };
 
+  const handleWheelControl = (action) => {
+    if (joined && code && playerName && gameState?.isWheel) {
+      sendWheelControl(code.toUpperCase(), playerName, action);
+    }
+  };
+
   const getWiemLepiejUsed = () => {
     if (!gameState?.players || !playerName) return 0;
     const p = gameState.players.find(p => p.name === playerName);
@@ -377,6 +383,23 @@ const PlayerView = () => {
                 >
                     {isAnswerConfirmed ? "ZATWIERDZONO" : "ZATWIERDŹ ODPOWIEDŹ"}
                 </Button>
+             </Paper>
+          ) : gameState.isWheel ? (
+             <Paper sx={{ p: 4, textAlign: 'center', background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '24px' }}>
+                <Typography variant="h6" fontWeight="900" sx={{ mb: 1, color: '#eab308' }}>
+                    KOŁO FORTUNY
+                </Typography>
+                <Typography sx={{ mb: 3, color: 'rgba(255,255,255,0.65)' }}>
+                    Sterowanie zostanie wykonane na ekranie mistrza gry.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                  <Button variant="contained" onClick={() => handleWheelControl('start')} sx={{ background: '#eab308', color: '#111827', fontWeight: 900 }}>
+                    START
+                  </Button>
+                  <Button variant="contained" onClick={() => handleWheelControl('stop')} sx={{ background: '#ef4444', color: '#fff', fontWeight: 900 }}>
+                    STOP
+                  </Button>
+                </Box>
              </Paper>
           ) : gameState.isAuction ? (
              <Paper sx={{ p: 4, textAlign: 'center', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(46, 204, 113, 0.2)', borderRadius: '24px', opacity: gameState.isBiddingClosed ? 0.6 : 1 }}>

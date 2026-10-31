@@ -8,14 +8,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import GavelIcon from "@mui/icons-material/Gavel";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { AppContext } from "../../contexts/AppContext";
-
-const getAnswerFontSize = (text = "") => {
-  const len = String(text).length;
-  if (len > 120) return "clamp(0.75rem, 1.1vw, 0.95rem)";
-  if (len > 70) return "clamp(0.85rem, 1.3vw, 1.1rem)";
-  if (len > 40) return "clamp(0.95rem, 1.5vw, 1.25rem)";
-  return "clamp(1.1rem, 1.8vw, 1.45rem)";
-};
+import AnswerButton from "./AnswerButton";
+import WheelQuestion from "./WheelQuestion";
 
 const getQuestionFontSize = (text = "") => {
   const len = String(text).length;
@@ -32,6 +26,13 @@ const getHiddenQuestionFontSize = (text = "") => {
   if (len > 60) return "clamp(1rem, 1.8vw, 1.35rem)";
   if (len > 25) return "clamp(1.2rem, 2.3vw, 1.8rem)";
   return "clamp(1.5rem, 3vw, 2.35rem)";
+};
+
+const getHiddenQuestionLengthClass = (text = "") => {
+  const length = String(text).trim().length;
+  if (length <= 3) return "compact";
+  if (length <= 24) return "regular";
+  return "long";
 };
 
 const shuffleAnswers = (answers) => {
@@ -66,9 +67,14 @@ const Question = ({ category }) => {
     playerAnswers,
     closeCategory,
     finishQuestion,
+    changePlayerPoints,
+    wheelRoundState,
+    setWheelRoundState,
+    recordWheelRoundAction,
     toggleAnswer,
     changeAuctionBid,
     advanceAuctionStageGame
+    , wheelControlEvent
   } = useContext(AppContext);
 
   const [wiemLepiejNotify, setWiemLepiejNotify] = useState(null);
@@ -112,10 +118,10 @@ const Question = ({ category }) => {
         prevWiemLepiejRef.current[player.name] = currentUsed;
     });
   }, [gameSettings.players, isQuestionActive]);
-
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
+  const [answerAnnouncement, setAnswerAnnouncement] = useState("");
   const [showHiddenQuestion, setShowHiddenQuestion] = useState(false);
   const audioRef = useRef(null);
   const audioTickRef = useRef(null);
@@ -195,6 +201,7 @@ const Question = ({ category }) => {
   useEffect(() => {
     if (!selectedQuestion) return;
     setSelectedAnswerIndex(null);
+    setAnswerAnnouncement("");
     setCurrentImageIndex(0);
     setShowHiddenQuestion(false);
     setIsAudioPlaying(false);
@@ -277,9 +284,43 @@ const Question = ({ category }) => {
   };
 
   const isTimeUp = shouldShowTimer && timer === 0;
-  const isCracked = category?.type === "auction" && timer <= 1 && !showAnswer;
+  const isCracked = category?.type === "auction" && isTimeUp;
+  const timerProgress = shouldShowTimer
+    ? Math.min(100, Math.max(0, ((questionTimerSeconds - timer) / questionTimerSeconds) * 100))
+    : 0;
   const isUrgent = (shouldShowTimer && isTimerRunning && timer <= 10 && timer > 0) || isTimeUp;
   const isDanger = (shouldShowTimer && isTimerRunning && timer <= 5 && timer > 0) || isTimeUp;
+  const hasAnswers = Array.isArray(selectedQuestion?.answers) && selectedQuestion.answers.length > 0;
+  const shouldShowGenericAnswers = hasAnswers && category?.type !== "forehead" && category?.type !== "auction" && category?.type !== "duel";
+  const hasManyLongAnswers = shouldShowGenericAnswers
+    && shuffledAnswers.length >= 5
+    && shuffledAnswers.every((answer) => answer.length > 40);
+  const shouldShowPlayerAnswers = showAnswer || appSettings?.alwaysShowPlayerAnswers;
+
+  const selectAnswer = useCallback((index) => {
+    if (!shouldShowGenericAnswers || showAnswer || !shuffledAnswers[index]) return;
+    setSelectedAnswerIndex(index);
+    setAnswerAnnouncement(`Wybrano odpowiedź ${String.fromCharCode(65 + index)}: ${shuffledAnswers[index]}`);
+  }, [shouldShowGenericAnswers, showAnswer, shuffledAnswers]);
+
+  useEffect(() => {
+    const handleAnswerShortcut = (event) => {
+      if (!shouldShowGenericAnswers || showAnswer || event.target.matches("input, textarea, select, button")) return;
+      const numericIndex = Number.parseInt(event.key, 10) - 1;
+      const letterIndex = event.key.toUpperCase().charCodeAt(0) - 65;
+      const answerIndex = Number.isInteger(numericIndex) && numericIndex >= 0
+        ? numericIndex
+        : letterIndex >= 0 && letterIndex < shuffledAnswers.length ? letterIndex : -1;
+
+      if (answerIndex >= 0 && answerIndex < shuffledAnswers.length) {
+        event.preventDefault();
+        selectAnswer(answerIndex);
+      }
+    };
+
+    window.addEventListener("keydown", handleAnswerShortcut);
+    return () => window.removeEventListener("keydown", handleAnswerShortcut);
+  }, [selectAnswer, shouldShowGenericAnswers, showAnswer, shuffledAnswers.length]);
 
   if (!selectedQuestion) {
     return (
@@ -294,10 +335,6 @@ const Question = ({ category }) => {
     );
   }
 
-  const hasAnswers = Array.isArray(selectedQuestion.answers) && selectedQuestion.answers.length > 0;
-  const shouldShowGenericAnswers = hasAnswers && category?.type !== "forehead" && category?.type !== "auction" && category?.type !== "duel";
-  const shouldShowPlayerAnswers = showAnswer || appSettings?.alwaysShowPlayerAnswers;
-
   const getWinner = () => {
     const bids = Object.entries(auctionBids).filter(([, bid]) => bid > 0);
     if (bids.length === 0) return null;
@@ -306,6 +343,23 @@ const Question = ({ category }) => {
   };
 
   const winner = getWinner();
+
+  if (category?.type === "wheel") {
+    return (
+      <WheelQuestion
+        category={{ ...category, wheelValues: selectedQuestion.wheelValues, vowelCost: selectedQuestion.vowelCost, timerSeconds: selectedQuestion.timerSeconds, wheelHint: selectedQuestion.wheelHint || selectedQuestion.context }}
+        question={selectedQuestion}
+        players={gameSettings.players}
+        onChangePoints={changePlayerPoints}
+        wheelRoundState={wheelRoundState}
+        onWheelRoundStateChange={setWheelRoundState}
+        onWheelRoundAction={recordWheelRoundAction}
+        onFinish={handleGoBackAndUpdate}
+        onExit={handleGoBackWithLog}
+        wheelControlEvent={wheelControlEvent}
+      />
+    );
+  }
 
   return (
     <>
@@ -330,6 +384,7 @@ const Question = ({ category }) => {
       <audio ref={audioRef} />
       <audio ref={audioTickRef} src="/sounds/tick.mp3" />
       <audio ref={audioRevealRef} src="/sounds/reveal.mp3" />
+      <div className="sr-only" aria-live="polite">{answerAnnouncement}</div>
 
       {wiemLepiejNotify && (
         <div style={{
@@ -357,7 +412,7 @@ const Question = ({ category }) => {
       )}
 
       <div 
-        className={`question-view ${category?.type === "auction" ? `auction-mode ${isCracked ? 'is-cracked' : ''}` : ''}`}
+        className={`question-view ${hasManyLongAnswers ? "question-view--many-long-answers" : ""} ${hasManyLongAnswers && shuffledAnswers.length >= 7 ? "question-view--seven-plus-answers" : ""} ${category?.type === "auction" ? `auction-mode ${isCracked ? 'is-cracked' : ''}` : ''}`}
         style={{
           ...(bgTheme ? {
             backgroundImage: bgTheme,
@@ -366,7 +421,8 @@ const Question = ({ category }) => {
             backgroundAttachment: "fixed"
           } : {}),
           transition: "all 0.5s ease",
-          "--question-accent": category?.type === "auction" ? "#eab308" : questionAccent
+          "--question-accent": category?.type === "auction" ? "#eab308" : questionAccent,
+          "--timer-progress": `${timerProgress}%`
         }}
       >
         <div className="question-view__header game-panel">
@@ -398,6 +454,7 @@ const Question = ({ category }) => {
           {selectedQuestion.sound && (
             <button 
               className="question-view__audio-btn" 
+              aria-label={isAudioPlaying ? "Wstrzymaj dźwięk pytania" : "Odtwórz dźwięk pytania"}
               onClick={() => {
                 if (isAudioPlaying) setIsAudioPlaying(false);
                 else playSound(selectedQuestion.sound);
@@ -418,17 +475,6 @@ const Question = ({ category }) => {
         </div>
 
         <div className="question-view__content">
-          {shouldShowTimer && isTimerRunning && (
-            <Box sx={{ width: "100%", maxWidth: "800px", height: "8px", background: "rgba(255,255,255,0.1)", borderRadius: "4px", overflow: "hidden", mb: 3 }}>
-                <Box sx={{ 
-                    width: `${(timer / questionTimerSeconds) * 100}%`, 
-                    height: "100%", 
-                    background: isDanger ? "#ef4444" : isUrgent ? "#f59e0b" : (category?.type === "auction" ? "#eab308" : "#2ecc71"), 
-                    transition: "width 1s linear, background-color 0.3s" 
-                }} />
-            </Box>
-          )}
-
           {category?.type === "forehead" && !showAnswer && (
             <div style={{ textAlign: "center", marginBottom: "30px", animation: "pulse 1.5s infinite" }}>
               <style>
@@ -609,34 +655,24 @@ const Question = ({ category }) => {
                   type="button"
                   onClick={() => setShowHiddenQuestion(true)}
                   className="question-view__reveal-btn"
+                  aria-expanded={false}
+                  aria-controls="hidden-question-card"
                 >
                   <span>Pokaż dalej</span>
                 </button>
               ) : (
-                <Paper className="question-view__hidden-card" sx={{
-                  p: 3,
-                  background: "linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.88), rgba(14, 165, 233, 0.14))",
-                  border: "1px solid rgba(125, 211, 252, 0.7)",
-                  borderRadius: "20px",
-                  textAlign: "center",
-                  boxShadow: "0 18px 50px rgba(14, 165, 233, 0.18), inset 0 0 18px rgba(255,255,255,0.08)",
-                  transform: "translateY(0)",
-                  animation: "revealIn 0.35s ease-out",
-                  width: "100%",
-                  position: "relative",
-                  overflow: "hidden"
-                }}>
-                  <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 45%)", pointerEvents: "none" }} />
-                  <div style={{ position: "relative", zIndex: 1 }}>
-                    <Typography sx={{
-                      color: "rgba(255,255,255,0.96)",
-                      fontSize: getHiddenQuestionFontSize(selectedQuestion.hiddenQuestion),
-                      lineHeight: 1.6,
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      overflowWrap: "anywhere",
-                      textShadow: "0 0 18px rgba(125, 211, 252, 0.25)"
-                    }}>
+                <Paper
+                  id="hidden-question-card"
+                  className={`question-view__hidden-card question-view__hidden-card--${getHiddenQuestionLengthClass(selectedQuestion.hiddenQuestion)}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div className="question-view__hidden-card-glow" />
+                  <div className="question-view__hidden-card-content">
+                    <Typography
+                      className="question-view__hidden-card-text"
+                      style={{ fontSize: getHiddenQuestionFontSize(selectedQuestion.hiddenQuestion) }}
+                    >
                       {selectedQuestion.hiddenQuestion}
                     </Typography>
                     <button
@@ -735,31 +771,19 @@ const Question = ({ category }) => {
 
           {shouldShowGenericAnswers && (
             <div className="question-view__answers">
-              {shuffledAnswers.map((answer, index) => {
-                const isCorrect = showAnswer && answer === selectedQuestion.correctAnswer?.[0];
-                const isSelected = selectedAnswerIndex === index;
-                const isWrong = isSelected && !isCorrect && showAnswer;
-                return (
-                  <div 
-                    key={index}
-                    className={`question-view__answer ${isCorrect ? 'question-view__answer--correct' : ''} ${isSelected ? 'question-view__answer--selected' : ''} ${isWrong ? 'question-view__answer--wrong' : ''}`}
-                    onClick={() => { if (!showAnswer) setSelectedAnswerIndex(index); }}
-                    style={{ 
-                      border: isSelected ? "3px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.05)", 
-                      background: isWrong ? "rgba(239, 68, 68, 0.1)" : isCorrect ? "rgba(46, 204, 113, 0.1)" : isSelected ? "rgba(59, 130, 246, 0.1)" : "rgba(30, 41, 59, 0.5)",
-                      minHeight: (hasAnswers && selectedQuestion.image) ? "60px" : "80px",
-                      padding: (hasAnswers && selectedQuestion.image) ? "12px 20px" : "16px 24px",
-                      fontSize: getAnswerFontSize(answer),
-                      lineHeight: 1.35,
-                      wordBreak: "break-word",
-                      overflowWrap: "anywhere"
-                    }}
-                  >
-                    <div className="question-view__answer-letter">{String.fromCharCode(65 + index)}</div>
-                    <div>{answer}</div>
-                  </div>
-                );
-              })}
+              {shuffledAnswers.map((answer, index) => (
+                <AnswerButton
+                  key={`${answer}-${index}`}
+                  answer={answer}
+                  index={index}
+                  isCorrect={showAnswer && answer === selectedQuestion.correctAnswer?.[0]}
+                  isSelected={selectedAnswerIndex === index}
+                  isWrong={selectedAnswerIndex === index && answer !== selectedQuestion.correctAnswer?.[0] && showAnswer}
+                  hasImage={Boolean(selectedQuestion.image)}
+                  disabled={showAnswer}
+                  onSelect={() => selectAnswer(index)}
+                />
+              ))}
             </div>
           )}
 

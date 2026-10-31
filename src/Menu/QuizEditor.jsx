@@ -28,6 +28,7 @@ const categoryTypes = [
   { value: "duel", label: "Pojedynek" },
   { value: "album", label: "Album" },
   { value: "openAnswer", label: "Napisz odpowiedź" },
+  { value: "wheel", label: "Koło fortuny" },
 ];
 
 const emptyQuestionForm = {
@@ -44,9 +45,26 @@ const emptyQuestionForm = {
   images: "",
   timerSeconds: 30,
   hiddenQuestion: "",
+  wheelSegments: [
+    { value: "1", weight: 20 },
+    { value: "2", weight: 20 },
+    { value: "5", weight: 15 },
+    { value: "10", weight: 10 },
+    { value: "0", weight: 20 },
+    { value: "bankrupt", weight: 5 },
+    { value: "freeVowel", weight: 10 },
+  ],
+  vowelCost: 2,
+  wheelHint: "",
 };
 
 const getFilledAnswers = (answers = []) => answers.filter(answer => answer.trim());
+
+const getWheelSegmentForm = (segments = []) => segments.map((segment) => {
+  const value = segment && typeof segment === "object" ? segment.value : segment;
+  const weight = segment && typeof segment === "object" ? segment.weight : 1;
+  return { value: String(value ?? ""), weight: Number(weight) || 1 };
+});
 
 const moveArrayItem = (items, fromIndex, toIndex) => {
   if (!Array.isArray(items) || fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= items.length || toIndex >= items.length) {
@@ -83,7 +101,11 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   const [categories, setCategories] = useState(
     () => initialQuiz?.categories?.map(category => ({ type: "standard", ...category })) || []
   );
-  const [categoryForm, setCategoryForm] = useState({ name: "", type: "standard", accent: "" });
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    type: "standard",
+    accent: "",
+  });
   const [editingCategoryIndex, setEditingCategoryIndex] = useState(null);
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [questionForm, setQuestionForm] = useState(emptyQuestionForm);
@@ -263,6 +285,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
       ...categoryForm,
       list: editingCategoryIndex !== null ? (categories[editingCategoryIndex]?.list || []) : []
     };
+
     if (editingCategoryIndex !== null) {
       setCategories(prev => prev.map((c, i) => i === editingCategoryIndex ? newCategory : c));
       setEditingCategoryIndex(null);
@@ -303,8 +326,26 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     if (selectedType === "forehead") {
         newQuestion.question = "";
     }
-    if (!['auction', 'openAnswer'].includes(selectedType)) {
+    if (!['auction', 'openAnswer', 'wheel'].includes(selectedType)) {
         delete newQuestion.timerSeconds;
+    }
+    if (selectedType === "wheel") {
+      newQuestion.wheelValues = questionForm.wheelSegments
+        .map(({ value, weight }) => {
+          const normalizedValue = ["bankrupt", "freeVowel"].includes(value.trim())
+            ? value.trim()
+            : Number(value);
+          return { value: normalizedValue, weight: Math.max(0, Number(weight) || 0) };
+        })
+        .filter(({ value, weight }) => ((Number.isInteger(value) && value >= 0) || ["bankrupt", "freeVowel"].includes(value)) && weight > 0);
+      newQuestion.vowelCost = Math.max(1, Number(questionForm.vowelCost) || 1);
+      newQuestion.timerSeconds = Math.max(1, Number(questionForm.timerSeconds) || 30);
+      newQuestion.wheelHint = questionForm.wheelHint?.trim() || "";
+    } else {
+      delete newQuestion.wheelValues;
+      delete newQuestion.vowelCost;
+      delete newQuestion.wheelValuesText;
+      delete newQuestion.wheelHint;
     }
     if (selectedType !== "openAnswer" && selectedType !== "album") {
         delete newQuestion.correctAnswerImage;
@@ -322,6 +363,10 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
         const filledAnswers = getFilledAnswers(questionForm.answers);
         newQuestion.answers = filledAnswers.length > 0 ? filledAnswers : ["", ""];
         newQuestion.correctAnswer = [questionForm.answers[questionForm.correctAnswerIndex] || filledAnswers[0] || ""];
+    } else if (selectedType === "wheel") {
+      newQuestion.question = "";
+      newQuestion.correctAnswer = [questionForm.correctAnswer || ""];
+      delete newQuestion.answers;
     } else {
         newQuestion.correctAnswer = [questionForm.correctAnswer || ""];
         delete newQuestion.answers;
@@ -381,6 +426,9 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
       image: q.image || "",
       sound: q.sound || "",
       timerSeconds: q.timerSeconds || 30,
+      wheelSegments: getWheelSegmentForm(q.wheelValues || emptyQuestionForm.wheelSegments),
+      vowelCost: q.vowelCost || 2,
+      wheelHint: q.wheelHint || "",
       inputMethod: q.inputMethod || "typing",
       hiddenQuestion: q.hiddenQuestion || "",
       answerMode: isChoicesMode ? "choices" : "open"
@@ -684,11 +732,91 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                               </Box>
                             )}
 
-                            {selectedType !== "album" && selectedType !== "forehead" && (
+                            {selectedType !== "album" && selectedType !== "forehead" && selectedType !== "wheel" && (
                                 <div className="editor-view__input-group">
                                     <label>Treść pytania</label>
                                     <textarea rows={3} value={questionForm.question} onChange={e => setQuestionForm({...questionForm, question: e.target.value})} placeholder="Wpisz treść pytania..." style={{ fontSize: "18px" }} />
                                 </div>
+                            )}
+
+                            {selectedType === "wheel" && (
+                                <>
+                                  <div className="editor-view__input-group">
+                                      <label>Poprawne hasło</label>
+                                      <input
+                                        value={questionForm.correctAnswer}
+                                        onChange={e => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}
+                                        placeholder="Wpisz hasło, które gracze mają odgadnąć..."
+                                      />
+                                  </div>
+                                  <div className="editor-view__wheel-settings editor-view__wheel-settings--question">
+                                    <div className="editor-view__wheel-segments">
+                                      <div className="editor-view__wheel-segments-header">
+                                        <strong>Segmenty koła</strong>
+                                        <span>Waga jest względną szansą losowania.</span>
+                                      </div>
+                                      {questionForm.wheelSegments.map((segment, index) => (
+                                        <div className="editor-view__wheel-segment" key={`${index}-${segment.value}`}>
+                                          <input
+                                            aria-label={`Wartość segmentu ${index + 1}`}
+                                            value={segment.value}
+                                            onChange={e => setQuestionForm({
+                                              ...questionForm,
+                                              wheelSegments: questionForm.wheelSegments.map((item, itemIndex) => itemIndex === index ? { ...item, value: e.target.value } : item)
+                                            })}
+                                            placeholder="np. 5, bankrupt"
+                                          />
+                                          <label>
+                                            <span>Waga</span>
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              aria-label={`Waga segmentu ${index + 1}`}
+                                              value={segment.weight}
+                                              onChange={e => setQuestionForm({
+                                                ...questionForm,
+                                                wheelSegments: questionForm.wheelSegments.map((item, itemIndex) => itemIndex === index ? { ...item, weight: e.target.value } : item)
+                                              })}
+                                            />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            className="editor-view__wheel-segment-remove"
+                                            onClick={() => setQuestionForm({ ...questionForm, wheelSegments: questionForm.wheelSegments.filter((_, itemIndex) => itemIndex !== index) })}
+                                            disabled={questionForm.wheelSegments.length <= 1}
+                                            aria-label={`Usuń segment ${index + 1}`}
+                                          >
+                                            <DeleteIcon fontSize="small" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                      <button
+                                        type="button"
+                                        className="editor-view__btn editor-view__btn--outline editor-view__wheel-segment-add"
+                                        onClick={() => setQuestionForm({ ...questionForm, wheelSegments: [...questionForm.wheelSegments, { value: "1", weight: 10 }] })}
+                                      >
+                                        <AddIcon fontSize="small" /> DODAJ SEGMENT
+                                      </button>
+                                    </div>
+                                    <label>
+                                      Koszt samogłoski
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={questionForm.vowelCost || 1}
+                                        onChange={e => setQuestionForm({ ...questionForm, vowelCost: e.target.value })}
+                                      />
+                                    </label>
+                                    <label className="editor-view__wheel-hint">
+                                      Kategoria / podpowiedź
+                                      <input
+                                        value={questionForm.wheelHint || ""}
+                                        onChange={e => setQuestionForm({ ...questionForm, wheelHint: e.target.value })}
+                                        placeholder="np. Film, geografia, powiedzenie..."
+                                      />
+                                    </label>
+                                  </div>
+                                </>
                             )}
 
                             {selectedType === "openAnswer" && (
@@ -783,9 +911,9 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                                 </>
                             )}
 
-                            {(selectedType === "auction" || selectedType === "openAnswer") && (
+                            {(selectedType === "auction" || selectedType === "openAnswer" || selectedType === "wheel") && (
                                 <div className="editor-view__input-group">
-                                    <label>{selectedType === "auction" ? "Czas licytacji (sekundy)" : "Czas na odpowiedź (sekundy)"}</label>
+                                <label>{selectedType === "auction" ? "Czas licytacji (sekundy)" : selectedType === "wheel" ? "Czas rundy (sekundy)" : "Czas na odpowiedź (sekundy)"}</label>
                                     <input
                                         type="number"
                                         min="1"

@@ -79,8 +79,33 @@ Quizy sa eksportowane jako JSON. Minimalny przyklad:
 }
 ```
 
-Dostepne typy kategorii: `standard`, `illustrated`, `forehead`, `auction`, `duel`, `album`.
+Dostepne typy kategorii: `standard`, `illustrated`, `forehead`, `auction`, `duel`, `album`, `openAnswer`, `wheel`.
 `auction` moze miec `timerSeconds`, np. `"timerSeconds": 45`. `duel` sluzy do pojedynku bez licznika czasu i bez jednej poprawnej odpowiedzi.
+
+Pytanie typu `wheel` przechowuje konfiguracje kola przy sobie. `weight` jest wzgledna waga losowania segmentu:
+
+```json
+{
+  "name": "Hasla",
+  "type": "wheel",
+  "list": [{
+    "no": 1,
+    "correctAnswer": ["SUPER HASLO"],
+    "wheelValues": [
+      { "value": 1, "weight": 20 },
+      { "value": 5, "weight": 15 },
+      { "value": 0, "weight": 20 },
+      { "value": "bankrupt", "weight": 5 },
+      { "value": "freeVowel", "weight": 10 }
+    ],
+    "vowelCost": 2,
+    "timerSeconds": 30,
+    "wheelHint": "Film"
+  }]
+}
+```
+
+`bankrupt` zeruje dodatni wynik gracza, ale nie zmienia wyniku ujemnego. Punkty zdobyte literami sa trzymane osobno do momentu rozwiazania hasla. Samogloska jest kupowana najpierw za punkty rundy, a dopiero przy ich braku za wynik calkowity.
 
 `localStorage` przechowuje stan gry tylko w przegladarce na tym komputerze. Dzieki temu odswiezenie strony nie kasuje graczy, punktow ani wykorzystanych pytan.
 
