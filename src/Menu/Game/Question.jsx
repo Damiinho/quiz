@@ -10,6 +10,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { AppContext } from "../../contexts/AppContext";
 import AnswerButton from "./AnswerButton";
 import WheelQuestion from "./WheelQuestion";
+import { reactNodeToText } from "../../utils/quizStorage";
 
 const getQuestionFontSize = (text = "") => {
   const len = String(text).length;
@@ -73,8 +74,9 @@ const Question = ({ category }) => {
     recordWheelRoundAction,
     toggleAnswer,
     changeAuctionBid,
-    advanceAuctionStageGame
-    , wheelControlEvent
+    advanceAuctionStageGame,
+    wheelControlEvent,
+    setCurrentQuestionData,
   } = useContext(AppContext);
 
   const [wiemLepiejNotify, setWiemLepiejNotify] = useState(null);
@@ -134,6 +136,20 @@ const Question = ({ category }) => {
   const [crackType, setCrackType] = useState("crack-h");
   const [bgTheme, setBgTheme] = useState(null);
   const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!selectedQuestion) {
+      setCurrentQuestionData(null);
+      return;
+    }
+    setCurrentQuestionData({
+      categoryName: category.name,
+      question: reactNodeToText(selectedQuestion.question),
+      answers: Array.isArray(selectedQuestion.answers) ? shuffledAnswers : [],
+      remainingSeconds: timer,
+      acceptingAnswers: category.type === "openAnswer" && isTimerRunning && timer > 0,
+    });
+  }, [category.name, category.type, isTimerRunning, selectedQuestion, setCurrentQuestionData, shuffledAnswers, timer]);
 
   const allAlbumImages = useMemo(() => selectedQuestion?.images || [], [selectedQuestion]);
   const albumAnswerImage = useMemo(() => {
@@ -399,7 +415,7 @@ const Question = ({ category }) => {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            zIndex: 10000,
+            zIndex: "var(--layer-game-notice)",
             boxShadow: "0 10px 40px rgba(168, 85, 247, 0.6)",
             animation: "slideDown 0.5s ease-out",
             border: "2px solid rgba(255,255,255,0.4)"
@@ -507,7 +523,7 @@ const Question = ({ category }) => {
               boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
               textAlign: "center",
               position: "relative",
-              zIndex: 1000
+              zIndex: 1
             }}>
               {auctionStage < 3 ? (
                 <>
@@ -976,7 +992,7 @@ const Question = ({ category }) => {
                 fontSize: '14px',
                 cursor: 'pointer',
                 boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
-                zIndex: 10002,
+                zIndex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',

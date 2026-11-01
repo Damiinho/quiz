@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Header from "./Header";
 import DynamicBackground from "./DynamicBackground";
 import RouteErrorBoundary from "./RouteErrorBoundary";
@@ -16,11 +16,14 @@ const Settings = lazy(() => import("./Menu/Settings"));
 const PlayerView = lazy(() => import("./Menu/PlayerView"));
 
 function App() {
+  const location = useLocation();
+  const isPlayerRoute = location.pathname === "/gracz";
+
   return (
     <>
       <DynamicBackground />
       <Header />
-      <div className="container">
+      <div className={`container ${isPlayerRoute ? "container--player" : ""}`}>
         <RouteErrorBoundary>
           <Suspense fallback={<div className="route-loading" role="status">ŁADOWANIE...</div>}>
             <Routes>

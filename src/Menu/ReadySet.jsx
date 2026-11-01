@@ -51,7 +51,7 @@ const ReadySet = () => {
   const handleEditQuiz = (quiz) => {
     const targetQuiz = quiz || selectedQuizDetail;
     if (targetQuiz) {
-      const customIndex = customQuizzes.findIndex(q => q.name === targetQuiz.name);
+      const customIndex = customQuizzes.findIndex(q => q.id === targetQuiz.id || (!targetQuiz.id && q.name === targetQuiz.name));
       setEditingQuiz({ quiz: targetQuiz, index: customIndex >= 0 ? customIndex : null });
       navigate("/stworz");
     }
@@ -66,7 +66,7 @@ const ReadySet = () => {
     const targetQuiz = quiz || selectedQuizDetail;
     if (targetQuiz) {
       if (window.confirm(`Czy na pewno chcesz usunąć quiz "${targetQuiz.name}"?`)) {
-        removeCustomQuiz(targetQuiz.name);
+        removeCustomQuiz(targetQuiz.id || targetQuiz.name);
         setSelectedQuizDetail(null);
       }
     }
@@ -87,7 +87,7 @@ const ReadySet = () => {
         ? { ...updatedQuestion, question: "", answers: undefined }
         : updatedQuestion;
     const updatedCategories = parentQuiz.categories.map(cat => {
-        if (cat.name !== selectedCategoryDetail.name) return cat;
+        if (cat.id !== selectedCategoryDetail.id) return cat;
         return {
             ...cat,
             list: cat.list.map((q, index) => index === editingQuestionIndex ? questionToSave : q)
@@ -95,7 +95,7 @@ const ReadySet = () => {
     });
 
     const updatedQuiz = { ...parentQuiz, categories: updatedCategories };
-    const customIndex = customQuizzes.findIndex(q => q.name === parentQuiz.name);
+    const customIndex = customQuizzes.findIndex(q => q.id === parentQuiz.id || (!parentQuiz.id && q.name === parentQuiz.name));
     
     if (customIndex >= 0) {
         updateCustomQuiz(customIndex, updatedQuiz);
@@ -199,7 +199,7 @@ const ReadySet = () => {
   const filteredQuizzes = useMemo(() => {
     return quizList.filter(q => {
         const matchesSearch = q.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const isCustom = customQuizzes.some(cq => cq.name === q.name);
+        const isCustom = customQuizzes.some(cq => cq.id === q.id || (!q.id && cq.name === q.name));
         if (filterType === "custom") return matchesSearch && isCustom;
         if (filterType === "default") return matchesSearch && !isCustom;
         return matchesSearch;
@@ -221,7 +221,7 @@ const ReadySet = () => {
   return (
     <div style={{ width: "100%", maxWidth: "1200px" }}>
       {hasSavedGame && (
-        <div style={{ 
+        <div className="ready-set__saved-game" style={{
           background: "rgba(46, 204, 113, 0.05)", 
           border: "1px solid rgba(46, 204, 113, 0.15)", 
           borderRadius: "24px", 
@@ -242,7 +242,7 @@ const ReadySet = () => {
                 <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", fontWeight: "700" }}>{gameSettings.quiz.name.toUpperCase()}</Typography>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="ready-set__saved-game-actions" style={{ display: "flex", gap: "10px" }}>
             <button 
               onClick={() => navigate("/gra")}
               style={{ background: "#2ecc71", color: "#000", border: "none", padding: "10px 30px", borderRadius: "10px", fontWeight: "800", cursor: "pointer", fontSize: "13px", transition: 'all 0.2s' }}
@@ -259,14 +259,17 @@ const ReadySet = () => {
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-        <div style={{ display: "flex", gap: "24px" }}>
-          <h2 
+      <div className="ready-set__toolbar">
+        <div className="ready-set__tabs" role="tablist" aria-label="Biblioteka">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "quizzes"}
             onClick={() => { setTab("quizzes"); setSearchTerm(""); }}
             style={{ 
                 fontSize: "1.125rem", 
                 fontWeight: "700",
-                cursor: "pointer",
+                cursor: "pointer", background: "transparent", border: 0, padding: 0, fontFamily: "inherit",
                 color: tab === "quizzes" ? "#2ecc71" : "rgba(255,255,255,0.4)",
                 borderBottom: tab === "quizzes" ? "2px solid #2ecc71" : "none",
                 paddingBottom: "0.5rem",
@@ -274,13 +277,16 @@ const ReadySet = () => {
             }}
           >
             Quizy
-          </h2>
-          <h2 
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "categories"}
             onClick={() => { setTab("categories"); setSearchTerm(""); }}
             style={{ 
                 fontSize: "1.125rem", 
                 fontWeight: "700",
-                cursor: "pointer",
+                cursor: "pointer", background: "transparent", border: 0, padding: 0, fontFamily: "inherit",
                 color: tab === "categories" ? "#2ecc71" : "rgba(255,255,255,0.4)",
                 borderBottom: tab === "categories" ? "2px solid #2ecc71" : "none",
                 paddingBottom: "0.5rem",
@@ -288,13 +294,14 @@ const ReadySet = () => {
             }}
           >
             Kategorie
-          </h2>
+          </button>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div className="ready-set__actions">
           <div style={{ position: "relative" }}>
             <SearchIcon style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: "1.125rem" }} />
             <input 
               type="text" 
+              className="ready-set__search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={`Szukaj ${tab === "quizzes" ? 'quizów' : 'kategorii'}...`} 
@@ -346,7 +353,7 @@ const ReadySet = () => {
       <div className="quiz-grid">
         {tab === "quizzes" ? (
             filteredQuizzes.map((quiz, index) => (
-            <div key={index} className="quiz-card" onClick={() => handleQuizSelect(quiz)}>
+            <div key={quiz.id || index} className="quiz-card" role="button" tabIndex={0} onClick={() => handleQuizSelect(quiz)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleQuizSelect(quiz); } }}>
                 {quiz.image ? (
                   <div className="quiz-card__icon" style={{ padding: 0, overflow: 'hidden' }}>
                     <img src={quiz.image} alt={quiz.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -357,6 +364,7 @@ const ReadySet = () => {
                   </div>
                 )}
                 <h3 className="quiz-card__title">{quiz.name}</h3>
+                {quiz.description && <p className="quiz-card__description">{quiz.description}</p>}
                 <p className="quiz-card__info">
                 {quiz.categories?.length || 0} kategorie • {quiz.categories?.reduce((acc, cat) => acc + (cat.list?.length || 0), 0)} pytań
                 </p>
@@ -364,7 +372,7 @@ const ReadySet = () => {
             ))
         ) : (
             filteredCategories.map((category, index) => (
-                <div key={index} className="quiz-card" onClick={() => setSelectedCategoryDetail(category)}>
+                <div key={`${category.parentQuiz.id || category.quizName}-${category.id || index}`} className="quiz-card" role="button" tabIndex={0} onClick={() => setSelectedCategoryDetail(category)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedCategoryDetail(category); } }}>
                     <div className="quiz-card__icon" style={{ background: getBgColor(index + 2) }}>
                         {getIcon(index + 2)}
                     </div>
@@ -385,6 +393,9 @@ const ReadySet = () => {
       >
         <Paper sx={{ width: '100%', maxWidth: '600px', p: 4, textAlign: 'center' }}>
             <Typography variant="h4" fontWeight="800" gutterBottom>{selectedQuizDetail?.name}</Typography>
+            <Typography color={selectedQuizDetail?.description ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.38)"} sx={{ mb: 2 }}>
+              {selectedQuizDetail?.description || "Brak opisu dla tego quizu."}
+            </Typography>
             <Typography color="rgba(255,255,255,0.5)" sx={{ mb: 4 }}>
                 {selectedQuizDetail?.categories?.length || 0} kategorie • {selectedQuizDetail?.categories?.reduce((acc, cat) => acc + (cat.list?.length || 0), 0)} pytań
             </Typography>
@@ -409,7 +420,7 @@ const ReadySet = () => {
                 >
                     <FileUploadIcon fontSize="small" sx={{ transform: 'rotate(180deg)' }} /> POBIERZ JSON
                 </button>
-                {customQuizzes.some(q => q.name === selectedQuizDetail?.name) && (
+                {customQuizzes.some(q => q.id === selectedQuizDetail?.id || (!selectedQuizDetail?.id && q.name === selectedQuizDetail?.name)) && (
                     <button 
                         onClick={() => handleDeleteQuiz(selectedQuizDetail)}
                         className="editor-view__btn"

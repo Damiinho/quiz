@@ -5,6 +5,8 @@ import Question from "./Game/Question";
 import Results from "./Game/Results";
 import QuizLog from "./Game/QuizLog";
 import Ranking from "./Ranking";
+import HistoryIcon from "@mui/icons-material/History";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 const getCategoryCardBackground = (index, accent) => {
   if (accent) return `color-mix(in srgb, ${accent} 45%, transparent)`;
@@ -169,9 +171,11 @@ const boardScaleSettings = {
 
 const Game = () => {
   const [isRankingOpen, setIsRankingOpen] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState(null);
   const [categoryShuffleVersion, setCategoryShuffleVersion] = useState(0);
   const {
     gameSettings,
+    quizLog,
     isQuestionActive,
     selectedCategoryName,
     openCategory,
@@ -256,7 +260,7 @@ const Game = () => {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          zIndex: 10001,
+          zIndex: "var(--layer-game-buzzer)",
           background: "rgba(15, 23, 42, 0.98)",
           backdropFilter: "blur(25px)",
           color: "#fff",
@@ -414,7 +418,7 @@ const Game = () => {
             left: 0,
             width: "100vw",
             height: "100vh",
-            zIndex: 0,
+            zIndex: "var(--layer-base)",
             pointerEvents: "none",
             ...dashboardBg
           }} 
@@ -423,8 +427,36 @@ const Game = () => {
 
       {!shouldHidePanels && (
         <>
-          <Results />
-          {shouldShowLog && <QuizLog />}
+          <div className="game-mobile-tools" aria-label="Narzędzia prowadzącego">
+            <button
+              type="button"
+              className={mobilePanel === "results" ? "is-active" : ""}
+              aria-expanded={mobilePanel === "results"}
+              onClick={() => setMobilePanel((current) => current === "results" ? null : "results")}
+            >
+              <EmojiEventsIcon fontSize="small" /> Wyniki <span>{gameSettings.players.length}</span>
+            </button>
+            {shouldShowLog && (
+              <button
+                type="button"
+                className={mobilePanel === "history" ? "is-active" : ""}
+                aria-expanded={mobilePanel === "history"}
+                onClick={() => setMobilePanel((current) => current === "history" ? null : "history")}
+              >
+                <HistoryIcon fontSize="small" /> Historia <span>{quizLog.length}</span>
+              </button>
+            )}
+          </div>
+          <Results
+            mobileOpen={mobilePanel === "results"}
+            onMobileToggle={() => setMobilePanel((current) => current === "results" ? null : "results")}
+          />
+          {shouldShowLog && (
+            <QuizLog
+              mobileOpen={mobilePanel === "history"}
+              onMobileToggle={() => setMobilePanel((current) => current === "history" ? null : "history")}
+            />
+          )}
         </>
       )}
 

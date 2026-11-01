@@ -33,9 +33,10 @@ const DynamicBackground = () => {
       position: "fixed",
       top: 0,
       left: 0,
-      width: "100vw",
+      right: 0,
+      width: "auto",
       height: "100vh",
-      zIndex: -1,
+      zIndex: "var(--layer-background)",
       pointerEvents: "none",
       background: `
         radial-gradient(circle at ${positions[0]}, ${colors[0]} 0%, transparent 50%),

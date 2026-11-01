@@ -8,8 +8,9 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import PropTypes from "prop-types";
 
-export const Results = () => {
+export const Results = ({ mobileOpen = false, onMobileToggle }) => {
   const { 
     gameSettings, 
     changePlayerPoints,
@@ -83,7 +84,7 @@ export const Results = () => {
     return () => document.removeEventListener("pointerdown", handleOutsideClick, true);
   }, [isOpen, isResultsPinned]);
 
-  const showContent = isOpen || isResultsPinned;
+  const showContent = mobileOpen || isOpen || isResultsPinned;
   
   const lastPointChanges = quizLog.reduce((acc, log) => {
     if (log.type === "POINTS_CHANGE") {
@@ -95,22 +96,7 @@ export const Results = () => {
   return (
     <div
       ref={containerRef}
-      className="game-results-panel game-panel"
-      style={{
-        position: "fixed",
-        top: "20px",
-        left: "90px",
-        width: "280px",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-        borderRadius: "16px",
-        padding: "16px",
-        zIndex: 9999,
-        color: "#fff",
-        transition: "all 0.3s ease"
-      }}
+      className={`game-results-panel game-panel ${mobileOpen ? "game-panel--mobile-open" : ""} ${isResultsPinned ? "game-panel--pinned" : ""}`}
     >
       <audio ref={audioSuccessRef} src="/sounds/correct.mp3" />
       <audio ref={audioErrorRef} src="/sounds/wrong.mp3" />
@@ -122,7 +108,10 @@ export const Results = () => {
           alignItems: "center",
           cursor: "pointer",
         }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (window.matchMedia("(max-width: 700px)").matches && onMobileToggle) onMobileToggle();
+          else setIsOpen(!isOpen);
+        }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Typography variant="h6" sx={{ fontWeight: "800", fontSize: "16px", letterSpacing: "-0.5px" }}>WYNIKI</Typography>
@@ -140,7 +129,8 @@ export const Results = () => {
             sx={{ color: "#fff" }}
             onClick={(e) => {
               e.stopPropagation();
-              setIsOpen(!isOpen);
+              if (window.matchMedia("(max-width: 700px)").matches && onMobileToggle) onMobileToggle();
+              else setIsOpen(!isOpen);
             }}
           >
             {showContent ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
@@ -283,6 +273,11 @@ export const Results = () => {
       )}
     </div>
   );
+};
+
+Results.propTypes = {
+  mobileOpen: PropTypes.bool,
+  onMobileToggle: PropTypes.func,
 };
 
 export default Results;

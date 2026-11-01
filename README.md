@@ -19,6 +19,13 @@ Lokalna aplikacja quizowa zbudowana w React + Vite. Projekt sluzy do prowadzenia
 - reczna korekta punktow w panelu wynikow,
 - oznaczanie wykorzystanych pytan jako zakonczonych,
 - ranking koncowy.
+- eksport rankingu po grze do CSV.
+- stabilne identyfikatory quizow, kategorii i pytan.
+- automatyczny szkic kreatora z odzyskiwaniem po odswiezeniu strony.
+- ranking koncowy z wykresem zmian punktow i eksportem raportu CSV.
+- potwierdzenie odbioru zatwierdzonej odpowiedzi przez prowadzacego.
+- mobilny widok gracza z trescia aktywnego pytania i wariantami odpowiedzi bez mozliwosci ich zaznaczenia.
+- import pytan z arkusza CSV z walidacja przed edycja quizu.
 
 ## Struktura
 
@@ -55,19 +62,50 @@ Sprawdzenie lintem:
 npm run lint
 ```
 
+Testy logiki:
+
+```bash
+npm test
+```
+
+Testy przegladarkowe Playwright (przy pierwszym uruchomieniu pobierz Chromium):
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+## Import arkusza CSV
+
+W kreatorze wybierz `Importuj arkusz CSV`. Zapisz arkusz z pierwszym wierszem zawierajacym naglowki. Wymagane sa kolumny `Pytanie` i `Poprawna odpowiedz`; opcjonalne: `Kategoria`, `Odpowiedz A`, `Odpowiedz B`, `Odpowiedz C`, `Odpowiedz D` oraz `Kontekst`. Naglowki moga byc tez po angielsku, a parser rozpoznaje przecinek lub srednik jako separator.
+
+Przyklad:
+
+```csv
+Kategoria;Pytanie;Odpowiedz A;Odpowiedz B;Poprawna odpowiedz;Kontekst
+Geografia;Jaka jest stolica Polski?;Krakow;Warszawa;B;Najwieksze miasto kraju
+Historia;Kto byl pierwszym krolem Polski?;;;;Boleslaw Chrobry
+```
+
+W kolumnie poprawnej odpowiedzi mozna wpisac litere wariantu A-D albo jego pelna tresc. Pytania bez wariantow sa importowane jako otwarte. Import otwiera quiz w kreatorze i przed zapisem pokazuje bledy wraz z numerem wadliwego wiersza.
+
 ## Format importu i eksportu
 
 Quizy sa eksportowane jako JSON. Minimalny przyklad:
 
 ```json
 {
+  "id": "quiz-przyklad",
   "name": "Moj quiz",
+  "description": "Krotki opis zestawu pytan.",
   "categories": [
     {
+      "id": "kategoria-wiedza",
       "name": "Wiedza",
       "type": "standard",
       "list": [
         {
+          "id": "pytanie-1",
           "no": 1,
           "question": "Ile to 2 + 2?",
           "answers": ["3", "4", "5"],
@@ -78,6 +116,8 @@ Quizy sa eksportowane jako JSON. Minimalny przyklad:
   ]
 }
 ```
+
+Pola `id` sa nadawane automatycznie nowym quizom i kategoriom. Starsze pliki bez identyfikatorow nadal mozna importowac; aplikacja uzupelni brakujace wartosci. `description` jest opcjonalny.
 
 Dostepne typy kategorii: `standard`, `illustrated`, `forehead`, `auction`, `duel`, `album`, `openAnswer`, `wheel`.
 `auction` moze miec `timerSeconds`, np. `"timerSeconds": 45`. `duel` sluzy do pojedynku bez licznika czasu i bez jednej poprawnej odpowiedzi.
@@ -109,9 +149,14 @@ Pytanie typu `wheel` przechowuje konfiguracje kola przy sobie. `weight` jest wzg
 
 `localStorage` przechowuje stan gry tylko w przegladarce na tym komputerze. Dzieki temu odswiezenie strony nie kasuje graczy, punktow ani wykorzystanych pytan.
 
+Kod dolaczenia do gry jest losowym identyfikatorem pokoju, a synchronizacja korzysta z publicznych tematow ntfy.sh. Kod ulatwia znalezienie pokoju, ale nie jest mechanizmem prywatnosci ani uwierzytelniania; nie nalezy przesylac przez ten kanal poufnych danych.
+
 ## Pomysly na rozwoj
 
 - historia punktow i cofanie ostatniej zmiany,
 - tryb losowania pytan zamiast stalej kolejnosci,
 - osobny panel prowadzacego i widok dla graczy na drugim ekranie,
+- dolaczanie do gry kodem QR z automatycznie uzupelnionym kodem pokoju,
+- mobilny uklad paneli prowadzacego i przewijalnej listy kategorii,
 - eksport wynikow po grze do pliku.
+- tryb druzynowy z przypisywaniem graczy do druzyn i wspolna punktacja.

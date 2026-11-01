@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { Box, Typography, Paper, TextField, Button, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -7,9 +7,10 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SendIcon from "@mui/icons-material/Send";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl } from "../utils/cloudSync";
+import { listenForEvents, listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl } from "../utils/cloudSync";
+import { isAnswerWindowOpen } from "../utils/answerWindow";
 
-const DrawingCanvas = ({ onUpdate, initialValue }) => {
+const DrawingCanvas = ({ onUpdate, initialValue, disabled = false }) => {
   const canvasRef = useRef(null);
   const initialValueRef = useRef(initialValue);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -36,12 +37,13 @@ const DrawingCanvas = ({ onUpdate, initialValue }) => {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: ((clientX - rect.left) / rect.width) * canvas.width,
+      y: ((clientY - rect.top) / rect.height) * canvas.height
     };
   };
 
   const startDrawing = (e) => {
+    if (disabled) return;
     setIsDrawing(true);
     const { x, y } = getCoords(e);
     const ctx = canvasRef.current.getContext('2d');
@@ -50,6 +52,7 @@ const DrawingCanvas = ({ onUpdate, initialValue }) => {
   };
 
   const stopDrawing = () => {
+    if (disabled) return;
     if (!isDrawing) return;
     setIsDrawing(false);
     
@@ -75,7 +78,7 @@ const DrawingCanvas = ({ onUpdate, initialValue }) => {
   };
 
   const draw = (e) => {
-    if (!isDrawing) return;
+    if (disabled || !isDrawing) return;
     e.preventDefault();
     const { x, y } = getCoords(e);
     const ctx = canvasRef.current.getContext('2d');
@@ -118,6 +121,7 @@ const DrawingCanvas = ({ onUpdate, initialValue }) => {
       <Button 
         startIcon={<DeleteIcon />} 
         onClick={clear} 
+        disabled={disabled}
         sx={{ color: '#ef4444', alignSelf: 'flex-end', fontWeight: '800' }}
       >
         WYCZYŚĆ
@@ -129,6 +133,7 @@ const DrawingCanvas = ({ onUpdate, initialValue }) => {
 DrawingCanvas.propTypes = {
   onUpdate: PropTypes.func.isRequired,
   initialValue: PropTypes.string,
+  disabled: PropTypes.bool,
 };
 
 DrawingCanvas.defaultProps = {
@@ -137,24 +142,51 @@ DrawingCanvas.defaultProps = {
 
 const PlayerView = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [code, setCode] = useState("");
   const [joined, setJoined] = useState(false);
   const [gameState, setGameState] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState("idle");
   const [playerName, setPlayerName] = useState("");
   const [bidAmount, setBidAmount] = useState("");
   const [answer, setAnswer] = useState("");
   const [isAnswerConfirmed, setIsAnswerConfirmed] = useState(false);
+  const [isAnswerSending, setIsAnswerSending] = useState(false);
+  const [answerDeliveryStatus, setAnswerDeliveryStatus] = useState("idle");
+  const pendingAnswerIdRef = useRef(null);
+  const answerAckTimeoutRef = useRef(null);
+  const answerTimeoutRef = useRef(null);
+  const answerWindowOpen = isAnswerWindowOpen(gameState);
+  const answerWindowOpenRef = useRef(answerWindowOpen);
+  answerWindowOpenRef.current = answerWindowOpen;
+
+  useEffect(() => {
+    const invitedCode = searchParams.get("code")?.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6);
+    if (invitedCode?.length === 6) setCode(invitedCode);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!gameState?.isQuestionActive) {
         setAnswer("");
         setIsAnswerConfirmed(false);
+      setIsAnswerSending(false);
+      setAnswerDeliveryStatus("idle");
+      pendingAnswerIdRef.current = null;
+      clearTimeout(answerAckTimeoutRef.current);
     }
   }, [gameState?.isQuestionActive]);
 
   useEffect(() => {
+    if (!answerWindowOpen && answerTimeoutRef.current) {
+      clearTimeout(answerTimeoutRef.current);
+      answerTimeoutRef.current = null;
+    }
+  }, [answerWindowOpen]);
+
+  useEffect(() => {
     let eventSource = null;
     if (joined && code) {
+      setConnectionStatus("connecting");
       eventSource = listenForGameState(code.toUpperCase(), (data) => {
         setGameState(data);
         
@@ -167,15 +199,34 @@ const PlayerView = () => {
                 alert("Zostałeś usunięty z gry przez hosta.");
             }
         }
-      });
+      }, (isConnected) => setConnectionStatus(isConnected ? "connected" : "reconnecting"));
     }
     return () => {
       if (eventSource) eventSource.close();
     };
   }, [joined, code, playerName]);
 
+  useEffect(() => {
+    if (!joined || !code || !playerName) return undefined;
+    const eventSource = listenForEvents(code.toUpperCase(), (eventData) => {
+      if (
+        eventData.type === "ANSWER_ACK"
+        && eventData.player?.toLowerCase() === playerName.toLowerCase()
+        && eventData.eventId === pendingAnswerIdRef.current
+      ) {
+        clearTimeout(answerAckTimeoutRef.current);
+        pendingAnswerIdRef.current = null;
+        setIsAnswerConfirmed(true);
+        setIsAnswerSending(false);
+        setAnswerDeliveryStatus("received");
+      }
+    });
+    return () => eventSource?.close();
+  }, [joined, code, playerName]);
+
   const handleJoin = () => {
     if (code.length === 6 && playerName) {
+      setConnectionStatus("connecting");
       setJoined(true);
       joinGame(code.toUpperCase(), playerName);
     }
@@ -240,29 +291,50 @@ const PlayerView = () => {
     }
   };
 
-  const timeoutRef = useRef(null);
-
   const handleAnswerUpdate = (val) => {
-    if (isAnswerConfirmed) return;
+    if (!answerWindowOpenRef.current || isAnswerConfirmed || isAnswerSending) return;
     setAnswer(val);
+    setAnswerDeliveryStatus("idle");
     
     // Debounce dla tekstu, żeby nie wysyłać każdej literki
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
     
     // Jeśli to obrazek (rysunek), wysyłamy od razu po podniesieniu pędzla
     if (val.startsWith("data:image")) {
         submitAnswer(code.toUpperCase(), playerName, val, false);
     } else {
         // Jeśli to tekst, czekamy 400ms na koniec pisania
-        timeoutRef.current = setTimeout(() => {
+        answerTimeoutRef.current = setTimeout(() => {
+          if (!answerWindowOpenRef.current) return;
             submitAnswer(code.toUpperCase(), playerName, val, false);
         }, 400);
     }
   };
 
   const handleConfirmAnswer = () => {
-    setIsAnswerConfirmed(true);
-    submitAnswer(code.toUpperCase(), playerName, answer, true);
+    if (!answerWindowOpenRef.current || isAnswerSending || isAnswerConfirmed || !answer) return;
+    const eventId = globalThis.crypto?.randomUUID?.()
+      || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    pendingAnswerIdRef.current = eventId;
+    setIsAnswerSending(true);
+    setAnswerDeliveryStatus("sending");
+
+    submitAnswer(code.toUpperCase(), playerName, answer, true, eventId).then((published) => {
+      if (pendingAnswerIdRef.current !== eventId) return;
+      setIsAnswerSending(false);
+      if (!published) {
+        pendingAnswerIdRef.current = null;
+        setAnswerDeliveryStatus("error");
+        return;
+      }
+
+      setAnswerDeliveryStatus("waiting");
+      answerAckTimeoutRef.current = window.setTimeout(() => {
+        if (pendingAnswerIdRef.current !== eventId) return;
+        pendingAnswerIdRef.current = null;
+        setAnswerDeliveryStatus("error");
+      }, 10000);
+    });
   };
 
   if (!joined) {
@@ -280,7 +352,7 @@ const PlayerView = () => {
             label="KOD GRY"
             variant="outlined"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6))}
             inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '24px', fontWeight: '900', letterSpacing: '4px' } }}
             fullWidth
           />
@@ -306,37 +378,54 @@ const PlayerView = () => {
   }
 
   return (
-    <Box sx={{ width: "100%", maxWidth: "500px", margin: "0 auto" }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+    <Box className="player-view" sx={{ width: "100%", maxWidth: "500px", margin: "0 auto" }}>
+      <Box className="player-view__topbar" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton onClick={() => setJoined(false)} sx={{ color: "#fff", background: "rgba(255,255,255,0.05)" }}>
+          <IconButton className="player-view__back" aria-label="Opuść grę" onClick={() => setJoined(false)} sx={{ color: "#fff", background: "rgba(255,255,255,0.05)" }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" fontWeight="800">Tryb Gracza</Typography>
+          <Typography className="player-view__title" variant="h5" fontWeight="800">Tryb Gracza</Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, background: 'rgba(46, 204, 113, 0.1)', px: 2, py: 1, borderRadius: '12px', border: '1px solid rgba(46, 204, 113, 0.2)' }}>
-          <SensorsIcon sx={{ color: '#2ecc71', fontSize: '18px' }} />
-          <Typography sx={{ color: '#2ecc71', fontWeight: '800', fontSize: '14px' }}>{code.toUpperCase()}</Typography>
+        <Box
+          className={`player-view__connection player-view__connection--${connectionStatus}`}
+          title={connectionStatus === "connected" ? "Połączono z grą" : connectionStatus === "reconnecting" ? "Ponawianie połączenia" : "Łączenie z grą"}
+          aria-label={connectionStatus === "connected" ? "Połączono z grą" : connectionStatus === "reconnecting" ? "Ponawianie połączenia" : "Łączenie z grą"}
+        >
+          <span className="player-view__connection-dot" />
+          <Typography component="span">{code.toUpperCase()}</Typography>
         </Box>
       </Box>
 
       {!gameState ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="rgba(255,255,255,0.5)">Oczekiwanie na dane z hosta...</Typography>
+          <Typography color={connectionStatus === "reconnecting" ? "#fbbf24" : "rgba(255,255,255,0.5)"}>
+            {connectionStatus === "reconnecting" ? "Połączenie przerwane. Ponawiam próbę..." : "Łączenie z grą i oczekiwanie na dane z hosta..."}
+          </Typography>
         </Paper>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Sekcja Aktywnego Pytania */}
-          {!gameState.isWriting && (
-          <Paper sx={{ p: 3, textAlign: 'center', border: gameState.isQuestionActive ? '2px solid #2ecc71' : '1px solid rgba(255,255,255,0.05)' }}>
-            <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: '800' }}>STATUS</Typography>
-            <Typography variant="h6" fontWeight="900" sx={{ color: gameState.isQuestionActive ? '#2ecc71' : '#fff', mb: 1 }}>
-              {gameState.isQuestionActive ? "TRWA PYTANIE" : "OCZEKIWANIE NA WYBÓR"}
+          {gameState.isQuestionActive && (
+          <Paper className="player-question-card" sx={{ p: 2, textAlign: 'left', border: '1px solid rgba(46, 204, 113, 0.28)' }}>
+            <Typography variant="subtitle2" fontWeight="900" sx={{ color: '#2ecc71', mb: 0.75 }}>
+              {gameState.questionData?.categoryName || gameState.currentQuestion}
             </Typography>
-            {gameState.isQuestionActive && (
-                <Typography sx={{ fontWeight: '700', background: 'rgba(255,255,255,0.05)', py: 1, borderRadius: '8px' }}>
-                    {gameState.isAuction ? "Licytacja:" : (gameState.isWriting ? "Napisz odpowiedź:" : "Kategoria:")} {gameState.currentQuestion}
-                </Typography>
+            {gameState.isWriting && gameState.isQuestionActive && Number.isFinite(gameState.questionData?.remainingSeconds) && (
+              <span className={`player-question-card__timer ${answerWindowOpen ? "" : "player-question-card__timer--closed"}`}>
+                {gameState.questionData.remainingSeconds}s
+              </span>
+            )}
+            {gameState.questionData?.question && (
+              <Typography className="player-question-card__prompt" variant="body1" fontWeight="700">
+                {gameState.questionData.question}
+              </Typography>
+            )}
+            {gameState.questionData?.answers?.length > 0 && (
+              <ol className="player-question-card__answers">
+                {gameState.questionData.answers.map((option, index) => (
+                  <li key={`${index}-${option}`}><span>{String.fromCharCode(65 + index)}</span>{option}</li>
+                ))}
+              </ol>
             )}
           </Paper>
           )}
@@ -344,12 +433,22 @@ const PlayerView = () => {
           {/* Interface: Buzzer, Auction or Writing */}
           {gameState.isWriting ? (
              <Paper sx={{ p: 4, textAlign: 'center', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(46, 204, 113, 0.2)', borderRadius: '24px' }}>
-                <Typography variant="h6" fontWeight="900" sx={{ mb: 3, color: isAnswerConfirmed ? '#2ecc71' : '#fff' }}>
-                    {isAnswerConfirmed ? "ODPOWIEDŹ WYSŁANA!" : "TWOJA ODPOWIEDŹ"}
+                <Typography variant="h6" fontWeight="900" sx={{ mb: 2, color: isAnswerConfirmed ? '#2ecc71' : '#fff' }}>
+                    {isAnswerConfirmed ? "ODPOWIEDŹ ODEBRANA" : "TWOJA ODPOWIEDŹ"}
                 </Typography>
 
+                {!answerWindowOpen && !isAnswerConfirmed && answerDeliveryStatus !== "waiting" && answerDeliveryStatus !== "sending" && (
+                  <Typography className="player-answer-closed" role="status" aria-live="polite">
+                    {!gameState.isQuestionActive
+                      ? "Prowadzący nie otworzył jeszcze rundy odpowiedzi."
+                      : Number(gameState.questionData?.remainingSeconds) === 0
+                        ? "Czas minął. Odpowiedzi są zamknięte."
+                        : "Odpowiedzi są wstrzymane. Czekaj na uruchomienie licznika przez prowadzącego."}
+                  </Typography>
+                )}
+
                 {gameState.inputMethod === 'drawing' ? (
-                    <DrawingCanvas onUpdate={handleAnswerUpdate} initialValue={answer} />
+                    <DrawingCanvas onUpdate={handleAnswerUpdate} initialValue={answer} disabled={!answerWindowOpen || isAnswerConfirmed || isAnswerSending} />
                 ) : (
                     <TextField
                         fullWidth
@@ -357,7 +456,7 @@ const PlayerView = () => {
                         rows={3}
                         value={answer}
                         onChange={(e) => handleAnswerUpdate(e.target.value)}
-                        disabled={isAnswerConfirmed}
+                        disabled={!answerWindowOpen || isAnswerConfirmed || isAnswerSending}
                         placeholder="Wpisz swoją odpowiedź tutaj..."
                         variant="outlined"
                         sx={{ mb: 3 }}
@@ -368,7 +467,7 @@ const PlayerView = () => {
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={!answer || isAnswerConfirmed}
+                    disabled={!answer || !answerWindowOpen || isAnswerConfirmed || isAnswerSending || answerDeliveryStatus === "waiting"}
                     onClick={handleConfirmAnswer}
                     startIcon={isAnswerConfirmed ? null : <SendIcon />}
                     sx={{ 
@@ -381,8 +480,20 @@ const PlayerView = () => {
                         '&:hover': { background: isAnswerConfirmed ? 'rgba(46, 204, 113, 0.2)' : '#27ae60' }
                     }}
                 >
-                    {isAnswerConfirmed ? "ZATWIERDZONO" : "ZATWIERDŹ ODPOWIEDŹ"}
+                    {isAnswerConfirmed ? "ODEBRANO PRZEZ PROWADZĄCEGO" : isAnswerSending ? "WYSYŁANIE..." : answerDeliveryStatus === "waiting" ? "OCZEKIWANIE NA POTWIERDZENIE..." : !answerWindowOpen ? "ODPOWIEDZI ZAMKNIĘTE" : answerDeliveryStatus === "error" ? "SPRÓBUJ PONOWNIE" : "ZATWIERDŹ ODPOWIEDŹ"}
                 </Button>
+                {answerDeliveryStatus !== "idle" && (
+                  <Typography
+                    role="status"
+                    aria-live="polite"
+                    sx={{ mt: 1.5, color: answerDeliveryStatus === "error" ? "#fca5a5" : answerDeliveryStatus === "received" ? "#86efac" : "rgba(255,255,255,0.62)", fontWeight: 700 }}
+                  >
+                    {answerDeliveryStatus === "sending" && "Wysyłam odpowiedź..."}
+                    {answerDeliveryStatus === "waiting" && "Odpowiedź wysłana. Czekam na odbiór przez prowadzącego."}
+                    {answerDeliveryStatus === "received" && "Prowadzący odebrał Twoją odpowiedź."}
+                    {answerDeliveryStatus === "error" && "Nie otrzymano potwierdzenia. Możesz wysłać odpowiedź ponownie."}
+                  </Typography>
+                )}
              </Paper>
           ) : gameState.isWheel ? (
              <Paper sx={{ p: 4, textAlign: 'center', background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '24px' }}>
@@ -474,210 +585,27 @@ const PlayerView = () => {
              </Paper>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', alignItems: 'center' }}>
-                <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                perspective: '1000px'
-                }}>
-                    {/* 3D Buzzer Button Code */}
-                    <button
-                        onClick={handleBuzzer}
-                        className="buzzer-3d"
-                        style={{
-                            position: 'relative',
-                            width: '240px',
-                            height: '240px',
-                            borderRadius: '50%',
-                            border: 'none',
-                            background: 'none',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            padding: 0,
-                            appearance: 'none',
-                            WebkitTapHighlightColor: 'transparent'
-                        }}
-                    >
-                        <style>
-                            {`
-                                .buzzer-3d {
-                                    transition: filter 250ms;
-                                }
-                                .buzzer-3d:hover {
-                                    filter: brightness(110%);
-                                }
-                                .buzzer-3d:active .buzzer-3d__front {
-                                    transform: translateY(-4px);
-                                    transition: transform 34ms;
-                                }
-                                .buzzer-3d:hover .buzzer-3d__front {
-                                    transform: translateY(-10px);
-                                    transition: transform 250ms cubic-bezier(.3, .7, .4, 1.5);
-                                }
-                                .buzzer-3d:active .buzzer-3d__shadow {
-                                    transform: translateY(2px);
-                                    transition: transform 34ms;
-                                }
-                                .buzzer-3d:hover .buzzer-3d__shadow {
-                                    transform: translateY(8px);
-                                    transition: transform 250ms cubic-bezier(.3, .7, .4, 1.5);
-                                }
-
-                                .buzzer-3d__shadow {
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: 50%;
-                                    background: hsl(0deg 0% 0% / 0.25);
-                                    will-change: transform;
-                                    transform: translateY(4px);
-                                    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
-                                }
-
-                                .buzzer-3d__edge {
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: 50%;
-                                    background: linear-gradient(
-                                        to left,
-                                        hsl(0deg 100% 16%) 0%,
-                                        hsl(0deg 100% 32%) 8%,
-                                        hsl(0deg 100% 32%) 92%,
-                                        hsl(0deg 100% 16%) 100%
-                                    );
-                                }
-
-                                .buzzer-3d__front {
-                                    display: block;
-                                    position: relative;
-                                    padding: 12px 42px;
-                                    border-radius: 50%;
-                                    width: 100%;
-                                    height: 100%;
-                                    background: hsl(0deg 100% 47%);
-                                    color: white;
-                                    transform: translateY(-8px);
-                                    will-change: transform;
-                                    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
-                                    display: flex;
-                                    flex-direction: column;
-                                    alignItems: center;
-                                    justifyContent: center;
-                                    box-shadow: inset 0 4px 10px rgba(255,255,255,0.3), inset 0 -4px 10px rgba(0,0,0,0.3);
-                                }
-                            `}
-                        </style>
-                        <span className="buzzer-3d__shadow"></span>
-                        <span className="buzzer-3d__edge"></span>
-                        <span className="buzzer-3d__front">
-                            <Typography variant="h3" fontWeight="900" sx={{ textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>BUZZ</Typography>
-                            <Typography variant="caption" sx={{ fontWeight: '700', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px' }}>KLIKNIJ!</Typography>
-                        </span>
-                    </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleBuzzer}
+                  className="player-buzzer"
+                  disabled={!gameState.isQuestionActive || gameState.isBiddingClosed}
+                  aria-label={gameState.isAuction ? "Zgłoś ofertę w licytacji" : "Zgłoś się do odpowiedzi"}
+                >
+                  <SensorsIcon aria-hidden="true" />
+                  <span>{gameState.isAuction ? "LICYTUJ" : "ZGŁOŚ SIĘ"}</span>
+                  <small>{gameState.isAuction ? "dotknij, aby podbić" : "naciśnij buzzer"}</small>
+                </button>
 
                 {canUseWiemLepiej && (
-                    <button
-                        onClick={handleWiemLepiej}
-                        className="wiem-lepiej-3d"
-                        style={{
-                            position: 'relative',
-                            width: '240px',
-                            height: '80px',
-                            borderRadius: '20px',
-                            border: 'none',
-                            background: 'none',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            padding: 0,
-                            appearance: 'none',
-                            WebkitTapHighlightColor: 'transparent'
-                        }}
-                    >
-                        <style>
-                            {`
-                                .wiem-lepiej-3d {
-                                    transition: filter 250ms;
-                                }
-                                .wiem-lepiej-3d:hover {
-                                    filter: brightness(110%);
-                                }
-                                .wiem-lepiej-3d:active .wiem-lepiej-3d__front {
-                                    transform: translateY(-2px);
-                                    transition: transform 34ms;
-                                }
-                                .wiem-lepiej-3d:hover .wiem-lepiej-3d__front {
-                                    transform: translateY(-6px);
-                                    transition: transform 250ms cubic-bezier(.3, .7, .4, 1.5);
-                                }
-                                .wiem-lepiej-3d:active .wiem-lepiej-3d__shadow {
-                                    transform: translateY(1px);
-                                    transition: transform 34ms;
-                                }
-                                .wiem-lepiej-3d:hover .wiem-lepiej-3d__shadow {
-                                    transform: translateY(4px);
-                                    transition: transform 250ms cubic-bezier(.3, .7, .4, 1.5);
-                                }
-
-                                .wiem-lepiej-3d__shadow {
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: 20px;
-                                    background: hsl(0deg 0% 0% / 0.25);
-                                    will-change: transform;
-                                    transform: translateY(2px);
-                                    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
-                                }
-
-                                .wiem-lepiej-3d__edge {
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: 20px;
-                                    background: linear-gradient(
-                                        to left,
-                                        hsl(270deg 100% 16%) 0%,
-                                        hsl(270deg 100% 32%) 8%,
-                                        hsl(270deg 100% 32%) 92%,
-                                        hsl(270deg 100% 16%) 100%
-                                    );
-                                }
-
-                                .wiem-lepiej-3d__front {
-                                    display: flex;
-                                    align-items: center;
-                                    justifyContent: center;
-                                    gap: 12px;
-                                    position: relative;
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: 20px;
-                                    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-                                    color: white;
-                                    font-size: 1.5rem;
-                                    font-weight: 900;
-                                    will-change: transform;
-                                    transform: translateY(-4px);
-                                    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
-                                }
-                            `}
-                        </style>
-                        <span className="wiem-lepiej-3d__shadow"></span>
-                        <span className="wiem-lepiej-3d__edge"></span>
-                        <span className="wiem-lepiej-3d__front">
-                            <AutoAwesomeIcon /> WIEM LEPIEJ!
-                        </span>
-                    </button>
+                  <Button
+                    className="player-wiem-lepiej"
+                    startIcon={<AutoAwesomeIcon />}
+                    onClick={handleWiemLepiej}
+                    variant="outlined"
+                  >
+                    WIEM LEPIEJ
+                  </Button>
                 )}
             </Box>
           )}

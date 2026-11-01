@@ -32,6 +32,10 @@ export const validateQuiz = (quiz) => {
     issues.push("Quiz musi mieć nazwę.");
   }
 
+  if (quiz.id != null && !hasText(quiz.id)) {
+    issues.push("Identyfikator quizu jest nieprawidłowy.");
+  }
+
   if (!hasList(quiz.categories)) {
     issues.push("Quiz musi mieć co najmniej jedną kategorię.");
     return issues;
@@ -48,6 +52,10 @@ export const validateQuiz = (quiz) => {
 
     if (!hasText(category.name)) {
       issues.push(`${categoryLabel}: brakuje nazwy kategorii.`);
+    }
+
+    if (category.id != null && !hasText(category.id)) {
+      issues.push(`${categoryLabel}: identyfikator jest nieprawidłowy.`);
     }
 
     if (!SUPPORTED_CATEGORY_TYPES.includes(type)) {
@@ -69,6 +77,10 @@ export const validateQuiz = (quiz) => {
       if (!question || typeof question !== "object" || Array.isArray(question)) {
         issues.push(`${questionLabel}: nieprawidłowy format pytania.`);
         return;
+      }
+
+      if (question.id != null && !hasText(question.id)) {
+        issues.push(`${questionLabel}: identyfikator jest nieprawidłowy.`);
       }
 
       if (!Number.isFinite(Number(question.no))) {

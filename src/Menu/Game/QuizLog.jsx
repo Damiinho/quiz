@@ -9,6 +9,7 @@ import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
 import { downloadJson } from "../../utils/quizStorage";
+import PropTypes from "prop-types";
 
 const getActionBadge = (type) => {
   switch (type) {
@@ -37,7 +38,7 @@ const getActionBadge = (type) => {
   }
 };
 
-export const QuizLog = () => {
+export const QuizLog = ({ mobileOpen = false, onMobileToggle }) => {
   const { 
     quizLog, 
     undoAction, 
@@ -81,29 +82,14 @@ export const QuizLog = () => {
     return () => document.removeEventListener("pointerdown", handleOutsideClick, true);
   }, [isOpen, isLogsPinned]);
 
-  const showContent = isOpen || isLogsPinned;
+  const showContent = mobileOpen || isOpen || isLogsPinned;
   const currentStep = undoPointer >= 0 ? undoPointer + 1 : 0;
   const totalSteps = quizLog.length;
 
   return (
     <div
       ref={containerRef}
-      className="quiz-log-panel game-panel"
-      style={{
-        position: "fixed",
-        top: "20px",
-        left: "380px",
-        width: "360px",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-        borderRadius: "16px",
-        padding: "16px",
-        zIndex: 9999,
-        color: "#fff",
-        transition: "all 0.3s ease"
-      }}
+      className={`quiz-log-panel game-panel ${mobileOpen ? "game-panel--mobile-open" : ""} ${isLogsPinned ? "game-panel--pinned" : ""}`}
     >
       <div
         className="quiz-log-panel__header"
@@ -113,7 +99,10 @@ export const QuizLog = () => {
           alignItems: "center",
           cursor: "pointer",
         }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (window.matchMedia("(max-width: 700px)").matches && onMobileToggle) onMobileToggle();
+          else setIsOpen(!isOpen);
+        }}
       >
         <div className="quiz-log-panel__identity" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Typography variant="h6" sx={{ fontWeight: "800", fontSize: "16px", letterSpacing: "-0.5px" }}>
@@ -184,7 +173,8 @@ export const QuizLog = () => {
             sx={{ color: "#fff" }}
             onClick={(e) => {
               e.stopPropagation();
-              setIsOpen(!isOpen);
+              if (window.matchMedia("(max-width: 700px)").matches && onMobileToggle) onMobileToggle();
+              else setIsOpen(!isOpen);
             }}
           >
             {showContent ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
@@ -222,9 +212,12 @@ export const QuizLog = () => {
             const badge = getActionBadge(log.type);
 
             return (
-              <div 
+              <button
+                type="button"
                 key={log.id || originalIndex} 
                 onClick={() => jumpToLogIndex(originalIndex)}
+                aria-current={isCurrent ? "step" : undefined}
+                aria-label={`Przejdź do akcji ${originalIndex + 1}: ${log.description}`}
                 style={{ 
                   padding: "10px 12px", 
                   borderRadius: "10px",
@@ -235,6 +228,10 @@ export const QuizLog = () => {
                     ? "2px solid #2ecc71" 
                     : (isUndone ? "1px dashed rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.06)"),
                   fontSize: "11px",
+                  color: "inherit",
+                  width: "100%",
+                  textAlign: "left",
+                  fontFamily: "inherit",
                   opacity: isUndone ? 0.35 : 1,
                   filter: isUndone ? "grayscale(0.8)" : "none",
                   cursor: "pointer",
@@ -277,13 +274,18 @@ export const QuizLog = () => {
                 }}>
                   {log.description}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       )}
     </div>
   );
+};
+
+QuizLog.propTypes = {
+  mobileOpen: PropTypes.bool,
+  onMobileToggle: PropTypes.func,
 };
 
 export default QuizLog;

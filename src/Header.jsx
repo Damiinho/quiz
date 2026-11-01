@@ -1,11 +1,16 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "./contexts/AppContext";
-import { Menu, Switch, Box, Typography, IconButton } from "@mui/material";
+import { Alert, Dialog, DialogContent, DialogTitle, Menu, Snackbar, Switch, Box, Typography, IconButton } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HomeIcon from "@mui/icons-material/Home";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CloudOffIcon from "@mui/icons-material/CloudOff";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
+import QrCode2Icon from "@mui/icons-material/QrCode2";
+import CloseIcon from "@mui/icons-material/Close";
+import QRCode from "qrcode";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -17,11 +22,27 @@ const Header = () => {
     setAppSettings, 
     gameCode, 
     setGameCode,
-    generateGameCode 
+    generateGameCode,
+    storageWarning,
+    dismissStorageWarning,
   } = useContext(AppContext);
 
   const [anchorEl, setAnchorEl] = useState(null);
+  const [isGameCodeCopied, setIsGameCodeCopied] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const open = Boolean(anchorEl);
+  const joinUrl = gameCode ? `${window.location.origin}/gracz?code=${encodeURIComponent(gameCode)}` : "";
+
+  useEffect(() => {
+    let isCurrent = true;
+    if (isQrOpen && joinUrl) {
+      QRCode.toDataURL(joinUrl, { width: 280, margin: 2, errorCorrectionLevel: "M" })
+        .then((dataUrl) => { if (isCurrent) setQrDataUrl(dataUrl); })
+        .catch(() => { if (isCurrent) setQrDataUrl(""); });
+    }
+    return () => { isCurrent = false; };
+  }, [isQrOpen, joinUrl]);
 
   const handleHeaderClick = () => {
     if (isQuestionActive) {
@@ -46,11 +67,44 @@ const Header = () => {
     setAppSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleCopyGameCode = async () => {
+    const copyWithFallback = () => {
+      const input = document.createElement("textarea");
+      input.value = gameCode;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      const copied = document.execCommand("copy");
+      input.remove();
+      if (!copied) throw new Error("Nie udało się skopiować kodu.");
+    };
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(gameCode);
+      } else {
+        copyWithFallback();
+      }
+      setIsGameCodeCopied(true);
+      window.setTimeout(() => setIsGameCodeCopied(false), 1800);
+    } catch {
+      try {
+        copyWithFallback();
+        setIsGameCodeCopied(true);
+        window.setTimeout(() => setIsGameCodeCopied(false), 1800);
+      } catch {
+        setIsGameCodeCopied(false);
+      }
+    }
+  };
+
   const isGameRoute = location.pathname === "/gra";
 
   return (
-    <div className="header">
-      <div style={{ position: 'absolute', left: '20px', top: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className={`header ${location.pathname === "/gracz" ? "header--player" : ""}`}>
+      <div className={`header__left-controls ${gameCode && isGameRoute ? "header__left-controls--game" : ""} ${location.pathname === "/gracz" ? "header__left-controls--player" : ""}`}>
         <IconButton 
           onClick={handleHeaderClick}
           sx={{ 
@@ -67,32 +121,30 @@ const Header = () => {
         </IconButton>
 
         {(gameCode && isGameRoute) && (
-          <div style={{ 
-            background: 'rgba(0,0,0,0.4)', 
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(46, 204, 113, 0.3)', 
-            padding: '8px 16px', 
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            zIndex: 1000,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            animation: 'fadeInDown 0.3s ease-out'
-          }}>
-            <style>
-              {`
-                @keyframes fadeInDown {
-                  from { opacity: 0; transform: translateY(-10px); }
-                  to { opacity: 1; transform: translateY(0); }
-                }
-              `}
-            </style>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '900', textTransform: 'uppercase' }}>KOD GRY:</span>
-              <span style={{ fontSize: '20px', color: '#2ecc71', fontWeight: '900', letterSpacing: '2px' }}>{gameCode}</span>
+          <div className="header__game-code">
+            <div className="header__game-code-value">
+              <span>KOD GRY:</span>
+              <strong>{gameCode}</strong>
             </div>
-            <div style={{ display: 'flex', gap: '4px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+            <div className="header__game-code-actions">
+              <IconButton
+                size="small"
+                onClick={() => setIsQrOpen(true)}
+                sx={{ color: 'rgba(255,255,255,0.75)', padding: '4px' }}
+                title="Pokaż kod QR do dołączenia"
+                aria-label="Pokaż kod QR"
+              >
+                <QrCode2Icon sx={{ fontSize: '19px' }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={handleCopyGameCode}
+                sx={{ color: isGameCodeCopied ? '#2ecc71' : 'rgba(255,255,255,0.75)', padding: '4px' }}
+                title={isGameCodeCopied ? "Skopiowano kod" : "Kopiuj kod"}
+                aria-label="Kopiuj kod gry"
+              >
+                {isGameCodeCopied ? <CheckIcon sx={{ fontSize: '18px' }} /> : <ContentCopyIcon sx={{ fontSize: '18px' }} />}
+              </IconButton>
               <IconButton 
                 size="small" 
                 onClick={generateGameCode}
@@ -114,7 +166,7 @@ const Header = () => {
         )}
       </div>
 
-      <div style={{ position: 'absolute', right: '20px', top: '20px' }}>
+      <div className={`header__right-controls ${location.pathname === "/gracz" ? "header__right-controls--player" : ""}`}>
         <IconButton 
           onClick={handleSettingsClick}
           aria-label="Otwórz szybkie ustawienia"
@@ -133,6 +185,30 @@ const Header = () => {
           <SettingsIcon fontSize="large" />
         </IconButton>
       </div>
+
+      <Dialog open={isQrOpen} onClose={() => setIsQrOpen(false)} aria-labelledby="game-qr-title" sx={{ zIndex: "var(--layer-dialog)" }}>
+        <DialogTitle id="game-qr-title" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+          Dołącz do gry
+          <IconButton onClick={() => setIsQrOpen(false)} aria-label="Zamknij kod QR" size="small"><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent className="game-qr-dialog">
+          {qrDataUrl ? <img src={qrDataUrl} alt={`Kod QR do gry ${gameCode}`} /> : <Typography role="status">Przygotowuję kod QR...</Typography>}
+          <Typography variant="body2">Zeskanuj kod aparatem telefonu</Typography>
+          <strong>{gameCode}</strong>
+          <Typography variant="caption" className="game-qr-dialog__url">{joinUrl}</Typography>
+        </DialogContent>
+      </Dialog>
+
+      <Snackbar
+        open={Boolean(storageWarning)}
+        onClose={dismissStorageWarning}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        sx={{ zIndex: "var(--layer-game-notice)" }}
+      >
+        <Alert severity="warning" variant="filled" onClose={dismissStorageWarning}>
+          {storageWarning?.message}
+        </Alert>
+      </Snackbar>
 
       <Menu
         anchorEl={anchorEl}

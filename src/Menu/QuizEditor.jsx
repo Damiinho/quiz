@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState, useRef } from "react";
+import { useContext, useMemo, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { IconButton, Modal, Box, Typography } from "@mui/material";
@@ -17,8 +17,10 @@ import FileUploadIcon from "@mui/icons-material/FileUpload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import FormatColorResetIcon from "@mui/icons-material/FormatColorReset";
 import { AppContext } from "../contexts/AppContext";
-import { downloadJson, makeSerializableQuiz, readQuizFile } from "../utils/quizStorage";
+import { downloadJson, loadQuizDraft, makeSerializableQuiz, readQuizFile, removeQuizDraft, saveQuizDraft } from "../utils/quizStorage";
 import Question from "./Game/Question";
+import { createId, createFreshCategoryIdentity, ensureCategoryIdentity } from "../utils/quizIdentity";
+import { validateQuiz } from "../utils/quizValidation";
 
 const categoryTypes = [
   { value: "standard", label: "Standard" },
@@ -95,22 +97,28 @@ const stringToHslColor = (str, s = 70, l = 60) => {
 const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   const navigate = useNavigate();
   const { addCustomQuiz, updateCustomQuiz, setEditingQuiz, quizList } = useContext(AppContext);
-  const [activeStep, setActiveStep] = useState(0); 
-  const [quizName, setQuizName] = useState(initialQuiz?.name || "Nowy quiz");
-  const [randomizeQuestions, setRandomizeQuestions] = useState(initialQuiz?.randomizeQuestions || false);
+  const draftSourceId = initialQuiz?.id || "new";
+  const [recoveredDraft] = useState(() => loadQuizDraft(draftSourceId));
+  const [draftStatus, setDraftStatus] = useState(recoveredDraft ? "recovered" : "idle");
+  const [activeStep, setActiveStep] = useState(recoveredDraft?.activeStep || 0);
+  const [quizId] = useState(() => recoveredDraft?.quizId || initialQuiz?.id || createId("quiz"));
+  const [quizName, setQuizName] = useState(recoveredDraft?.quizName || initialQuiz?.name || "Nowy quiz");
+  const [quizDescription, setQuizDescription] = useState(recoveredDraft?.quizDescription || initialQuiz?.description || "");
+  const [validationIssues, setValidationIssues] = useState([]);
+  const [randomizeQuestions, setRandomizeQuestions] = useState(recoveredDraft?.randomizeQuestions ?? initialQuiz?.randomizeQuestions ?? false);
   const [categories, setCategories] = useState(
-    () => initialQuiz?.categories?.map(category => ({ type: "standard", ...category })) || []
+    () => (recoveredDraft?.categories || initialQuiz?.categories || []).map((category, index) => ensureCategoryIdentity({ type: "standard", ...category }, index, initialQuiz?.id || quizId))
   );
-  const [categoryForm, setCategoryForm] = useState({
+  const [categoryForm, setCategoryForm] = useState(() => recoveredDraft?.categoryForm || ({
     name: "",
     type: "standard",
     accent: "",
-  });
-  const [editingCategoryIndex, setEditingCategoryIndex] = useState(null);
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
-  const [questionForm, setQuestionForm] = useState(emptyQuestionForm);
-  const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
-  const [quizImage, setQuizImage] = useState(initialQuiz?.image || null);
+  }));
+  const [editingCategoryIndex, setEditingCategoryIndex] = useState(recoveredDraft?.editingCategoryIndex ?? null);
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(recoveredDraft?.selectedCategoryIndex || 0);
+  const [questionForm, setQuestionForm] = useState(recoveredDraft?.questionForm || emptyQuestionForm);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState(recoveredDraft?.editingQuestionIndex ?? null);
+  const [quizImage, setQuizImage] = useState(recoveredDraft?.quizImage ?? initialQuiz?.image ?? null);
   const [selectedLibraryCategory, setSelectedLibraryCategory] = useState("");
   const [isLivePreviewOpen, setIsLivePreviewOpen] = useState(false);
   
@@ -127,7 +135,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
         ...category,
         quizName: quiz.name,
         sourceCategoryIndex: index,
-        sourceKey: `${quiz.name}::${category.name}`,
+        sourceKey: `${quiz.id || quiz.name}::${category.id || category.name}`,
       }))
     ),
     [quizList]
@@ -177,6 +185,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     const lastNo = selectedCategory.list.reduce((max, question) => Math.max(max, Number(question.no) || 0), 0);
 
     if (duplicatedQuestion) {
+      duplicatedQuestion.id = createId("question");
       duplicatedQuestion.no = lastNo + 1;
       duplicatedQuestion.question = duplicatedQuestion.question || "";
     }
@@ -206,11 +215,11 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
         throw new Error("Nieprawidłowy plik kategorii.");
       }
 
-      const normalizedCategory = {
+      const normalizedCategory = createFreshCategoryIdentity({
         ...importedCategory,
         type: importedCategory.type || "standard",
         list: (importedCategory.list || []).map((question, index) => ({ ...question, no: question.no ?? index + 1 }))
-      };
+      });
 
       setCategories(prev => {
         const nextCategories = [...prev];
@@ -233,12 +242,12 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
     const categoryToImport = libraryCategories.find((category) => category.sourceKey === selectedLibraryCategory);
     if (!categoryToImport) return;
 
-    const normalizedCategory = {
+    const normalizedCategory = createFreshCategoryIdentity({
       ...categoryToImport,
       name: categoryToImport.name,
       type: categoryToImport.type || "standard",
       list: (categoryToImport.list || []).map((question, index) => ({ ...question, no: question.no ?? index + 1 }))
-    };
+    });
 
     setCategories(prev => {
       const nextCategories = [...prev];
@@ -273,16 +282,55 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   }, [questionForm, selectedType]);
 
   const draftQuiz = useMemo(() => ({
-    ...makeSerializableQuiz({ name: quizName.trim(), categories }),
+    ...makeSerializableQuiz({ id: quizId, name: quizName.trim(), description: quizDescription.trim(), categories }),
     image: quizImage,
     randomizeQuestions
-  }), [categories, quizName, quizImage, randomizeQuestions]);
+  }), [categories, quizId, quizName, quizDescription, quizImage, randomizeQuestions]);
+
+  useEffect(() => {
+    setDraftStatus(recoveredDraft ? "recovered" : "saving");
+    const timeoutId = window.setTimeout(() => {
+      const saved = saveQuizDraft(draftSourceId, {
+        quizId,
+        quizName,
+        quizDescription,
+        randomizeQuestions,
+        categories,
+        categoryForm,
+        editingCategoryIndex,
+        selectedCategoryIndex,
+        questionForm,
+        editingQuestionIndex,
+        quizImage,
+        activeStep,
+      });
+      setDraftStatus(saved ? "saved" : "error");
+    }, 600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    activeStep,
+    categories,
+    categoryForm,
+    draftSourceId,
+    editingCategoryIndex,
+    editingQuestionIndex,
+    questionForm,
+    quizDescription,
+    quizId,
+    quizImage,
+    quizName,
+    randomizeQuestions,
+    recoveredDraft,
+    selectedCategoryIndex,
+  ]);
 
   const handleSaveCategory = () => {
     if (!categoryForm.name.trim()) return;
     const newCategory = {
       type: "standard",
       ...categoryForm,
+      id: editingCategoryIndex !== null ? categories[editingCategoryIndex]?.id : createId("category"),
       list: editingCategoryIndex !== null ? (categories[editingCategoryIndex]?.list || []) : []
     };
 
@@ -305,6 +353,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
 
     const newQuestion = { 
         ...questionForm, 
+      id: editingQuestionIndex !== null ? existingList[editingQuestionIndex]?.id || createId("question") : createId("question"),
         no: questionNo
     };
 
@@ -446,6 +495,14 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   };
 
   const handleFinish = (shouldDownload = false) => {
+    const issues = validateQuiz(draftQuiz);
+    if (issues.length > 0) {
+      setValidationIssues(issues);
+      setActiveStep(3);
+      return;
+    }
+    setValidationIssues([]);
+    removeQuizDraft(draftSourceId);
     if (editingIndex == null) {
       addCustomQuiz(draftQuiz);
     } else {
@@ -468,7 +525,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
   return (
     <div className="editor-view">
       <Modal open={isLivePreviewOpen} onClose={() => setIsLivePreviewOpen(false)}>
-        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0f172a', display: 'flex', flexDirection: 'column', p: 2, zIndex: 9999 }}>
+        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0f172a', display: 'flex', flexDirection: 'column', p: 2 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px' }}>
                 <IconButton onClick={() => setIsLivePreviewOpen(false)} sx={{ color: '#fff', background: 'rgba(255,255,255,0.1)', '&:hover': { background: 'rgba(255,255,255,0.2)' } }}>
                     <CloseIcon />
@@ -489,19 +546,27 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
 
       <div className="editor-view__steps">
         {steps.map((step, index) => (
-          <div 
+          <button
+            type="button"
             key={index} 
             className={`editor-view__step ${activeStep === index ? 'editor-view__step--active' : ''}`}
+            aria-current={activeStep === index ? "step" : undefined}
             onClick={() => setActiveStep(index)}
           >
             <span>{index + 1}</span> {step.split(". ")[1]}
-          </div>
+          </button>
         ))}
+        <span className={`editor-view__draft-status editor-view__draft-status--${draftStatus}`} role="status" aria-live="polite">
+          {draftStatus === "recovered" && "Odzyskano szkic"}
+          {draftStatus === "saving" && "Zapisywanie szkicu..."}
+          {draftStatus === "saved" && "Szkic zapisany"}
+          {draftStatus === "error" && "Nie udało się zapisać szkicu. Sprawdź wolne miejsce w przeglądarce."}
+        </span>
       </div>
 
       <div className="editor-view__content">
         {activeStep === 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: "40px" }}>
+          <div className="editor-view__intro-grid">
             <div>
                 <Typography variant="h5" fontWeight="800" sx={{ mb: 3 }}>{title}</Typography>
                 <div className="editor-view__input-group">
@@ -510,7 +575,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
                 </div>
                 <div className="editor-view__input-group">
                 <label>Opis (opcjonalnie)</label>
-                <textarea rows={5} placeholder="O czym jest ten quiz?" style={{ resize: 'none' }} />
+                <textarea rows={5} value={quizDescription} onChange={e => setQuizDescription(e.target.value)} placeholder="O czym jest ten quiz?" style={{ resize: 'none' }} />
                 </div>
                 <div style={{ marginTop: "20px" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: "12px", background: "rgba(0,0,0,0.16)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "14px 16px", color: "#fff", fontWeight: 700 }}>
@@ -682,7 +747,7 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
         )}
 
         {activeStep === 2 && (
-            <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "40px" }}>
+            <div className="editor-view__question-layout">
                 <div>
                     <label style={{ fontSize: "13px", fontWeight: "600", color: "#94a3b8", display: "block", marginBottom: "12px" }}>Kategorie</label>
                     <div className="players-view__list">
@@ -1006,6 +1071,13 @@ const QuizEditor = ({ initialQuiz, editingIndex, title }) => {
         {activeStep === 3 && (
             <div style={{ textAlign: "center" }}>
                 <h3 style={{ marginBottom: "32px", fontSize: "24px" }}>Gotowe! Sprawdź podsumowanie: {quizName}</h3>
+                {quizDescription.trim() && <p className="editor-view__description-preview">{quizDescription}</p>}
+                {validationIssues.length > 0 && (
+                  <div className="editor-view__validation" role="alert">
+                    <strong>Popraw te kwestie przed zapisaniem quizu:</strong>
+                    <ul>{validationIssues.map((issue, index) => <li key={`${index}-${issue}`}>{issue}</li>)}</ul>
+                  </div>
+                )}
                 <div className="quiz-grid">
                     {categories.map((cat, i) => (
                         <div key={i} className="quiz-card">

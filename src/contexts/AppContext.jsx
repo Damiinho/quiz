@@ -1,8 +1,12 @@
-import { createContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { defaultQuizzes } from "../data/defaultQuizzes";
+import { ensureQuizIdentity } from "../utils/quizIdentity";
+import { compactGameSnapshot, compactQuizLog, restoreQuizProgress } from "../utils/gameHistory";
+import { isAnswerWindowOpen } from "../utils/answerWindow";
 import { 
+  acknowledgeAnswer,
   syncStateToCloud, 
   listenForEvents 
 } from "../utils/cloudSync";
@@ -23,17 +27,26 @@ export const AppProvider = ({ children }) => {
 
   // Core State
   const [customQuizzes, setCustomQuizzes] = useState(loadCustomQuizzes);
-  const quizList = useMemo(() => [...defaultQuizzes, ...customQuizzes], [customQuizzes]);
+  const quizList = useMemo(() => [
+    ...defaultQuizzes.map((quiz, index) => ensureQuizIdentity({ ...quiz, id: quiz.id || `default-${index + 1}` }, `default-${index + 1}`)),
+    ...customQuizzes,
+  ], [customQuizzes]);
   const [editingQuiz, setEditingQuiz] = useState(null);
+  const [storageWarning, setStorageWarning] = useState(null);
   
   const [savedState] = useState(() => loadGameState() || {});
-  const [gameSettings, setGameSettings] = useState(savedState.gameSettings || {
+  const [gameSettings, setGameSettings] = useState(() => ({
+    ...(savedState.gameSettings || {
     players: [],
     quiz: null,
     wiemLepiejLimit: 1
-  });
+    }),
+    quiz: savedState.gameSettings?.quiz
+      ? ensureQuizIdentity(savedState.gameSettings.quiz, "saved-game")
+      : null,
+  }));
   const [scoreHistory, setScoreHistory] = useState(savedState.scoreHistory || []);
-  const [quizLog, setQuizLog] = useState(savedState.quizLog || []);
+  const [quizLog, setQuizLog] = useState(() => compactQuizLog(savedState.quizLog, gameSettings.quiz));
   const [gameCode, setGameCode] = useState(savedState.gameCode || null);
   const [isQuestionActive, setIsQuestionActive] = useState(savedState.isQuestionActive || false);
   const [selectedCategoryName, setSelectedCategoryName] = useState(savedState.selectedCategoryName || null);
@@ -47,6 +60,9 @@ export const AppProvider = ({ children }) => {
   const [auctionStage, setAuctionStage] = useState(savedState.auctionStage || 0);
   const [isAuctionTimerRunning, setIsAuctionTimerRunning] = useState(savedState.isAuctionTimerRunning || false);
   const [showAnswer, setShowAnswer] = useState(savedState.showAnswer || false);
+  const [currentQuestionData, setCurrentQuestionData] = useState(null);
+  const currentQuestionDataRef = useRef(currentQuestionData);
+  currentQuestionDataRef.current = currentQuestionData;
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isResultsPinned, setIsResultsPinned] = useState(false);
   const [isLogsPinned, setIsLogsPinned] = useState(false);
@@ -66,7 +82,14 @@ export const AppProvider = ({ children }) => {
   }));
 
   const generateGameCode = useCallback(() => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const randomBytes = new Uint8Array(6);
+    if (globalThis.crypto?.getRandomValues) {
+      globalThis.crypto.getRandomValues(randomBytes);
+    } else {
+      randomBytes.forEach((_, index) => { randomBytes[index] = Math.floor(Math.random() * 256); });
+    }
+    const code = [...randomBytes].map((value) => alphabet[value % alphabet.length]).join("");
     setGameCode(code);
     return code;
   }, []);
@@ -76,16 +99,22 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    saveCustomQuizzes(customQuizzes);
+    const saved = saveCustomQuizzes(customQuizzes);
+    setStorageWarning((current) => saved
+      ? (current?.key === "custom-quizzes" ? null : current)
+      : { key: "custom-quizzes", message: "Nie udało się zapisać biblioteki quizów w tej przeglądarce." });
   }, [customQuizzes]);
 
   useEffect(() => {
-    saveAppSettings(appSettings);
+    const saved = saveAppSettings(appSettings);
+    setStorageWarning((current) => saved
+      ? (current?.key === "settings" ? null : current)
+      : { key: "settings", message: "Nie udało się zapisać ustawień w tej przeglądarce." });
     document.documentElement.style.setProperty("--app-font-size", `${appSettings.fontSize}%`);
   }, [appSettings]);
 
   useEffect(() => {
-    saveGameState({
+    const saved = saveGameState({
       isQuestionActive,
       gameSettings,
       scoreHistory,
@@ -101,6 +130,9 @@ export const AppProvider = ({ children }) => {
       isAuctionTimerRunning,
       showAnswer,
     });
+    setStorageWarning((current) => saved
+      ? (current?.key === "game-state" ? null : current)
+      : { key: "game-state", message: "Nie udało się zapisać stanu gry. Wyeksportuj kopię, zanim zamkniesz stronę." });
 
     if (gameCode) {
       const activeCategory = gameSettings.quiz?.categories?.find(c => c.name === selectedCategoryName);
@@ -119,13 +151,14 @@ export const AppProvider = ({ children }) => {
           isBiddingClosed: isAuctionTimerRunning || auctionStage === 3,
           auctionBids: auctionBids,
           auctionStage: auctionStage,
-          currentQuestion: isQuestionActive ? selectedCategoryName : null
+          currentQuestion: isQuestionActive ? selectedCategoryName : null,
+          questionData: isQuestionActive ? currentQuestionData : null,
         });
       }, 500);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, selectedCategoryName, wheelRoundState, undoPointer, buzzerQueue, auctionBids, playerAnswers, auctionStage, isAuctionTimerRunning, showAnswer]);
+  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, selectedCategoryName, currentQuestionData, wheelRoundState, undoPointer, buzzerQueue, auctionBids, playerAnswers, auctionStage, isAuctionTimerRunning, showAnswer]);
 
   useEffect(() => {
     let eventSource = null;
@@ -140,10 +173,24 @@ export const AppProvider = ({ children }) => {
           setAuctionBids(prev => ({ ...prev, [eventData.player]: eventData.amount }));
           setAuctionStage(0);
         } else if (eventData.type === "ANSWER") {
+          const canAcceptAnswer = isAnswerWindowOpen({
+            isQuestionActive,
+            isWriting: gameSettings.quiz?.categories?.find(category => category.name === selectedCategoryName)?.type === "openAnswer",
+            questionData: currentQuestionDataRef.current,
+          });
+          if (eventData.isConfirmed && !canAcceptAnswer) return;
           setPlayerAnswers(prev => ({ 
             ...prev, 
-            [eventData.player]: { answer: eventData.answer, isConfirmed: eventData.isConfirmed } 
+            [eventData.player]: {
+              answer: eventData.answer,
+              isConfirmed: eventData.isConfirmed,
+              eventId: eventData.eventId || null,
+              receivedAt: eventData.isConfirmed ? Date.now() : null,
+            }
           }));
+          if (eventData.isConfirmed && eventData.eventId && canAcceptAnswer) {
+            acknowledgeAnswer(gameCode, eventData.player, eventData.eventId);
+          }
         } else if (eventData.type === "WHEEL_CONTROL") {
           setWheelControlEvent({ ...eventData, id: `${eventData.player}-${eventData.action}-${eventData.time}` });
         } else if (eventData.type === "WIEM_LEPIEJ") {
@@ -175,24 +222,10 @@ export const AppProvider = ({ children }) => {
       });
     }
     return () => { if (eventSource) eventSource.close(); };
-  }, [gameCode]);
+  }, [gameCode, gameSettings.quiz, isQuestionActive, selectedCategoryName]);
 
   const cloneSnapshot = useCallback((state) => {
-    if (!state) return null;
-    return {
-      gameSettings: JSON.parse(JSON.stringify(state.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 })),
-      scoreHistory: JSON.parse(JSON.stringify(state.scoreHistory || [])),
-      isQuestionActive: Boolean(state.isQuestionActive),
-      selectedCategoryName: state.selectedCategoryName || null,
-      wheelRoundState: state.wheelRoundState ? JSON.parse(JSON.stringify(state.wheelRoundState)) : null,
-      showAnswer: Boolean(state.showAnswer),
-      isAudioPlaying: false,
-      buzzerQueue: JSON.parse(JSON.stringify(state.buzzerQueue || [])),
-      auctionBids: JSON.parse(JSON.stringify(state.auctionBids || {})),
-      playerAnswers: JSON.parse(JSON.stringify(state.playerAnswers || {})),
-      auctionStage: state.auctionStage || 0,
-      isAuctionTimerRunning: Boolean(state.isAuctionTimerRunning),
-    };
+    return compactGameSnapshot(state);
   }, []);
 
   const getGameSnapshot = useCallback((overrides = {}) => {
@@ -229,7 +262,13 @@ export const AppProvider = ({ children }) => {
 
   const applyGameSnapshot = useCallback((snapshot) => {
     if (!snapshot) return;
-    setGameSettings(snapshot.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 });
+    const snapshotSettings = snapshot.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 };
+    const snapshotQuiz = snapshotSettings.quiz || gameSettings.quiz;
+    const completedIds = new Set(snapshot.completedQuestionIds || []);
+    const restoredQuiz = snapshotQuiz && snapshot.completedQuestionIds
+      ? restoreQuizProgress(snapshotQuiz, [...completedIds])
+      : snapshotQuiz;
+    setGameSettings({ ...snapshotSettings, quiz: restoredQuiz || null });
     setScoreHistory(snapshot.scoreHistory || []);
     setIsQuestionActive(Boolean(snapshot.isQuestionActive));
     setSelectedCategoryName(snapshot.selectedCategoryName || null);
@@ -241,7 +280,7 @@ export const AppProvider = ({ children }) => {
     setPlayerAnswers(snapshot.playerAnswers || {});
     setAuctionStage(snapshot.auctionStage || 0);
     setIsAuctionTimerRunning(Boolean(snapshot.isAuctionTimerRunning));
-  }, []);
+  }, [gameSettings.quiz]);
 
   const addToLog = useCallback((entry, snapshots = {}) => {
     const before = cloneSnapshot(snapshots.before || getGameSnapshot());
@@ -289,6 +328,7 @@ export const AppProvider = ({ children }) => {
     setSelectedCategoryName(categoryName);
     setShowAnswer(false);
     setPlayerAnswers({});
+    setCurrentQuestionData(null);
     addToLog({ 
       type: "QUESTION_OPENED", 
       categoryName,
@@ -309,6 +349,7 @@ export const AppProvider = ({ children }) => {
     setSelectedCategoryName(null);
     setShowAnswer(false);
     setPlayerAnswers({});
+    setCurrentQuestionData(null);
     addToLog({
       type: "QUESTION_CLOSED",
       categoryName: catName,
@@ -326,7 +367,9 @@ export const AppProvider = ({ children }) => {
         return {
           ...c,
           list: (c.list || []).map((q) => {
-            const isMatch = (q.no != null && q.no === selectedQuestion.no) || q.question === selectedQuestion.question;
+            const isMatch = selectedQuestion.id
+              ? q.id === selectedQuestion.id
+              : (q.no != null && q.no === selectedQuestion.no) || q.question === selectedQuestion.question;
             return isMatch ? { ...q, done: true } : q;
           })
         };
@@ -347,10 +390,12 @@ export const AppProvider = ({ children }) => {
     setWheelRoundState(null);
     setShowAnswer(false);
     setPlayerAnswers({});
+    setCurrentQuestionData(null);
     addToLog({
       type: "QUESTION_DONE",
       categoryName,
       questionNo: selectedQuestion.no,
+      questionId: selectedQuestion.id,
       questionText: selectedQuestion.question,
       description: `Zużyto: ${selectedQuestion.question || 'Pytanie ' + selectedQuestion.no}`
     }, { before, after });
@@ -500,7 +545,8 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const startNewQuiz = useCallback((quiz) => {
-    setGameSettings(prev => ({ ...prev, quiz }));
+    const identifiedQuiz = ensureQuizIdentity(quiz, "game");
+    setGameSettings(prev => ({ ...prev, quiz: identifiedQuiz }));
     setScoreHistory([]);
     setQuizLog([]);
     setIsQuestionActive(false);
@@ -516,25 +562,35 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const addCustomQuiz = useCallback((quiz) => {
-    setCustomQuizzes(prev => [...prev, quiz]);
+    setCustomQuizzes(prev => {
+      const identifiedQuiz = ensureQuizIdentity(quiz, "custom");
+      const hasDuplicateId = prev.some((item) => item.id === identifiedQuiz.id)
+        || defaultQuizzes.some((item, index) => (item.id || `default-${index + 1}`) === identifiedQuiz.id);
+      return [...prev, hasDuplicateId
+        ? ensureQuizIdentity({ ...identifiedQuiz, id: undefined }, "custom")
+        : identifiedQuiz];
+    });
   }, []);
 
-  const removeCustomQuiz = useCallback((quizName) => {
-    setCustomQuizzes(prev => prev.filter(q => q.name !== quizName));
+  const removeCustomQuiz = useCallback((quizIdOrName) => {
+    setCustomQuizzes(prev => prev.filter(q => q.id !== quizIdOrName && q.name !== quizIdOrName));
   }, []);
 
   const updateCustomQuiz = useCallback((index, updatedQuiz) => {
     setCustomQuizzes(prev => {
       const newQuizzes = [...prev];
-      newQuizzes[index] = updatedQuiz;
+      newQuizzes[index] = ensureQuizIdentity(updatedQuiz, "custom");
       return newQuizzes;
     });
   }, []);
 
   const loadDownloadedState = useCallback((state) => {
-    setGameSettings(state.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 });
+    const identifiedQuiz = state.gameSettings?.quiz
+      ? ensureQuizIdentity(state.gameSettings.quiz, "imported-game")
+      : null;
+    setGameSettings({ ...state.gameSettings, quiz: identifiedQuiz });
     setScoreHistory(state.scoreHistory || []);
-    setQuizLog(state.quizLog || []);
+    setQuizLog(compactQuizLog(state.quizLog, identifiedQuiz));
     setGameCode(state.gameCode || null);
     setIsQuestionActive(state.isQuestionActive || false);
     setSelectedCategoryName(state.selectedCategoryName || null);
@@ -564,6 +620,8 @@ export const AppProvider = ({ children }) => {
     setAuctionBids,
     playerAnswers,
     setPlayerAnswers,
+    storageWarning,
+    dismissStorageWarning: () => setStorageWarning(null),
     auctionStage,
     setAuctionStage,
     isAuctionTimerRunning,
@@ -579,6 +637,8 @@ export const AppProvider = ({ children }) => {
     setSelectedCategoryName,
     wheelRoundState,
     setWheelRoundState,
+    currentQuestionData,
+    setCurrentQuestionData,
     quizLog,
     setQuizLog,
     addToLog,
@@ -615,23 +675,7 @@ export const AppProvider = ({ children }) => {
     wheelControlEvent,
     appSettings,
     setAppSettings,
-    loadGameFromState: (state) => {
-      setGameSettings(state.gameSettings || { players: [], quiz: null, wiemLepiejLimit: 1 });
-      setScoreHistory(state.scoreHistory || []);
-      setQuizLog(state.quizLog || []);
-      setGameCode(state.gameCode || null);
-      setIsQuestionActive(state.isQuestionActive || false);
-      setSelectedCategoryName(state.selectedCategoryName || null);
-      setWheelRoundState(state.wheelRoundState || null);
-      setUndoPointer(state.undoPointer ?? (state.quizLog?.length ? state.quizLog.length - 1 : -1));
-      setBuzzerQueue(state.buzzerQueue || []);
-      setAuctionBids(state.auctionBids || {});
-      setPlayerAnswers(state.playerAnswers || {});
-      setAuctionStage(state.auctionStage || 0);
-      setIsAuctionTimerRunning(Boolean(state.isAuctionTimerRunning));
-      setShowAnswer(Boolean(state.showAnswer));
-      navigate("/gra");
-    },
+    loadGameFromState: loadDownloadedState,
     getDownloadableState: () => ({
       isQuestionActive,
       gameSettings,
@@ -650,11 +694,11 @@ export const AppProvider = ({ children }) => {
       timestamp: new Date().toISOString()
     }),
   }), [
-    gameSettings, scoreHistory, gameCode, generateGameCode, toggleWiemLepiej, buzzerQueue, 
+    gameSettings, scoreHistory, gameCode, generateGameCode, toggleWiemLepiej, buzzerQueue, storageWarning,
     auctionBids, auctionStage, isAuctionTimerRunning, quizList, customQuizzes, 
     editingQuiz, isQuestionActive, selectedCategoryName, quizLog, undoAction, 
     redoAction, jumpToLogIndex, undoPointer, addToLog, showAnswer, isAudioPlaying, 
-    isResultsPinned, isLogsPinned, wheelControlEvent, appSettings, navigate, playerAnswers, wheelRoundState, recordWheelRoundAction,
+    isResultsPinned, isLogsPinned, wheelControlEvent, appSettings, playerAnswers, wheelRoundState, currentQuestionData, recordWheelRoundAction,
     resetSavedGame, startNewQuiz, addCustomQuiz, removeCustomQuiz, updateCustomQuiz, 
     loadDownloadedState, setPlayerAnswers, getGameSnapshot,
     openCategory, closeCategory, finishQuestion, toggleAnswer, changePlayerPoints,

@@ -8,12 +8,15 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import { parseQuizSpreadsheet } from "../utils/spreadsheetImport";
 
 const CreateMenu = () => {
   const navigate = useNavigate();
   const { setEditingQuiz } = useContext(AppContext);
   const [importMessage, setImportMessage] = useState("");
   const fileInputRef = useRef(null);
+  const spreadsheetInputRef = useRef(null);
 
   const handleImport = async (event) => {
     const file = event.target.files?.[0];
@@ -32,6 +35,23 @@ const CreateMenu = () => {
       navigate("/stworz");
     } catch {
       setImportMessage("Nie udało się odczytać pliku JSON.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleSpreadsheetImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const quiz = parseQuizSpreadsheet(await file.text(), file.name);
+      const issues = validateQuiz(quiz);
+      if (issues.length > 0) throw new Error(issues[0]);
+      setEditingQuiz({ index: null, quiz });
+      navigate("/stworz");
+    } catch (error) {
+      setImportMessage(error.message || "Nie udało się odczytać arkusza CSV.");
     } finally {
       event.target.value = "";
     }
@@ -73,12 +93,29 @@ const CreateMenu = () => {
         </div>
         <ChevronRightIcon />
       </button>
+
+      <button className="choice-screen__btn" onClick={() => spreadsheetInputRef.current?.click()}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ background: 'rgba(34, 211, 238, 0.16)', padding: '12px', borderRadius: '12px', color: '#22d3ee' }}>
+                <TableChartIcon />
+            </div>
+            <span>Importuj arkusz CSV</span>
+        </div>
+        <ChevronRightIcon />
+      </button>
       
       <input
         ref={fileInputRef}
         type="file"
         accept="application/json,.json"
         onChange={handleImport}
+        style={{ display: "none" }}
+      />
+      <input
+        ref={spreadsheetInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        onChange={handleSpreadsheetImport}
         style={{ display: "none" }}
       />
 

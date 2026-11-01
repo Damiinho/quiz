@@ -126,17 +126,18 @@ export const submitBid = async (gameCode, playerName, amount) => {
 /**
  * Submits a player answer (text or drawing).
  */
-export const submitAnswer = async (gameCode, playerName, answer, isConfirmed = false) => {
-  if (!gameCode) return;
+export const submitAnswer = async (gameCode, playerName, answer, isConfirmed = false, eventId = null) => {
+  if (!gameCode) return false;
   try {
     const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
-    await fetch(`${NTFY_BASE_URL}/${topic}`, {
+    const response = await fetch(`${NTFY_BASE_URL}/${topic}`, {
       method: "POST",
       body: JSON.stringify({
         type: "ANSWER",
         player: playerName,
-        answer: answer, // text or base64 image
-        isConfirmed: isConfirmed,
+        answer,
+        isConfirmed,
+        eventId,
         time: Date.now(),
       }),
       headers: {
@@ -144,8 +145,26 @@ export const submitAnswer = async (gameCode, playerName, answer, isConfirmed = f
         "Tags": "pencil"
       }
     });
+    return response.ok;
   } catch (error) {
     console.error("Submit answer error:", error);
+    return false;
+  }
+};
+
+export const acknowledgeAnswer = async (gameCode, playerName, eventId) => {
+  if (!gameCode || !playerName || !eventId) return false;
+  try {
+    const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
+    const response = await fetch(`${NTFY_BASE_URL}/${topic}`, {
+      method: "POST",
+      body: JSON.stringify({ type: "ANSWER_ACK", player: playerName, eventId, time: Date.now() }),
+      headers: { "Title": "AnswerReceived", "Tags": "white_check_mark" },
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Answer acknowledgement error:", error);
+    return false;
   }
 };
 
@@ -171,11 +190,12 @@ export const sendWheelControl = async (gameCode, playerName, action) => {
 /**
  * Listens for game state changes.
  */
-export const listenForGameState = (gameCode, onStateChange) => {
+export const listenForGameState = (gameCode, onStateChange, onConnectionChange = () => {}) => {
   if (!gameCode) return null;
 
   const topic = `sz-state-${gameCode.toLowerCase()}`;
   const eventSource = new EventSource(`${NTFY_BASE_URL}/${topic}/sse`);
+  eventSource.onopen = () => onConnectionChange(true);
 
   eventSource.onmessage = (event) => {
     try {
@@ -192,7 +212,7 @@ export const listenForGameState = (gameCode, onStateChange) => {
 
   eventSource.onerror = (err) => {
     console.error("Game state sync error:", err);
-    eventSource.close();
+    onConnectionChange(false);
   };
 
   return eventSource;
@@ -201,11 +221,12 @@ export const listenForGameState = (gameCode, onStateChange) => {
 /**
  * Listens for events (buzzers, joins, etc).
  */
-export const listenForEvents = (gameCode, onEvent) => {
+export const listenForEvents = (gameCode, onEvent, onConnectionChange = () => {}) => {
   if (!gameCode) return null;
 
   const topic = `sz-buzzer-${gameCode.toLowerCase()}`;
   const eventSource = new EventSource(`${NTFY_BASE_URL}/${topic}/sse`);
+  eventSource.onopen = () => onConnectionChange(true);
 
   eventSource.onmessage = (event) => {
     try {
@@ -221,7 +242,7 @@ export const listenForEvents = (gameCode, onEvent) => {
 
   eventSource.onerror = (err) => {
     console.error("Event sync error:", err);
-    eventSource.close();
+    onConnectionChange(false);
   };
 
   return eventSource;
