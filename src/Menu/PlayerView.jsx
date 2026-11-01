@@ -7,7 +7,7 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SendIcon from "@mui/icons-material/Send";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { listenForEvents, listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl } from "../utils/cloudSync";
+import { listenForEvents, listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl, isSupabaseConfigured } from "../utils/cloudSync";
 import { isAnswerWindowOpen } from "../utils/answerWindow";
 
 const DrawingCanvas = ({ onUpdate, initialValue, disabled = false }) => {
@@ -142,8 +142,9 @@ DrawingCanvas.defaultProps = {
 
 const PlayerView = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [code, setCode] = useState("");
+  const [manualBackend, setManualBackend] = useState(() => searchParams.get("backend") || (isSupabaseConfigured() ? "supabase" : "ntfy"));
   const [joined, setJoined] = useState(false);
   const [gameState, setGameState] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState("idle");
@@ -356,6 +357,26 @@ const PlayerView = () => {
             inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '24px', fontWeight: '900', letterSpacing: '4px' } }}
             fullWidth
           />
+          {!searchParams.has("backend") && (
+            <TextField
+              select
+              label="USŁUGA POŁĄCZENIA"
+              value={manualBackend}
+              onChange={(event) => {
+                setManualBackend(event.target.value);
+                const nextParams = new URLSearchParams(searchParams);
+                nextParams.set("backend", event.target.value);
+                setSearchParams(nextParams);
+              }}
+              fullWidth
+              SelectProps={{ native: true }}
+            >
+              <option value="supabase" disabled={!isSupabaseConfigured()}>
+                {isSupabaseConfigured() ? "Supabase" : "Supabase (wymaga konfiguracji)"}
+              </option>
+              <option value="ntfy">ntfy (awaryjnie)</option>
+            </TextField>
+          )}
           <TextField
             label="TWOJA NAZWA (DLA BUZZERA)"
             variant="outlined"

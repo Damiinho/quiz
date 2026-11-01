@@ -20,8 +20,9 @@ const Header = () => {
     setIsQuestionActive, 
     appSettings, 
     setAppSettings, 
-    gameCode, 
+    gameCode,
     setGameCode,
+    onlineBackend,
     generateGameCode,
     storageWarning,
     dismissStorageWarning,
@@ -32,7 +33,7 @@ const Header = () => {
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const open = Boolean(anchorEl);
-  const joinUrl = gameCode ? `${window.location.origin}/gracz?code=${encodeURIComponent(gameCode)}` : "";
+  const joinUrl = gameCode ? `${window.location.origin}/gracz?code=${encodeURIComponent(gameCode)}&backend=${encodeURIComponent(onlineBackend)}` : "";
 
   useEffect(() => {
     let isCurrent = true;
@@ -125,6 +126,7 @@ const Header = () => {
             <div className="header__game-code-value">
               <span>KOD GRY:</span>
               <strong>{gameCode}</strong>
+              <small style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>{onlineBackend === "supabase" ? "SUPABASE" : "NTFY"}</small>
             </div>
             <div className="header__game-code-actions">
               <IconButton

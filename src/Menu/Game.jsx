@@ -7,6 +7,8 @@ import QuizLog from "./Game/QuizLog";
 import Ranking from "./Ranking";
 import HistoryIcon from "@mui/icons-material/History";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import { isSupabaseConfigured } from "../utils/cloudSync";
+import GameOnlineTools from "./Game/GameOnlineTools";
 
 const getCategoryCardBackground = (index, accent) => {
   if (accent) return `color-mix(in srgb, ${accent} 45%, transparent)`;
@@ -187,7 +189,9 @@ const Game = () => {
     buzzerQueue,
     setBuzzerQueue,
     gameCode,
-    generateGameCode
+    generateGameCode,
+    onlineBackend,
+    setOnlineBackend,
   } = useContext(AppContext);
 
   // Globalne skróty klawiszowe dla Undo / Redo w trakcie gry
@@ -425,6 +429,8 @@ const Game = () => {
         />
       )}
 
+      <GameOnlineTools />
+
       {!shouldHidePanels && (
         <>
           <div className="game-mobile-tools" aria-label="Narzędzia prowadzącego">
@@ -479,24 +485,28 @@ const Game = () => {
             </h1>
             
             {/* Online Game Code Section */}
-            <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
+            <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
               {!gameCode && (
-                <button
-                  onClick={generateGameCode}
-                  style={{
-                    background: "#2ecc71",
-                    color: "#000",
-                    border: "none",
-                    padding: "8px 24px",
-                    borderRadius: "12px",
-                    fontWeight: "900",
-                    cursor: "pointer",
-                    fontSize: "0.9rem",
-                    textTransform: "uppercase"
-                  }}
-                >
-                  Generuj kod gry online
-                </button>
+                <>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.7)", fontSize: "0.85rem", fontWeight: 800 }}>
+                    Połączenie:
+                    <select
+                      aria-label="Usługa połączenia online"
+                      value={onlineBackend}
+                      onChange={(event) => setOnlineBackend(event.target.value)}
+                      style={{ background: "#0f172a", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", padding: "8px 10px" }}
+                    >
+                      <option value="supabase" disabled={!isSupabaseConfigured()}>Supabase{!isSupabaseConfigured() ? " (wymaga konfiguracji)" : ""}</option>
+                      <option value="ntfy">ntfy (awaryjnie)</option>
+                    </select>
+                  </label>
+                  <button
+                    onClick={generateGameCode}
+                    style={{ background: "#2ecc71", color: "#000", border: "none", padding: "8px 24px", borderRadius: "12px", fontWeight: "900", cursor: "pointer", fontSize: "0.9rem", textTransform: "uppercase" }}
+                  >
+                    Generuj kod gry online
+                  </button>
+                </>
               )}
             </div>
           </div>

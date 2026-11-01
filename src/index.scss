@@ -1934,6 +1934,20 @@ textarea,
   border-radius: 0;
   overflow: hidden;
 
+  // Keep controls reachable when a question and its revealed answer both contain images.
+  &:not(.question-view--seven-plus-answers) .question-view__content {
+    min-height: 0;
+    overflow-y: auto;
+    justify-content: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  }
+
+  &:not(.question-view--seven-plus-answers) .question-view__content img {
+    max-height: min(34vh, 22rem);
+    object-fit: contain;
+  }
+
   &--many-long-answers .question-view__answers {
     width: 100%;
     max-width: none;
@@ -2490,6 +2504,65 @@ textarea,
   line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.header__game-code {
+  display: none !important;
+}
+
+.game-online-tools {
+  position: fixed;
+  top: 20px;
+  left: 760px;
+  z-index: var(--layer-game-panels);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: calc(100vw - 780px);
+  padding: 0.35rem 0.5rem;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--ui-radius);
+  backdrop-filter: blur(12px);
+}
+
+.game-online-tools__label,
+.game-online-tools__backend {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.62rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.game-online-tools__code {
+  color: var(--ui-success);
+  font-size: 1rem;
+  letter-spacing: 0.1rem;
+}
+
+.game-online-tools .MuiIconButton-root {
+  padding: 0.35rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+@media (max-width: 1099px) {
+  .game-online-tools {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto 0.5rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .game-online-tools {
+    width: min(100%, 30rem);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 .header__game-code {

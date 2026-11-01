@@ -8,7 +8,8 @@ import { isAnswerWindowOpen } from "../utils/answerWindow";
 import { 
   acknowledgeAnswer,
   syncStateToCloud, 
-  listenForEvents 
+  listenForEvents,
+  isSupabaseConfigured,
 } from "../utils/cloudSync";
 
 import { 
@@ -48,6 +49,9 @@ export const AppProvider = ({ children }) => {
   const [scoreHistory, setScoreHistory] = useState(savedState.scoreHistory || []);
   const [quizLog, setQuizLog] = useState(() => compactQuizLog(savedState.quizLog, gameSettings.quiz));
   const [gameCode, setGameCode] = useState(savedState.gameCode || null);
+  const [onlineBackend, setOnlineBackend] = useState(() => (
+    savedState.onlineBackend === "ntfy" ? "ntfy" : isSupabaseConfigured() ? "supabase" : "ntfy"
+  ));
   const [isQuestionActive, setIsQuestionActive] = useState(savedState.isQuestionActive || false);
   const [selectedCategoryName, setSelectedCategoryName] = useState(savedState.selectedCategoryName || null);
   const [wheelRoundState, setWheelRoundState] = useState(savedState.wheelRoundState || null);
@@ -63,6 +67,7 @@ export const AppProvider = ({ children }) => {
   const [currentQuestionData, setCurrentQuestionData] = useState(null);
   const currentQuestionDataRef = useRef(currentQuestionData);
   currentQuestionDataRef.current = currentQuestionData;
+  const cloudStateRef = useRef(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isResultsPinned, setIsResultsPinned] = useState(false);
   const [isLogsPinned, setIsLogsPinned] = useState(false);
@@ -120,6 +125,7 @@ export const AppProvider = ({ children }) => {
       scoreHistory,
       quizLog,
       gameCode,
+      onlineBackend,
       selectedCategoryName,
       wheelRoundState,
       undoPointer,
@@ -140,7 +146,7 @@ export const AppProvider = ({ children }) => {
 
       // Zwiększony debounce do 500ms i wysyłanie tylko niezbędnych danych
       const timeoutId = setTimeout(() => {
-        syncStateToCloud(gameCode, {
+        const state = {
           isQuestionActive,
           players: gameSettings.players.map(p => ({ name: p.name, points: p.points, wiemLepiejUsed: p.wiemLepiejUsed })),
           wiemLepiejLimit: gameSettings.wiemLepiejLimit,
@@ -153,18 +159,22 @@ export const AppProvider = ({ children }) => {
           auctionStage: auctionStage,
           currentQuestion: isQuestionActive ? selectedCategoryName : null,
           questionData: isQuestionActive ? currentQuestionData : null,
-        });
+        };
+        cloudStateRef.current = state;
+        syncStateToCloud(gameCode, state, onlineBackend);
       }, 500);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, selectedCategoryName, currentQuestionData, wheelRoundState, undoPointer, buzzerQueue, auctionBids, playerAnswers, auctionStage, isAuctionTimerRunning, showAnswer]);
+  }, [isQuestionActive, gameSettings, scoreHistory, quizLog, gameCode, onlineBackend, selectedCategoryName, currentQuestionData, wheelRoundState, undoPointer, buzzerQueue, auctionBids, playerAnswers, auctionStage, isAuctionTimerRunning, showAnswer]);
 
   useEffect(() => {
     let eventSource = null;
     if (gameCode) {
       eventSource = listenForEvents(gameCode, (eventData) => {
-        if (eventData.type === "BUZZER") {
+        if (eventData.type === "STATE_REQUEST") {
+          if (cloudStateRef.current) syncStateToCloud(gameCode, cloudStateRef.current, onlineBackend);
+        } else if (eventData.type === "BUZZER") {
           setBuzzerQueue(prev => {
             if (prev.some(b => b.player.toLowerCase() === eventData.player.toLowerCase())) return prev;
             return [...prev, eventData];
@@ -189,7 +199,7 @@ export const AppProvider = ({ children }) => {
             }
           }));
           if (eventData.isConfirmed && eventData.eventId && canAcceptAnswer) {
-            acknowledgeAnswer(gameCode, eventData.player, eventData.eventId);
+            acknowledgeAnswer(gameCode, eventData.player, eventData.eventId, onlineBackend);
           }
         } else if (eventData.type === "WHEEL_CONTROL") {
           setWheelControlEvent({ ...eventData, id: `${eventData.player}-${eventData.action}-${eventData.time}` });
@@ -219,10 +229,10 @@ export const AppProvider = ({ children }) => {
             }
           });
         }
-      });
+      }, undefined, onlineBackend);
     }
     return () => { if (eventSource) eventSource.close(); };
-  }, [gameCode, gameSettings.quiz, isQuestionActive, selectedCategoryName]);
+  }, [gameCode, onlineBackend, gameSettings.quiz, isQuestionActive, selectedCategoryName]);
 
   const cloneSnapshot = useCallback((state) => {
     return compactGameSnapshot(state);
@@ -592,6 +602,7 @@ export const AppProvider = ({ children }) => {
     setScoreHistory(state.scoreHistory || []);
     setQuizLog(compactQuizLog(state.quizLog, identifiedQuiz));
     setGameCode(state.gameCode || null);
+    setOnlineBackend(state.onlineBackend === "ntfy" || !isSupabaseConfigured() ? "ntfy" : "supabase");
     setIsQuestionActive(state.isQuestionActive || false);
     setSelectedCategoryName(state.selectedCategoryName || null);
     setWheelRoundState(state.wheelRoundState || null);
@@ -612,6 +623,8 @@ export const AppProvider = ({ children }) => {
     setScoreHistory,
     gameCode,
     setGameCode,
+    onlineBackend,
+    setOnlineBackend,
     generateGameCode,
     toggleWiemLepiej,
     buzzerQueue,
@@ -682,6 +695,7 @@ export const AppProvider = ({ children }) => {
       scoreHistory,
       quizLog,
       gameCode,
+      onlineBackend,
       selectedCategoryName,
       wheelRoundState,
       undoPointer,
@@ -694,7 +708,7 @@ export const AppProvider = ({ children }) => {
       timestamp: new Date().toISOString()
     }),
   }), [
-    gameSettings, scoreHistory, gameCode, generateGameCode, toggleWiemLepiej, buzzerQueue, storageWarning,
+    gameSettings, scoreHistory, gameCode, onlineBackend, setOnlineBackend, generateGameCode, toggleWiemLepiej, buzzerQueue, storageWarning,
     auctionBids, auctionStage, isAuctionTimerRunning, quizList, customQuizzes, 
     editingQuiz, isQuestionActive, selectedCategoryName, quizLog, undoAction, 
     redoAction, jumpToLogIndex, undoPointer, addToLog, showAnswer, isAudioPlaying, 
