@@ -220,6 +220,7 @@ test("gracz widzi pytanie i warianty bez zaznaczania, a buzzer używa akcentu ap
       categoryName: "Kategoria testowa",
       question: "Jaka jest stolica Polski?",
       answers: ["Kraków", "Warszawa"],
+      image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='90'%3E%3Crect width='160' height='90' fill='%232ecc71'/%3E%3C/svg%3E",
     },
     players: [{ name: "Ala", points: 0, wiemLepiejUsed: 0 }],
     auctionBids: {},
@@ -239,6 +240,7 @@ test("gracz widzi pytanie i warianty bez zaznaczania, a buzzer używa akcentu ap
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 
   await expect(page.getByText("Jaka jest stolica Polski?", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Ilustracja pytania" })).toBeVisible();
   await expect(page.locator(".player-question-card")).not.toContainText("STATUS");
   const choices = page.locator(".player-question-card__answers li");
   await expect(choices).toHaveCount(2);

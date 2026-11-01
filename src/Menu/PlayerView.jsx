@@ -420,6 +420,17 @@ const PlayerView = () => {
                 {gameState.questionData.question}
               </Typography>
             )}
+            {gameState.questionData?.image && (
+              <img
+                className="player-question-card__image"
+                src={gameState.questionData.image.startsWith("http") || gameState.questionData.image.startsWith("data:") || gameState.questionData.image.startsWith("/")
+                  ? gameState.questionData.image
+                  : `/${gameState.questionData.image}`}
+                alt={gameState.questionData.imageIsAnswer ? "Obraz rozwiązania" : "Ilustracja pytania"}
+                loading="eager"
+                decoding="async"
+              />
+            )}
             {gameState.questionData?.answers?.length > 0 && (
               <ol className="player-question-card__answers">
                 {gameState.questionData.answers.map((option, index) => (

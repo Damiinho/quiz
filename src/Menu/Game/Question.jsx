@@ -137,20 +137,6 @@ const Question = ({ category }) => {
   const [bgTheme, setBgTheme] = useState(null);
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (!selectedQuestion) {
-      setCurrentQuestionData(null);
-      return;
-    }
-    setCurrentQuestionData({
-      categoryName: category.name,
-      question: reactNodeToText(selectedQuestion.question),
-      answers: Array.isArray(selectedQuestion.answers) ? shuffledAnswers : [],
-      remainingSeconds: timer,
-      acceptingAnswers: category.type === "openAnswer" && isTimerRunning && timer > 0,
-    });
-  }, [category.name, category.type, isTimerRunning, selectedQuestion, setCurrentQuestionData, shuffledAnswers, timer]);
-
   const allAlbumImages = useMemo(() => selectedQuestion?.images || [], [selectedQuestion]);
   const albumAnswerImage = useMemo(() => {
     if (selectedQuestion?.correctAnswerImage) return selectedQuestion.correctAnswerImage;
@@ -163,6 +149,26 @@ const Question = ({ category }) => {
     }
     return allAlbumImages;
   }, [allAlbumImages, albumAnswerImage]);
+
+  const playerQuestionImage = category.type === "album"
+    ? (showAnswer ? albumAnswerImage : albumRiddleImages[currentImageIndex] || albumRiddleImages[0] || null)
+    : selectedQuestion?.image || null;
+
+  useEffect(() => {
+    if (!selectedQuestion) {
+      setCurrentQuestionData(null);
+      return;
+    }
+    setCurrentQuestionData({
+      categoryName: category.name,
+      question: reactNodeToText(selectedQuestion.question),
+      answers: Array.isArray(selectedQuestion.answers) ? shuffledAnswers : [],
+      image: playerQuestionImage,
+      imageIsAnswer: category.type === "album" && showAnswer,
+      remainingSeconds: timer,
+      acceptingAnswers: category.type === "openAnswer" && isTimerRunning && timer > 0,
+    });
+  }, [category.name, category.type, isTimerRunning, playerQuestionImage, selectedQuestion, setCurrentQuestionData, shuffledAnswers, showAnswer, timer]);
 
   const hasMultipleRiddleImages = albumRiddleImages.length > 1;
   const hasCorrectAnswer = Array.isArray(selectedQuestion?.correctAnswer) && selectedQuestion.correctAnswer.some(answer => String(answer).trim());
