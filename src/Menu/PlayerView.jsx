@@ -7,7 +7,7 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SendIcon from "@mui/icons-material/Send";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { listenForEvents, listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl, isSupabaseConfigured } from "../utils/cloudSync";
+import { listenForEvents, listenForGameState, hitBuzzer, joinGame, submitBid, hitWiemLepiej, submitAnswer, sendWheelControl } from "../utils/cloudSync";
 import { isAnswerWindowOpen } from "../utils/answerWindow";
 
 const DrawingCanvas = ({ onUpdate, initialValue, disabled = false }) => {
@@ -142,9 +142,8 @@ DrawingCanvas.defaultProps = {
 
 const PlayerView = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [code, setCode] = useState("");
-  const [manualBackend, setManualBackend] = useState(() => searchParams.get("backend") || (isSupabaseConfigured() ? "supabase" : "ntfy"));
   const [joined, setJoined] = useState(false);
   const [gameState, setGameState] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState("idle");
@@ -162,8 +161,8 @@ const PlayerView = () => {
   answerWindowOpenRef.current = answerWindowOpen;
 
   useEffect(() => {
-    const invitedCode = searchParams.get("code")?.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6);
-    if (invitedCode?.length === 6) setCode(invitedCode);
+    const invitedCode = searchParams.get("code")?.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 7);
+    if (invitedCode?.length === 6 || invitedCode?.length === 7) setCode(invitedCode);
   }, [searchParams]);
 
   useEffect(() => {
@@ -226,7 +225,7 @@ const PlayerView = () => {
   }, [joined, code, playerName]);
 
   const handleJoin = () => {
-    if (code.length === 6 && playerName) {
+    if ((code.length === 6 || code.length === 7) && playerName) {
       setConnectionStatus("connecting");
       setJoined(true);
       joinGame(code.toUpperCase(), playerName);
@@ -353,30 +352,10 @@ const PlayerView = () => {
             label="KOD GRY"
             variant="outlined"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6))}
-            inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '24px', fontWeight: '900', letterSpacing: '4px' } }}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 7))}
+            inputProps={{ maxLength: 7, style: { textAlign: 'center', fontSize: '24px', fontWeight: '900', letterSpacing: '4px' } }}
             fullWidth
           />
-          {!searchParams.has("backend") && (
-            <TextField
-              select
-              label="USŁUGA POŁĄCZENIA"
-              value={manualBackend}
-              onChange={(event) => {
-                setManualBackend(event.target.value);
-                const nextParams = new URLSearchParams(searchParams);
-                nextParams.set("backend", event.target.value);
-                setSearchParams(nextParams);
-              }}
-              fullWidth
-              SelectProps={{ native: true }}
-            >
-              <option value="supabase" disabled={!isSupabaseConfigured()}>
-                {isSupabaseConfigured() ? "Supabase" : "Supabase (wymaga konfiguracji)"}
-              </option>
-              <option value="ntfy">ntfy (awaryjnie)</option>
-            </TextField>
-          )}
           <TextField
             label="TWOJA NAZWA (DLA BUZZERA)"
             variant="outlined"
@@ -388,7 +367,7 @@ const PlayerView = () => {
             variant="contained" 
             size="large" 
             onClick={handleJoin}
-            disabled={code.length !== 6 || !playerName}
+            disabled={(code.length !== 6 && code.length !== 7) || !playerName}
             sx={{ background: "#2ecc71", color: "#000", fontWeight: "800", "&:hover": { background: "#27ae60" } }}
           >
             DOŁĄCZ

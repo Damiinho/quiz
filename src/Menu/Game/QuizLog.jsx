@@ -89,7 +89,7 @@ export const QuizLog = ({ mobileOpen = false, onMobileToggle }) => {
   return (
     <div
       ref={containerRef}
-      className={`quiz-log-panel game-panel ${mobileOpen ? "game-panel--mobile-open" : ""} ${isLogsPinned ? "game-panel--pinned" : ""}`}
+      className={`quiz-log-panel game-panel ${showContent ? "game-panel--expanded" : ""} ${mobileOpen ? "game-panel--mobile-open" : ""} ${isLogsPinned ? "game-panel--pinned" : ""}`}
     >
       <div
         className="quiz-log-panel__header"

@@ -96,12 +96,13 @@ export const Results = ({ mobileOpen = false, onMobileToggle }) => {
   return (
     <div
       ref={containerRef}
-      className={`game-results-panel game-panel ${mobileOpen ? "game-panel--mobile-open" : ""} ${isResultsPinned ? "game-panel--pinned" : ""}`}
+      className={`game-results-panel game-panel ${showContent ? "game-panel--expanded" : ""} ${mobileOpen ? "game-panel--mobile-open" : ""} ${isResultsPinned ? "game-panel--pinned" : ""}`}
     >
       <audio ref={audioSuccessRef} src="/sounds/correct.mp3" />
       <audio ref={audioErrorRef} src="/sounds/wrong.mp3" />
       
       <div
+        className="game-panel__collapsed-header"
         style={{
           display: "flex",
           justifyContent: "space-between",

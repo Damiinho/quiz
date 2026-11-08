@@ -9,6 +9,7 @@ import TextFieldsIcon from "@mui/icons-material/TextFields";
 import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import CloudIcon from "@mui/icons-material/Cloud";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ const Settings = () => {
 
         <SettingCard title="TEKST" icon={<TextFieldsIcon sx={{ color: "#3b82f6" }} />}>
           <Box>
-            <Typography sx={{ fontWeight: 700, opacity: 0.8, mb: 1 }}>Rozmiar interfejsu: {appSettings.fontSize}%</Typography>
+            <Typography sx={{ fontWeight: 700, opacity: 0.8, mb: 1 }}>Rozmiar tekstu: {appSettings.fontSize}%</Typography>
             <Slider
               value={appSettings.fontSize}
               onChange={(e, v) => handleQuickSettingChange("fontSize", v)}
@@ -156,7 +157,7 @@ const Settings = () => {
               />
             </div>
             <Typography variant="caption" sx={{ opacity: 0.5, mb: 1 }}>
-              Automatycznie ukrywa wyniki i logi podczas aktywnego pytania.
+              Podczas pytania ukrywa wyniki i historię, ogranicza animacje oraz daje więcej miejsca treści i odpowiedzi. Wyłączysz go przyciskiem „Skupienie” u góry pytania.
             </Typography>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontWeight: 700, opacity: 0.8 }}>Widoczność logów</Typography>
@@ -167,6 +168,21 @@ const Settings = () => {
               />
             </div>
           </Box>
+        </SettingCard>
+
+        <SettingCard title="ONLINE" icon={<CloudIcon sx={{ color: "#38bdf8" }} />}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+            <Typography sx={{ fontWeight: 700, opacity: 0.9 }}>Awaryjny kod online</Typography>
+            <Switch
+              checked={Boolean(appSettings.emergencyOnlineCode)}
+              onChange={(e) => handleQuickSettingChange("emergencyOnlineCode", e.target.checked)}
+              inputProps={{ "aria-label": "Awaryjny kod online" }}
+              sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#38bdf8' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#38bdf8' } }}
+            />
+          </div>
+          <Typography variant="caption" sx={{ opacity: 0.6 }}>
+            Domyślnie kod gry korzysta z Supabase. Włącz tę opcję, aby następny wygenerowany kod korzystał z ntfy.
+          </Typography>
         </SettingCard>
       </Box>
 

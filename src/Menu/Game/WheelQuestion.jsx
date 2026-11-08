@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Typography } from "@mui/material";
+import GameTimer from "./GameTimer";
 import {
   applyWheelBankrupt,
   canBuyWheelVowel,
@@ -395,7 +396,7 @@ const WheelQuestion = ({ category, question, players, onChangePoints, wheelRound
   };
 
   const toggleTimer = () => {
-    if (timer === 0) setTimer(Number(category.timerSeconds) || 0);
+    if (timer === 0) setTimer(timerDuration);
     setIsTimerRunning((running) => !running);
   };
 
@@ -410,7 +411,14 @@ const WheelQuestion = ({ category, question, players, onChangePoints, wheelRound
           <Typography variant="overline">KOŁO FORTUNY</Typography>
           <Typography variant="h5">Tura: {currentPlayer?.name || "Gracz"}</Typography>
         </div>
-        {timerDuration > 0 && <div className="wheel-question__timer" aria-live="polite">{timer}</div>}
+        {timerDuration > 0 && (
+          <GameTimer
+            seconds={timer}
+            duration={timerDuration}
+            isRunning={isTimerRunning}
+            onToggle={toggleTimer}
+          />
+        )}
       </header>
 
       {(category.wheelHint || question.context) && (
@@ -451,9 +459,6 @@ const WheelQuestion = ({ category, question, players, onChangePoints, wheelRound
         )}
         <button type="button" className="wheel-question__buy" onClick={handleBuyBeforeSpin} disabled={spinPhase !== "idle" || wheelValue !== null}>
           KUP SAMOGŁOSKĘ ({category.vowelCost} pkt)
-        </button>
-        <button type="button" className="wheel-question__timer-control" onClick={toggleTimer}>
-          {isTimerRunning ? "PAUZA CZASU" : timer === 0 ? "START CZASU" : "WZNÓW CZAS"}
         </button>
       </div>
 

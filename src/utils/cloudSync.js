@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * Online transport adapter. A game selects exactly one backend: ntfy (default)
- * or Supabase Realtime. Supabase uses one broadcast channel per room and does
+ * Online transport adapter. A game selects exactly one backend: Supabase Realtime
+ * or ntfy as fallback. New room codes carry their backend in the first character.
+ * Supabase uses one broadcast channel per room and does
  * not persist messages; the player requests the latest state after connecting.
  */
 const NTFY_BASE_URL = "https://ntfy.sh";
@@ -19,12 +20,22 @@ export const isSupabaseConfigured = () => Boolean(supabase);
 
 const providerFromUrl = () => {
   if (typeof window === "undefined") return "ntfy";
-  return new URLSearchParams(window.location.search).get("backend") === "supabase"
-    ? "supabase"
-    : "ntfy";
+  const backend = new URLSearchParams(window.location.search).get("backend");
+  return backend === "supabase" || backend === "ntfy" ? backend : null;
 };
 
-const getProvider = (provider) => provider || providerFromUrl();
+const providerFromCode = (gameCode) => {
+  const normalizedCode = String(gameCode || "").toUpperCase();
+  if (normalizedCode.length !== 7) return null;
+  const firstCharacter = normalizedCode[0];
+  if (firstCharacter === "S") return "supabase";
+  if (firstCharacter === "N") return "ntfy";
+  return null;
+};
+
+const getProvider = (provider, gameCode) => (
+  provider || providerFromCode(gameCode) || providerFromUrl() || (supabase ? "supabase" : "ntfy")
+);
 
 const getSupabaseRoom = (gameCode) => {
   if (!supabase) throw new Error("Supabase nie jest skonfigurowany.");
@@ -106,7 +117,7 @@ const subscribeSupabase = (gameCode, event, callback, onConnectionChange = () =>
 
 const publishEvent = async (gameCode, eventData, provider) => {
   if (!gameCode) return false;
-  if (getProvider(provider) === "supabase") {
+  if (getProvider(provider, gameCode) === "supabase") {
     return sendSupabase(gameCode, "game-event", eventData);
   }
   try {
@@ -125,7 +136,7 @@ const publishEvent = async (gameCode, eventData, provider) => {
 
 export const syncStateToCloud = async (gameCode, state, provider) => {
   if (!gameCode) return false;
-  if (getProvider(provider) === "supabase") {
+  if (getProvider(provider, gameCode) === "supabase") {
     return sendSupabase(gameCode, "game-state", state);
   }
   try {
@@ -197,7 +208,7 @@ const listenForNtfy = (gameCode, topicPrefix, onMessage, onConnectionChange) => 
 };
 
 export const listenForGameState = (gameCode, onStateChange, onConnectionChange = () => {}, provider) => {
-  if (getProvider(provider) === "supabase") {
+  if (getProvider(provider, gameCode) === "supabase") {
     const subscription = subscribeSupabase(gameCode, "game-state", onStateChange, onConnectionChange);
     if (subscription) requestGameState(gameCode, provider);
     return subscription;
@@ -206,7 +217,7 @@ export const listenForGameState = (gameCode, onStateChange, onConnectionChange =
 };
 
 export const listenForEvents = (gameCode, onEvent, onConnectionChange = () => {}, provider) => {
-  if (getProvider(provider) === "supabase") {
+  if (getProvider(provider, gameCode) === "supabase") {
     return subscribeSupabase(gameCode, "game-event", onEvent, onConnectionChange);
   }
   return listenForNtfy(gameCode, "sz-buzzer", onEvent, onConnectionChange);

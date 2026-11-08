@@ -1,14 +1,15 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "./contexts/AppContext";
-import { Alert, Dialog, DialogContent, DialogTitle, Menu, Snackbar, Switch, Box, Typography, IconButton } from "@mui/material";
+import { Alert, Dialog, DialogContent, DialogTitle, Menu, Snackbar, Switch, Slider, Box, Typography, IconButton } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HomeIcon from "@mui/icons-material/Home";
+import CloudIcon from "@mui/icons-material/Cloud";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CloudOffIcon from "@mui/icons-material/CloudOff";
+import QrCode2Icon from "@mui/icons-material/QrCode2";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
-import QrCode2Icon from "@mui/icons-material/QrCode2";
 import CloseIcon from "@mui/icons-material/Close";
 import QRCode from "qrcode";
 
@@ -23,6 +24,7 @@ const Header = () => {
     gameCode,
     setGameCode,
     onlineBackend,
+    setOnlineBackend,
     generateGameCode,
     storageWarning,
     dismissStorageWarning,
@@ -60,12 +62,14 @@ const Header = () => {
     setAnchorEl(null);
   };
 
-  const handleThemeChange = (event) => {
-    setAppSettings(prev => ({ ...prev, themeMode: event.target.checked ? "colorful" : "simple" }));
-  };
-
   const handleQuickSettingChange = (key, value) => {
     setAppSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleGenerateOnlineGame = () => {
+    const backend = appSettings.emergencyOnlineCode ? "ntfy" : "supabase";
+    setOnlineBackend(backend);
+    generateGameCode(backend);
   };
 
   const handleCopyGameCode = async () => {
@@ -102,10 +106,11 @@ const Header = () => {
   };
 
   const isGameRoute = location.pathname === "/gra";
+  const isImmersiveFocus = isGameRoute && appSettings?.focusMode && isQuestionActive;
 
   return (
-    <div className={`header ${location.pathname === "/gracz" ? "header--player" : ""}`}>
-      <div className={`header__left-controls ${gameCode && isGameRoute ? "header__left-controls--game" : ""} ${location.pathname === "/gracz" ? "header__left-controls--player" : ""}`}>
+    <div className={`header ${location.pathname === "/gracz" ? "header--player" : ""} ${isImmersiveFocus ? "header--focus-hidden" : ""}`}>
+      <div className={`header__left-controls ${location.pathname === "/gracz" ? "header__left-controls--player" : ""}`}>
         <IconButton 
           onClick={handleHeaderClick}
           sx={{ 
@@ -121,54 +126,29 @@ const Header = () => {
           <HomeIcon fontSize="large" />
         </IconButton>
 
-        {(gameCode && isGameRoute) && (
-          <div className="header__game-code">
-            <div className="header__game-code-value">
-              <span>KOD GRY:</span>
-              <strong>{gameCode}</strong>
-              <small style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>{onlineBackend === "supabase" ? "SUPABASE" : "NTFY"}</small>
-            </div>
-            <div className="header__game-code-actions">
-              <IconButton
-                size="small"
-                onClick={() => setIsQrOpen(true)}
-                sx={{ color: 'rgba(255,255,255,0.75)', padding: '4px' }}
-                title="Pokaż kod QR do dołączenia"
-                aria-label="Pokaż kod QR"
-              >
-                <QrCode2Icon sx={{ fontSize: '19px' }} />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={handleCopyGameCode}
-                sx={{ color: isGameCodeCopied ? '#2ecc71' : 'rgba(255,255,255,0.75)', padding: '4px' }}
-                title={isGameCodeCopied ? "Skopiowano kod" : "Kopiuj kod"}
-                aria-label="Kopiuj kod gry"
-              >
-                {isGameCodeCopied ? <CheckIcon sx={{ fontSize: '18px' }} /> : <ContentCopyIcon sx={{ fontSize: '18px' }} />}
-              </IconButton>
-              <IconButton 
-                size="small" 
-                onClick={generateGameCode}
-                sx={{ color: '#2ecc71', padding: '4px' }}
-                title="Zmień kod"
-              >
-                <RefreshIcon sx={{ fontSize: '18px' }} />
-              </IconButton>
-              <IconButton 
-                size="small" 
-                onClick={() => setGameCode(null)}
-                sx={{ color: 'rgba(255,255,255,0.3)', padding: '4px', '&:hover': { color: '#ef4444' } }}
-                title="Wyłącz online"
-              >
-                <CloudOffIcon sx={{ fontSize: '18px' }} />
-              </IconButton>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className={`header__right-controls ${location.pathname === "/gracz" ? "header__right-controls--player" : ""}`}>
+        {isGameRoute && (
+          gameCode ? (
+            <div className="header__game-code-bar" aria-label={`Gra online, kod ${gameCode}`}>
+              <button className="header__game-code-value" onClick={() => setIsQrOpen(true)} aria-label={`Pokaż kod QR gry ${gameCode}`} title="Pokaż kod QR">{gameCode}<QrCode2Icon className="header__game-code-qr-icon" /></button>
+              <IconButton onClick={handleCopyGameCode} title="Kopiuj kod" aria-label="Kopiuj kod gry" className="header__game-code-action">{isGameCodeCopied ? <CheckIcon /> : <ContentCopyIcon />}</IconButton>
+              <IconButton onClick={generateGameCode} title="Zmień kod" aria-label="Zmień kod gry" className="header__game-code-action"><RefreshIcon /></IconButton>
+              <IconButton onClick={() => setGameCode(null)} title="Wyłącz online" aria-label="Wyłącz grę online" className="header__game-code-action header__game-code-cloud-action"><CloudIcon className="header__bar-cloud-icon header__bar-cloud-icon--normal" /><CloudOffIcon className="header__bar-cloud-icon header__bar-cloud-icon--hover" /></IconButton>
+            </div>
+          ) : (
+            <IconButton
+              onClick={handleGenerateOnlineGame}
+              aria-label="Utwórz grę online"
+              title="Utwórz grę online"
+              className={`header__cloud-trigger ${gameCode ? "header__cloud-trigger--online" : "header__cloud-trigger--offline"}`}
+              sx={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px", width: "56px", height: "56px", '&:hover': { background: "rgba(255,255,255,0.1)" } }}
+            >
+              {gameCode ? <><CloudIcon className="header__cloud-icon header__cloud-icon--normal" fontSize="large" /><CloudOffIcon className="header__cloud-icon header__cloud-icon--hover" fontSize="large" /></> : <><CloudOffIcon className="header__cloud-icon header__cloud-icon--normal" fontSize="large" /><CloudIcon className="header__cloud-icon header__cloud-icon--hover" fontSize="large" /></>}
+            </IconButton>
+          )
+        )}
         <IconButton 
           onClick={handleSettingsClick}
           aria-label="Otwórz szybkie ustawienia"
@@ -189,8 +169,7 @@ const Header = () => {
       </div>
 
       <Dialog open={isQrOpen} onClose={() => setIsQrOpen(false)} aria-labelledby="game-qr-title" sx={{ zIndex: "var(--layer-dialog)" }}>
-        <DialogTitle id="game-qr-title" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
-          Dołącz do gry
+        <DialogTitle id="game-qr-title" sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
           <IconButton onClick={() => setIsQrOpen(false)} aria-label="Zamknij kod QR" size="small"><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent className="game-qr-dialog">
@@ -221,7 +200,9 @@ const Header = () => {
             background: "linear-gradient(145deg, #1e293b 0%, #0f172a 100%)",
             color: "#fff",
             padding: "8px",
-            width: "280px",
+            width: "320px",
+            maxHeight: "calc(100vh - 40px)",
+            overflowY: "auto",
             borderRadius: "20px",
             border: "1px solid rgba(255,255,255,0.1)",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
@@ -235,23 +216,49 @@ const Header = () => {
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Motyw kolorowy</Typography>
-                <Switch size="small" checked={appSettings.themeMode === "colorful"} onChange={handleThemeChange} />
-              </div>
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Tryb skupienia</Typography>
-                <Switch
-                  size="small"
-                  checked={Boolean(appSettings.focusMode)}
-                  onChange={(event) => handleQuickSettingChange("focusMode", event.target.checked)}
-                />
-              </div>
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Dźwięki</Typography>
                 <Switch
                   size="small"
                   checked={appSettings.soundEffects !== false}
                   onChange={(event) => handleQuickSettingChange("soundEffects", event.target.checked)}
+                />
+              </div>
+              <div style={{ background: "rgba(59,130,246,0.08)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(96,165,250,0.18)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Tryb skupienia</Typography>
+                <Switch
+                  size="small"
+                  checked={Boolean(appSettings.focusMode)}
+                  onChange={(event) => {
+                    handleQuickSettingChange("focusMode", event.target.checked);
+                    handleClose();
+                  }}
+                  inputProps={{ "aria-label": "Tryb skupienia" }}
+                  sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#60a5fa' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#60a5fa' } }}
+                />
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "10px 12px 4px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" }}>
+                  <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Rozmiar tekstu</Typography>
+                  <Typography sx={{ fontSize: "0.8rem", opacity: 0.7 }}>{appSettings.fontSize}%</Typography>
+                </div>
+                <Slider
+                  size="small"
+                  aria-label="Rozmiar tekstu"
+                  value={appSettings.fontSize}
+                  onChange={(_, value) => handleQuickSettingChange("fontSize", value)}
+                  min={70}
+                  max={150}
+                  step={5}
+                  sx={{ color: "#38bdf8", mt: 0.5 }}
+                />
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "12px", padding: "4px 12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography sx={{ fontSize: "0.85rem", fontWeight: 600 }}>Awaryjny kod online (ntfy)</Typography>
+                <Switch
+                  size="small"
+                  checked={Boolean(appSettings.emergencyOnlineCode)}
+                  onChange={(event) => handleQuickSettingChange("emergencyOnlineCode", event.target.checked)}
+                  inputProps={{ "aria-label": "Awaryjny kod online przez ntfy" }}
                 />
               </div>
           </Box>

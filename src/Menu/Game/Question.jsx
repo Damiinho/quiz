@@ -7,9 +7,14 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import GavelIcon from "@mui/icons-material/Gavel";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
+import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
+import ReplayIcon from "@mui/icons-material/Replay";
+import CloseIcon from "@mui/icons-material/Close";
 import { AppContext } from "../../contexts/AppContext";
 import AnswerButton from "./AnswerButton";
 import WheelQuestion from "./WheelQuestion";
+import GameTimer from "./GameTimer";
 import { reactNodeToText } from "../../utils/quizStorage";
 
 const getQuestionFontSize = (text = "") => {
@@ -62,6 +67,7 @@ const Question = ({ category }) => {
     isAudioPlaying, 
     setIsAudioPlaying,
     appSettings,
+    setAppSettings,
     auctionBids,
     auctionStage,
     isQuestionActive,
@@ -81,7 +87,9 @@ const Question = ({ category }) => {
 
   const [wiemLepiejNotify, setWiemLepiejNotify] = useState(null);
   const [isContextOpen, setIsContextOpen] = useState(false);
-  const prevWiemLepiejRef = useRef({});
+  const prevWiemLepiejRef = useRef(Object.fromEntries(
+    gameSettings.players.map((player) => [player.name, player.wiemLepiejUsed || 0])
+  ));
 
   const selectedQuestion = useMemo(() => {
     if (!category?.list) return null;
@@ -125,6 +133,8 @@ const Question = ({ category }) => {
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
   const [answerAnnouncement, setAnswerAnnouncement] = useState("");
   const [showHiddenQuestion, setShowHiddenQuestion] = useState(false);
+  const [quickTimerSeconds, setQuickTimerSeconds] = useState(null);
+  const [isQuickTimerRunning, setIsQuickTimerRunning] = useState(false);
   const audioRef = useRef(null);
   const audioTickRef = useRef(null);
   const audioRevealRef = useRef(null);
@@ -206,6 +216,19 @@ const Question = ({ category }) => {
       audioRevealRef.current.play().catch(() => {});
     }
   }, [appSettings?.soundEffects]);
+
+  useEffect(() => {
+    if (quickTimerSeconds === null) return undefined;
+    if (quickTimerSeconds <= 0) {
+      setIsQuickTimerRunning(false);
+      return undefined;
+    }
+    if (!isQuickTimerRunning) return undefined;
+    const timeoutId = window.setTimeout(() => {
+      setQuickTimerSeconds((remaining) => remaining === null ? null : Math.max(0, remaining - 1));
+    }, 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [quickTimerSeconds, isQuickTimerRunning]);
 
   const handleGoBackWithLog = useCallback(() => {
     closeCategory(category.name);
@@ -305,13 +328,30 @@ const Question = ({ category }) => {
     }
   };
 
+  const handleQuickTimerClick = () => {
+    if (quickTimerSeconds === null || quickTimerSeconds === 0) {
+      setQuickTimerSeconds(10);
+      setIsQuickTimerRunning(true);
+    } else {
+      setIsQuickTimerRunning((running) => !running);
+    }
+  };
+
+  const closeQuickTimer = () => {
+    setQuickTimerSeconds(null);
+    setIsQuickTimerRunning(false);
+  };
+
   const isTimeUp = shouldShowTimer && timer === 0;
+  const quickTimerProgress = quickTimerSeconds === null
+    ? 0
+    : Math.min(1, Math.max(0, (10 - Math.max(0, quickTimerSeconds)) / 10));
+  const upperSandSurfaceY = 3.85 + 7.3 * quickTimerProgress;
+  const lowerSandSurfaceY = 21.4 - 9 * quickTimerProgress;
   const isCracked = category?.type === "auction" && isTimeUp;
   const timerProgress = shouldShowTimer
     ? Math.min(100, Math.max(0, ((questionTimerSeconds - timer) / questionTimerSeconds) * 100))
     : 0;
-  const isUrgent = (shouldShowTimer && isTimerRunning && timer <= 10 && timer > 0) || isTimeUp;
-  const isDanger = (shouldShowTimer && isTimerRunning && timer <= 5 && timer > 0) || isTimeUp;
   const hasAnswers = Array.isArray(selectedQuestion?.answers) && selectedQuestion.answers.length > 0;
   const shouldShowGenericAnswers = hasAnswers && category?.type !== "forehead" && category?.type !== "auction" && category?.type !== "duel";
   const hasManyLongAnswers = shouldShowGenericAnswers
@@ -369,7 +409,7 @@ const Question = ({ category }) => {
   if (category?.type === "wheel") {
     return (
       <WheelQuestion
-        category={{ ...category, wheelValues: selectedQuestion.wheelValues, vowelCost: selectedQuestion.vowelCost, timerSeconds: selectedQuestion.timerSeconds, wheelHint: selectedQuestion.wheelHint || selectedQuestion.context }}
+        category={{ ...category, wheelValues: selectedQuestion.wheelValues, vowelCost: selectedQuestion.vowelCost, timerSeconds: selectedQuestion.timerSeconds ?? category.timerSeconds, wheelHint: selectedQuestion.wheelHint || selectedQuestion.context }}
         question={selectedQuestion}
         players={gameSettings.players}
         onChangePoints={changePlayerPoints}
@@ -403,7 +443,7 @@ const Question = ({ category }) => {
           }
         `}
       </style>
-      <audio ref={audioRef} />
+      <audio ref={audioRef} onEnded={() => setIsAudioPlaying(false)} />
       <audio ref={audioTickRef} src="/sounds/tick.mp3" />
       <audio ref={audioRevealRef} src="/sounds/reveal.mp3" />
       <div className="sr-only" aria-live="polite">{answerAnnouncement}</div>
@@ -433,8 +473,68 @@ const Question = ({ category }) => {
         </div>
       )}
 
+      {quickTimerSeconds !== null && (
+        <div className={`question-quick-timer-overlay ${quickTimerSeconds <= 3 ? "question-quick-timer-overlay--urgent" : ""}`} role="timer" aria-label={quickTimerSeconds === 0 ? "Czas minął!" : `Pozostało ${quickTimerSeconds} sekund`}>
+          <div className="question-quick-timer-card">
+            <div className="question-quick-timer-card__content">
+              <div className="question-quick-timer-card__main">
+                <div className="question-quick-timer-card__hourglass">
+                <svg className={`question-quick-timer-card__hourglass-sand ${isQuickTimerRunning ? "is-running" : ""}`} viewBox="0 0 24 24" aria-hidden="true">
+                <defs>
+                  <clipPath id="quick-timer-upper-chamber" clipPathUnits="userSpaceOnUse">
+                    <path d="M7.85 3.85 H16.15 V7.5 L12 11.15 L7.85 7.5 Z" />
+                  </clipPath>
+                  <clipPath id="quick-timer-lower-chamber" clipPathUnits="userSpaceOnUse">
+                    <path d="M12 12.4 L16.15 16.4 V21.4 H7.85 V16.4 Z" />
+                  </clipPath>
+                </defs>
+                <path
+                  className="question-quick-timer-card__hourglass-chamber-fill"
+                  d="M7.85 3.85 H16.15 V7.5 L12 11.15 L7.85 7.5 Z"
+                  style={{ fill: "#1e293b" }}
+                />
+                <path
+                  className="question-quick-timer-card__hourglass-chamber-fill"
+                  d="M12 12.4 L16.15 16.4 V21.4 H7.85 V16.4 Z"
+                  style={{ fill: "#1e293b" }}
+                />
+                <rect
+                  className="question-quick-timer-card__sand-top"
+                  clipPath="url(#quick-timer-upper-chamber)"
+                  x="0"
+                  y={upperSandSurfaceY}
+                  width="24"
+                  height={24 - upperSandSurfaceY}
+                />
+                <rect
+                  className="question-quick-timer-card__sand-bottom"
+                  clipPath="url(#quick-timer-lower-chamber)"
+                  x="0"
+                  y={lowerSandSurfaceY}
+                  width="24"
+                  height={24 - lowerSandSurfaceY}
+                />
+                <path className="question-quick-timer-card__sand-stream" d="M12 11.5 V12.5" />
+                <path
+                  className="question-quick-timer-card__hourglass-frame"
+                  d="M6 2 H18 M6 22 H18 M7 3 H17 V7.5 L12 12 L7 7.5 Z M12 12 L17 16.5 V22 H7 V16.5 Z"
+                />
+                </svg>
+                </div>
+                <div className="question-quick-timer-card__readout">
+                  <span className={`question-quick-timer-card__time ${quickTimerSeconds === 0 ? "question-quick-timer-card__time--finished" : ""}`}>
+                    {quickTimerSeconds === 0 ? "Czas minął!" : `00:${String(quickTimerSeconds).padStart(2, "0")}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <IconButton onClick={closeQuickTimer} aria-label="Zamknij odliczanie" className="question-quick-timer-card__close"><CloseIcon /></IconButton>
+          </div>
+        </div>
+      )}
+
       <div 
-        className={`question-view ${hasManyLongAnswers ? "question-view--many-long-answers" : ""} ${hasManyLongAnswers && shuffledAnswers.length >= 7 ? "question-view--seven-plus-answers" : ""} ${category?.type === "auction" ? `auction-mode ${isCracked ? 'is-cracked' : ''}` : ''}`}
+        className={`question-view ${appSettings?.focusMode && isQuestionActive ? "question-view--focus" : ""} ${hasManyLongAnswers ? "question-view--many-long-answers" : ""} ${hasManyLongAnswers && shuffledAnswers.length >= 7 ? "question-view--seven-plus-answers" : ""} ${category?.type === "auction" ? `auction-mode ${isCracked ? 'is-cracked' : ''}` : ''}`}
         style={{
           ...(bgTheme ? {
             backgroundImage: bgTheme,
@@ -457,33 +557,57 @@ const Question = ({ category }) => {
             </Typography>
           </div>
           {shouldShowTimer && (
-            <div 
-              className={`question-view__timer ${isUrgent ? 'urgent' : ''} ${isDanger ? 'danger' : ''}`}
-              onClick={() => {
-                if (timer === 0) setTimer(questionTimerSeconds);
-                else setIsTimerRunning(!isTimerRunning);
+            <GameTimer
+              seconds={timer}
+              duration={questionTimerSeconds}
+              isRunning={isTimerRunning}
+              onToggle={() => {
+                if (timer <= 0) {
+                  setTimer(questionTimerSeconds);
+                  setIsTimerRunning(true);
+                } else {
+                  setIsTimerRunning((running) => !running);
+                }
               }}
-              style={{
-                cursor: "pointer",
-                border: isDanger ? "4px solid #ef4444" : isUrgent ? "4px solid #f59e0b" : "4px solid #2ecc71",
-                color: isDanger ? "#ef4444" : isUrgent ? "#f59e0b" : "#2ecc71",
-                animation: isDanger ? "pulse 0.5s infinite" : "none"
-              }}
+            />
+          )}
+          {!shouldShowTimer && (
+            <button
+              type="button"
+              className={`question-view__quick-timer ${quickTimerSeconds !== null ? "is-active" : ""}`}
+              onClick={handleQuickTimerClick}
+              aria-label={quickTimerSeconds === null || quickTimerSeconds === 0 ? "Uruchom odliczanie na 10 sekund" : isQuickTimerRunning ? "Wstrzymaj odliczanie" : "Wznów odliczanie"}
+              title={quickTimerSeconds === null || quickTimerSeconds === 0 ? "Odlicz 10 sekund" : isQuickTimerRunning ? "Wstrzymaj odliczanie" : "Wznów odliczanie"}
             >
-              {timer}
-            </div>
+              <HourglassBottomIcon fontSize="small" />
+              <span>{quickTimerSeconds === null || quickTimerSeconds === 0 ? "10 s" : isQuickTimerRunning ? "Pauza" : "Wznów"}</span>
+            </button>
           )}
           {selectedQuestion.sound && (
-            <button 
-              className="question-view__audio-btn" 
-              aria-label={isAudioPlaying ? "Wstrzymaj dźwięk pytania" : "Odtwórz dźwięk pytania"}
-              onClick={() => {
-                if (isAudioPlaying) setIsAudioPlaying(false);
-                else playSound(selectedQuestion.sound);
-              }}
-            >
-              {isAudioPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
-            </button>
+            <div className="question-view__audio-controls">
+              <div className="question-view__audio-main">
+                {isAudioPlaying && (
+                  <IconButton
+                    className="question-view__audio-replay-btn"
+                    onClick={() => playSound(selectedQuestion.sound)}
+                    aria-label="Odtwórz muzykę od początku"
+                    title="Odtwórz od początku"
+                  >
+                    <ReplayIcon />
+                  </IconButton>
+                )}
+                <button
+                  className="question-view__audio-btn"
+                  aria-label={isAudioPlaying ? "Wstrzymaj dźwięk pytania" : "Odtwórz dźwięk pytania"}
+                  onClick={() => {
+                    if (isAudioPlaying) setIsAudioPlaying(false);
+                    else playSound(selectedQuestion.sound);
+                  }}
+                >
+                  {isAudioPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
+                </button>
+              </div>
+            </div>
           )}
           {questionContext && (
             <button
@@ -492,6 +616,19 @@ const Question = ({ category }) => {
               className={`question-view__context-btn ${isContextOpen ? "is-open" : ""}`}
             >
               {isContextOpen ? "Ukryj kontekst" : "Pokaż kontekst"}
+            </button>
+          )}
+          {appSettings?.focusMode && isQuestionActive && (
+            <button
+              type="button"
+              className="question-view__focus-toggle"
+              onClick={() => setAppSettings((previous) => ({ ...previous, focusMode: false }))}
+              title="Wyłącz tryb skupienia"
+              aria-label="Wyłącz tryb skupienia"
+            >
+              <CenterFocusStrongIcon fontSize="small" />
+              <span>Skupienie</span>
+              <span className="question-view__focus-toggle-hint">Wyłącz</span>
             </button>
           )}
         </div>

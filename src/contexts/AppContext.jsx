@@ -48,7 +48,7 @@ export const AppProvider = ({ children }) => {
   }));
   const [scoreHistory, setScoreHistory] = useState(savedState.scoreHistory || []);
   const [quizLog, setQuizLog] = useState(() => compactQuizLog(savedState.quizLog, gameSettings.quiz));
-  const [gameCode, setGameCode] = useState(savedState.gameCode || null);
+  const [gameCode, setGameCode] = useState(null);
   const [onlineBackend, setOnlineBackend] = useState(() => (
     savedState.onlineBackend === "ntfy" ? "ntfy" : isSupabaseConfigured() ? "supabase" : "ntfy"
   ));
@@ -86,7 +86,7 @@ export const AppProvider = ({ children }) => {
     ...loadAppSettings()
   }));
 
-  const generateGameCode = useCallback(() => {
+  const generateGameCode = useCallback((backend = onlineBackend) => {
     const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     const randomBytes = new Uint8Array(6);
     if (globalThis.crypto?.getRandomValues) {
@@ -94,10 +94,11 @@ export const AppProvider = ({ children }) => {
     } else {
       randomBytes.forEach((_, index) => { randomBytes[index] = Math.floor(Math.random() * 256); });
     }
-    const code = [...randomBytes].map((value) => alphabet[value % alphabet.length]).join("");
+    const backendPrefix = backend === "supabase" ? "S" : "N";
+    const code = `${backendPrefix}${[...randomBytes].map((value) => alphabet[value % alphabet.length]).join("")}`;
     setGameCode(code);
     return code;
-  }, []);
+  }, [onlineBackend]);
 
   const toggleWiemLepiej = useCallback(() => {
     setGameSettings(prev => ({ ...prev, wiemLepiejLimit: prev.wiemLepiejLimit > 0 ? 0 : 1 }));
@@ -171,7 +172,11 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     let eventSource = null;
     if (gameCode) {
+      const subscribedAt = Date.now();
       eventSource = listenForEvents(gameCode, (eventData) => {
+        const eventTime = Number(eventData?.time);
+        if (Number.isFinite(eventTime) && eventTime < subscribedAt) return;
+
         if (eventData.type === "STATE_REQUEST") {
           if (cloudStateRef.current) syncStateToCloud(gameCode, cloudStateRef.current, onlineBackend);
         } else if (eventData.type === "BUZZER") {
@@ -556,7 +561,11 @@ export const AppProvider = ({ children }) => {
 
   const startNewQuiz = useCallback((quiz) => {
     const identifiedQuiz = ensureQuizIdentity(quiz, "game");
-    setGameSettings(prev => ({ ...prev, quiz: identifiedQuiz }));
+    setGameSettings(prev => ({
+      ...prev,
+      quiz: identifiedQuiz,
+      players: prev.players.map((player) => ({ ...player, wiemLepiejUsed: 0 })),
+    }));
     setScoreHistory([]);
     setQuizLog([]);
     setIsQuestionActive(false);

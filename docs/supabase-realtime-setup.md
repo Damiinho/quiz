@@ -1,8 +1,10 @@
 # Supabase Realtime setup
 
-The game can use either the existing public ntfy service or Supabase Realtime.
-The host selects one service before creating the online game code. The selected
-service is saved with the host's game and included in player invite links.
+The game can use either Supabase Realtime or the existing public ntfy service.
+The host selects one service before creating the online game code. New codes are
+seven characters long: `S` at the start means Supabase and `N` means ntfy. The
+player app detects the service from the code automatically. Invite links also
+carry the service for compatibility with older six-character codes.
 
 ## Configure Supabase
 
